@@ -1,0 +1,18 @@
+{
+    "include": [
+      "app/**",
+      "components/**",
+      "lib/**",
+      "types/**",
+      "PULSE_OS_MASTER.md",
+      "README.md"
+    ],
+    "exclude": [
+      "node_modules/**",
+      ".next/**",
+      "public/**",
+      "scripts/**"
+    ],
+    "maxFileSizeKB": 350
+  }
+  

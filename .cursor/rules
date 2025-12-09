@@ -1,0 +1,104 @@
+# Pulse OS – Cursor Rules
+
+## 1. What this project is
+- This repo is **Pulse OS**, a Life Operating System.
+- Tech stack: **Next.js 16 (App Router + Turbopack), React, TypeScript, Tailwind, Supabase, Stripe, OpenAI**.
+- The source of truth for product vision is `PULSE_OS_MASTER.md`.
+
+When in doubt:
+1. Read `PULSE_OS_MASTER.md`.
+2. Prefer **small, incremental PR-sized changes**.
+3. Keep UX simple, calm, and ADHD-friendly.
+
+---
+
+## 2. Coding standards
+
+- Use **TypeScript** everywhere (no new `.js` files in `app`, `components`, or `lib`).
+- Prefer **server components** by default; only use `"use client"` when needed.
+- Styling:
+  - Tailwind as the default.
+  - Extract repeated layouts into reusable components in `components/`.
+- Data access:
+  - Encapsulate Supabase/HTTP calls under `lib/` or `app/api/*` route handlers.
+  - Avoid putting raw Supabase calls directly inside complex React components.
+- Error handling:
+  - Never silently swallow errors.
+  - Log with context and show a graceful UI state.
+
+---
+
+## 3. High-priority files/dirs
+
+When asked to “improve Pulse” or “analyze architecture”, focus on:
+
+1. `PULSE_OS_MASTER.md`
+2. `app/` – routes, layouts, main pages.
+3. `components/` – reusable UI.
+4. `lib/` – business logic, services, Supabase, integrations.
+5. `types/` – shared types and interfaces.
+
+Avoid touching:
+
+- `node_modules/`
+- `.next/`
+- Any archive/backup folders
+- Generated artifacts
+
+---
+
+## 4. Behavior & safety rules
+
+- **Do not** introduce any sexual or erotic content. Pulse’s identity explicitly forbids this.
+- Avoid manipulative UX or dark patterns.
+- For AI features:
+  - Must be **opt-in**.
+  - Respect user privacy and data ownership.
+  - Clearly communicate what’s stored and why.
+
+---
+
+## 5. Implementing new features
+
+For any new feature:
+
+1. Add a brief comment at the top of the main file explaining the feature scope.
+2. Prefer:
+   - Route handlers in `app/api/...` for backend work.
+   - UI in `app/...` or `components/...`.
+   - Shared types in `types/` or local `type`/`interface` blocks.
+3. Use TODO comments only when:
+   - The follow-up work is realistic.
+   - It’s clear what needs to happen (e.g. `// TODO: hook this up to XP engine once /api/xp is implemented`).
+
+---
+
+## 6. Debugging checklist
+
+When asked to debug:
+
+1. Check the terminal output and stack traces.
+2. Inspect the relevant route under `app/`.
+3. Inspect any related `app/api/...` handlers.
+4. Confirm required env vars are present before assuming the code is broken.
+
+---
+
+## 7. Middleware / routing
+
+- There is a `middleware.ts`; Next.js says the middleware convention is deprecated.
+- Do **not** delete middleware without a replacement plan.
+- If refactoring:
+  - Prefer proxy/route-handler based approaches.
+  - Preserve auth and multi-tenant behavior.
+
+---
+
+## 8. UX tone
+
+- Pulse is supportive, non-judgmental, and growth-focused.
+- Copy should be:
+  - Clear and direct
+  - Encouraging, not shaming
+  - Friendly to distracted/ADHD users
+- Default dashboards: minimal, uncluttered, with obvious next actions.

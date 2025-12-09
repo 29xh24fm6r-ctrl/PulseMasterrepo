@@ -30,8 +30,16 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# Environment variables — always ignored
+.env
+.env.local
+.env.development.local
+.env.production.local
+.env.test.local
+
+# Allow safe example file to be committed
+!.env.example
+
 
 # vercel
 .vercel
@@ -50,3 +58,6 @@ next-env.d.ts
 *.tar
 *.tar.gz
 *.rar
+
+# clerk configuration (can include secrets)
+/.clerk/

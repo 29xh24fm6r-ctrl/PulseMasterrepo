@@ -1,0 +1,32 @@
+# Build artifacts
+.next
+out
+dist
+
+# Dependencies
+node_modules
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# Logs & debug
+*.log
+npm-debug.log*
+yarn-error.log*
+
+# OS / editor junk
+.DS_Store
+Thumbs.db
+
+# Archives / backups
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*_backup.*
+*~ 
+
+# OneDrive temp stuff
+~$*
