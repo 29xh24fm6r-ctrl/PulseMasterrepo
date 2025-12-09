@@ -1,0 +1,48 @@
+{
+  "name": "nextjs",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@clerk/nextjs": "^6.35.6",
+    "@distube/ytdl-core": "^4.16.12",
+    "@notionhq/client": "^2.3.0",
+    "@picovoice/porcupine-react": "^3.0.3",
+    "@picovoice/web-voice-processor": "^4.0.9",
+    "@supabase/supabase-js": "^2.86.2",
+    "formidable": "^3.5.4",
+    "framer-motion": "^12.23.25",
+    "googleapis": "^166.0.0",
+    "lucide-react": "^0.554.0",
+    "next": "^16.0.7",
+    "nodemailer": "^7.0.10",
+    "openai": "^6.9.1",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "recharts": "^3.5.1",
+    "resend": "^6.5.2",
+    "stripe": "^20.0.0",
+    "twilio": "^5.10.7",
+    "web-push": "^3.6.7",
+    "youtube-transcript": "^1.2.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/nodemailer": "^7.0.4",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/stripe": "^8.0.417",
+    "@types/web-push": "^3.6.4",
+    "baseline-browser-mapping": "^2.8.32",
+    "eslint": "^9",
+    "eslint-config-next": "16.0.1",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
