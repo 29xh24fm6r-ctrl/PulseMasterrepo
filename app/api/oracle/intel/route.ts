@@ -3,7 +3,15 @@ import OpenAI from "openai";
 import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase";
 
-const openai = new OpenAI();
+// Lazy initialization of OpenAI client
+function getOpenAIClient(): OpenAI {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    console.warn("❌ Missing OPENAI_API_KEY environment variable");
+    return new OpenAI({ apiKey: "placeholder-key" });
+  }
+  return new OpenAI({ apiKey });
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -45,6 +53,7 @@ Recent Interactions: ${interactions || "None"}
 Return JSON only:
 {"summary":"2-3 sentences","relationshipHealth":"brief assessment","insights":["insight1","insight2"],"suggestedActions":["action1"],"talkingPoints":["point1","point2"],"nextBestAction":"single most important step"}`;
 
+    const openai = getOpenAIClient();
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],

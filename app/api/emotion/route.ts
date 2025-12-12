@@ -30,7 +30,15 @@ export async function GET(req: NextRequest) {
     });
   } catch (error: any) {
     console.error("[Emotion GET] Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    const errorMessage = error.message || "Internal server error";
+    const statusCode = error.message?.includes("Missing") ? 500 : 500;
+    return NextResponse.json(
+      { 
+        error: errorMessage,
+        details: process.env.NODE_ENV === "development" ? error.stack : undefined
+      },
+      { status: statusCode }
+    );
   }
 }
 
@@ -138,6 +146,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   } catch (error: any) {
     console.error("[Emotion POST] Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    const errorMessage = error.message || "Internal server error";
+    return NextResponse.json(
+      { 
+        error: errorMessage,
+        details: process.env.NODE_ENV === "development" ? error.stack : undefined
+      },
+      { status: 500 }
+    );
   }
 }

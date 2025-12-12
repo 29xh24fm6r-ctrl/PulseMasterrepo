@@ -3,18 +3,24 @@
 // One endpoint to power the entire dashboard with AI intelligence
 
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
-import { createClient } from "@supabase/supabase-js";
+import { requireClerkUserId } from "@/lib/auth/requireUser";
+import { supabaseServer } from "@/lib/supabase/server";
 import OpenAI from "openai";
 import { loadKernel, loadRelevantModules, detectRelevantModules } from "@/app/lib/brain-loader";
 import { canMakeAICall, trackAIUsage } from "@/lib/services/usage";
+import { jsonOk, handleRouteError } from "@/lib/api/routeErrors";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Supabase client now initialized in POST handler using supabaseServer()
 
-const openai = new OpenAI();
+// Lazy initialization of OpenAI client
+function getOpenAIClient(): OpenAI {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    console.warn("❌ Missing OPENAI_API_KEY environment variable");
+    return new OpenAI({ apiKey: "placeholder-key" });
+  }
+  return new OpenAI({ apiKey });
+}
 
 // Types for the unified response
 interface PulseInsight {
@@ -84,10 +90,8 @@ interface PulseCoreResponse {
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const userId = await requireClerkUserId();
+    const supabase = supabaseServer();
 
     const body = await req.json().catch(() => ({}));
     const { context = "dashboard", forceRefresh = false } = body;
@@ -117,16 +121,16 @@ export async function POST(req: NextRequest) {
       xpResult,
     ] = await Promise.all([
       supabase.from("users").select("*").eq("clerk_id", userId).single(),
-      supabase.from("user_profiles").select("*, job_title:job_titles(name)").eq("user_id", userId).single(),
-      supabase.from("tasks").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(50),
-      supabase.from("deals").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(30),
-      supabase.from("follow_ups").select("*").eq("user_id", userId).eq("status", "pending").limit(20),
-      supabase.from("habits").select("*, habit_completions(*)").eq("user_id", userId).limit(20),
-      supabase.from("journal_entries").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(7),
-      supabase.from("interactions").select("*, contact:contacts(name, company)").eq("user_id", userId).order("occurred_at", { ascending: false }).limit(20),
-      supabase.from("contacts").select("*").eq("user_id", userId).order("last_contact", { ascending: true }).limit(50),
-      supabase.from("streaks").select("*").eq("user_id", userId),
-      supabase.from("xp_transactions").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(100),
+      supabase.from("user_profiles").select("*, job_title:job_titles(name)").eq("owner_user_id", userId).single(),
+      supabase.from("tasks").select("*").eq("owner_user_id", userId).order("created_at", { ascending: false }).limit(50),
+      supabase.from("deals").select("*").eq("owner_user_id", userId).order("created_at", { ascending: false }).limit(30),
+      supabase.from("follow_ups").select("*").eq("owner_user_id", userId).eq("status", "pending").limit(20),
+      supabase.from("habits").select("*, habit_completions(*)").eq("owner_user_id", userId).limit(20),
+      supabase.from("journal_entries").select("*").eq("owner_user_id", userId).order("created_at", { ascending: false }).limit(7),
+      supabase.from("interactions").select("*, contact:contacts(name, company)").eq("owner_user_id", userId).order("occurred_at", { ascending: false }).limit(20),
+      supabase.from("contacts").select("*").eq("owner_user_id", userId).order("last_contact", { ascending: true }).limit(50),
+      supabase.from("streaks").select("*").eq("owner_user_id", userId),
+      supabase.from("xp_transactions").select("*").eq("owner_user_id", userId).order("created_at", { ascending: false }).limit(100),
     ]);
 
     const user = userResult.data;
@@ -295,6 +299,7 @@ Respond with this exact JSON structure:
 
 Generate 3-7 insights, 2-3 quests, and top 3 relationship alerts. Be specific and personal.`;
 
+    const openai = getOpenAIClient();
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [{ role: "user", content: aiPrompt }],

@@ -4,7 +4,15 @@ import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 import { supabaseAdmin } from "@/lib/supabase";
 
-const openai = new OpenAI();
+// Lazy initialization of OpenAI client
+function getOpenAIClient(): OpenAI {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    console.warn("❌ Missing OPENAI_API_KEY environment variable");
+    return new OpenAI({ apiKey: "placeholder-key" });
+  }
+  return new OpenAI({ apiKey });
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -160,6 +168,7 @@ Return ONLY a JSON array of ${count} strings. No explanation, no markdown.
 Example format: ["suggestion 1", "suggestion 2", "suggestion 3", "suggestion 4"]`;
 
   try {
+    const openai = getOpenAIClient();
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],

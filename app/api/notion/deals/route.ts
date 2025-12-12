@@ -1,11 +1,16 @@
 // app/api/notion/deals/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { Client } from '@notionhq/client';
-
-const notion = new Client({ auth: process.env.NOTION_API_KEY });
-const DEALS_DB = process.env.NOTION_DATABASE_DEALS;
+import { requireFeature } from '@/lib/feature-flags';
 
 export async function GET(request: NextRequest) {
+  // Notion feature disabled for beta safety - use Supabase only
+  try {
+    requireFeature('NOTION');
+  } catch {
+    return NextResponse.json({ ok: false, error: 'Notion integration disabled. Use Supabase endpoints instead.' }, { status: 404 });
+  }
+  
+  return NextResponse.json({ ok: false, error: 'Notion integration disabled' }, { status: 404 });
   try {
     if (!DEALS_DB) {
       return NextResponse.json({ ok: false, error: 'DEALS_DB not configured' }, { status: 500 });

@@ -255,6 +255,7 @@ function DailyChallengeCard({ challenge, multiplier }: { challenge: DailyChallen
 // ============================================
 
 export default function PhilosophyDojoPage() {
+  // Add link back to coaches corner
   const [dailyChallenges, setDailyChallenges] = useState<DailyChallenge[]>([]);
   const [challengesLoading, setChallengesLoading] = useState(true);
   const [dayTheme, setDayTheme] = useState({ focus: '', bonus: '' });
@@ -301,19 +302,29 @@ export default function PhilosophyDojoPage() {
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div className="flex-1">
-            <h1 className="text-2xl font-bold flex items-center gap-3">
-              <Swords className="w-7 h-7 text-violet-400" />
-              Philosophy Dojo
-            </h1>
-            <p className="text-sm text-zinc-500">Infinite training for the mind</p>
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <h1 className="text-2xl font-bold flex items-center gap-3">
+                  <Swords className="w-7 h-7 text-violet-400" />
+                  Philosophy Dojo
+                </h1>
+                <p className="text-sm text-zinc-500">Infinite training for the mind</p>
+              </div>
+              <Link
+                href="/philosophy-dojo/achievements"
+                className="px-4 py-2 bg-yellow-600/20 hover:bg-yellow-600/30 border border-yellow-500/30 rounded-lg text-sm font-medium flex items-center gap-2 text-yellow-400"
+              >
+                <Trophy className="w-4 h-4" />
+                {achievementStats?.unlocked || 0} Badges
+              </Link>
+            </div>
+            <Link
+              href="/coaches"
+              className="text-sm text-zinc-400 hover:text-violet-400 transition-colors"
+            >
+              Need a different kind of help? Visit Coaches Corner →
+            </Link>
           </div>
-          <Link
-            href="/philosophy-dojo/achievements"
-            className="px-4 py-2 bg-yellow-600/20 hover:bg-yellow-600/30 border border-yellow-500/30 rounded-lg text-sm font-medium flex items-center gap-2 text-yellow-400"
-          >
-            <Trophy className="w-4 h-4" />
-            {achievementStats?.unlocked || 0} Badges
-          </Link>
           <Link
             href="/philosophy-dojo/mentor"
             className="px-4 py-2 bg-amber-600 hover:bg-amber-500 rounded-lg text-sm font-medium flex items-center gap-2"

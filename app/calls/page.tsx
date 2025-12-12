@@ -120,9 +120,9 @@ function CallsContent() {
       fetch(`/api/contacts/${contactIdParam}`)
         .then(r => r.ok ? r.json() : null)
         .then(data => {
-          if (data?.contact) {
-            setLookupContact(data.contact);
-            setContactName(data.contact.name || "");
+          if (data) {
+            setLookupContact(data);
+            setContactName(data.name || "");
           }
         })
         .catch(() => {});

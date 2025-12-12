@@ -49,7 +49,14 @@ export async function GET(req: NextRequest) {
     });
   } catch (err: any) {
     console.error("Profile GET error:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    const errorMessage = err.message || "Internal server error";
+    return NextResponse.json(
+      { 
+        error: errorMessage,
+        details: process.env.NODE_ENV === "development" ? err.stack : undefined
+      },
+      { status: 500 }
+    );
   }
 }
 

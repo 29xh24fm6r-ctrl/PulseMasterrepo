@@ -1,39 +1,17 @@
-import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
-import { createClient } from "@supabase/supabase-js";
+// app/api/longitudinal/route.ts
+import { NextResponse } from 'next/server';
 
-function getSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
-
-export async function GET(req: NextRequest) {
-  const { userId } = await auth();
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const range = searchParams.get("range") || "30d";
+  const type = searchParams.get('type') || 'chapter';
 
-  const days = range === "7d" ? 7 : range === "90d" ? 90 : 30;
-  const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
-
-  const supabase = getSupabase();
-
-  const { data, error } = await supabase
-    .from("lb_daily_metrics")
-    .select("*")
-    .eq("user_id", userId)
-    .gte("date", startDate)
-    .order("date", { ascending: true });
-
-  if (error) {
-    console.error("Failed to fetch metrics:", error);
-    return NextResponse.json({ error: "Failed to fetch metrics" }, { status: 500 });
-  }
-
-  return NextResponse.json({ metrics: data || [] });
+  // TODO: hook this into the real longitudinal engine.
+  // For now, return a safe stub so the frontend always gets valid JSON.
+  return NextResponse.json({
+    type,
+    chapters: [],
+    metrics: [],
+    message: 'Longitudinal endpoint stubbed. No data yet, but API is alive.',
+  });
 }
+

@@ -132,15 +132,24 @@ export default function ConfidantPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950/20 to-slate-950">
       <header className="border-b border-slate-800/50 bg-slate-900/30 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors">
-            <ArrowLeft className="w-4 h-4" /><span className="text-sm">Dashboard</span>
-          </Link>
-          <div className="flex items-center gap-2">
-            <Heart className="w-5 h-5 text-pink-400" />
-            <span className="font-semibold text-white">Confidant</span>
+        <div className="max-w-4xl mx-auto px-4 py-4">
+          <nav className="flex items-center gap-2 text-xs text-slate-500 mb-3">
+            <Link href="/coaches" className="hover:text-slate-300 transition-colors">
+              Coaches Corner
+            </Link>
+            <span>/</span>
+            <span className="text-slate-400">Confidant</span>
+          </nav>
+          <div className="flex items-center justify-between">
+            <Link href="/coaches" className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors">
+              <ArrowLeft className="w-4 h-4" /><span className="text-sm">Coaches Corner</span>
+            </Link>
+            <div className="flex items-center gap-2">
+              <Heart className="w-5 h-5 text-pink-400" />
+              <span className="font-semibold text-white">Confidant</span>
+            </div>
+            <div className="w-20" />
           </div>
-          <div className="w-20" />
         </div>
       </header>
 

@@ -1,481 +1,189 @@
 /**
- * Life Dashboard v3 Aggregator
+ * Dashboard Data Aggregator
+ * Aggregates data from multiple sources for surfaces
  * lib/dashboard/aggregator.ts
- * 
- * Unified data aggregation for the ultimate life dashboard
  */
 
-import { supabaseAdmin } from "@/lib/supabase";
-
-// ============================================
-// TYPES
-// ============================================
+import { supabaseServer } from "@/lib/supabase/server";
 
 export interface DashboardData {
-  greeting: string;
-  todayFocus: string;
-  stats: DashboardStats;
-  urgentItems: UrgentItem[];
-  todaySchedule: ScheduleItem[];
-  activeGoals: GoalProgress[];
-  relationshipAlerts: RelationshipAlert[];
-  recentInsights: Insight[];
-  streaks: Streak[];
-  weeklyProgress: WeeklyProgress;
+  stats: {
+    todayEvents: number;
+    pendingActions: number;
+    unreadEmails: number;
+    activeRelationships: number;
+  };
+  todayFocus?: string;
+  urgentItems?: Array<{
+    id: string;
+    type: string;
+    title: string;
+    description?: string;
+    priority: "urgent" | "high" | "medium" | "low";
+    url?: string;
+  }>;
+  relationshipAlerts?: Array<{
+    name: string;
+    reason: string;
+  }>;
+  todaySchedule?: Array<{
+    id: string;
+    title: string;
+    startTime: string;
+  }>;
+  recentInsights?: Array<{
+    content: string;
+  }>;
 }
-
-export interface DashboardStats {
-  pendingActions: number;
-  pendingDrafts: number;
-  unreadEmails: number;
-  todayEvents: number;
-  activeRelationships: number;
-  weeklyGoalProgress: number;
-  currentStreak: number;
-}
-
-export interface UrgentItem {
-  id: string;
-  type: "action" | "email" | "followup" | "deadline" | "relationship";
-  title: string;
-  description?: string;
-  priority: "high" | "urgent";
-  dueAt?: Date;
-  url: string;
-}
-
-export interface ScheduleItem {
-  id: string;
-  title: string;
-  startTime: Date;
-  endTime: Date;
-  type: "event" | "task" | "block";
-  location?: string;
-}
-
-export interface GoalProgress {
-  id: string;
-  title: string;
-  progress: number;
-  target: number;
-  unit: string;
-  dueDate?: Date;
-}
-
-export interface RelationshipAlert {
-  id: string;
-  name: string;
-  reason: string;
-  healthScore: number;
-  daysSinceContact: number;
-}
-
-export interface Insight {
-  id: string;
-  type: string;
-  content: string;
-  createdAt: Date;
-}
-
-export interface Streak {
-  id: string;
-  name: string;
-  days: number;
-  isActive: boolean;
-  lastCompletedAt?: Date;
-}
-
-export interface WeeklyProgress {
-  prioritiesCompleted: number;
-  prioritiesTotal: number;
-  goalsCompleted: number;
-  goalsTotal: number;
-  focusHours: number;
-  interactionsLogged: number;
-}
-
-// ============================================
-// MAIN AGGREGATOR
-// ============================================
 
 /**
- * Get complete dashboard data
+ * Get aggregated dashboard data for surfaces
  */
 export async function getDashboardData(userId: string): Promise<DashboardData> {
-  const now = new Date();
-  const todayStart = new Date(now);
-  todayStart.setHours(0, 0, 0, 0);
-  const todayEnd = new Date(todayStart);
-  todayEnd.setDate(todayEnd.getDate() + 1);
+  const supabase = supabaseServer();
 
-  const [
-    stats,
-    urgentItems,
-    todaySchedule,
-    activeGoals,
-    relationshipAlerts,
-    recentInsights,
-    streaks,
-    weeklyProgress,
-  ] = await Promise.all([
-    getStats(userId, todayStart, todayEnd),
-    getUrgentItems(userId),
-    getTodaySchedule(userId, todayStart, todayEnd),
-    getActiveGoals(userId),
-    getRelationshipAlerts(userId),
-    getRecentInsights(userId),
-    getStreaks(userId),
-    getWeeklyProgress(userId),
+  // Get stats in parallel
+  const [tasksResult, dealsResult, interactionsResult, contactsResult] = await Promise.all([
+    // Pending tasks
+    supabase
+      .from("crm_tasks")
+      .select("id, title, due_date, status")
+      .eq("owner_user_id", userId)
+      .eq("status", "pending"),
+    // Active deals
+    supabase
+      .from("crm_deals")
+      .select("id, name, stage, updated_at")
+      .eq("owner_user_id", userId)
+      .not("stage", "eq", "closed"),
+    // Recent interactions
+    supabase
+      .from("crm_interactions")
+      .select("id, type, occurred_at")
+      .eq("owner_user_id", userId)
+      .order("occurred_at", { ascending: false })
+      .limit(50),
+    // Contacts
+    supabase
+      .from("crm_contacts")
+      .select("id")
+      .eq("owner_user_id", userId)
+      .limit(100),
   ]);
 
-  const greeting = getGreeting(now);
-  const todayFocus = await getTodayFocus(userId, stats, urgentItems);
+  const tasks = tasksResult.data || [];
+  const deals = dealsResult.data || [];
+  const interactions = interactionsResult.data || [];
+  const contacts = contactsResult.data || [];
 
-  return {
-    greeting,
-    todayFocus,
-    stats,
-    urgentItems,
-    todaySchedule,
-    activeGoals,
-    relationshipAlerts,
-    recentInsights,
-    streaks,
-    weeklyProgress,
-  };
-}
+  // Get today's events
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
 
-// ============================================
-// STATS
-// ============================================
-
-async function getStats(userId: string, todayStart: Date, todayEnd: Date): Promise<DashboardStats> {
-  const [
-    pendingActions,
-    pendingDrafts,
-    unreadEmails,
-    todayEvents,
-    activeRelationships,
-    weeklyPlan,
-    streak,
-  ] = await Promise.all([
-    supabaseAdmin
-      .from("autonomy_actions")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .eq("status", "pending"),
-    supabaseAdmin
-      .from("delegation_drafts")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .eq("status", "pending"),
-    supabaseAdmin
-      .from("email_threads")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .eq("unread", true),
-    supabaseAdmin
-      .from("calendar_events_cache")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .gte("start_time", todayStart.toISOString())
-      .lt("start_time", todayEnd.toISOString()),
-    supabaseAdmin
-      .from("relationships")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .gte("health_score", 50),
-    supabaseAdmin
-      .from("weekly_plans")
-      .select("top_priorities, goals")
-      .eq("user_id", userId)
-      .order("week_start", { ascending: false })
-      .limit(1)
-      .single(),
-    supabaseAdmin
-      .from("streaks")
-      .select("current_count")
-      .eq("user_id", userId)
-      .eq("is_active", true)
-      .order("current_count", { ascending: false })
-      .limit(1)
-      .single(),
-  ]);
-
-  const priorities = weeklyPlan.data?.top_priorities || [];
-  const goals = weeklyPlan.data?.goals || [];
-  const completedPriorities = priorities.filter((p: any) => p.completed).length;
-  const weeklyGoalProgress = priorities.length > 0
-    ? Math.round((completedPriorities / priorities.length) * 100)
-    : 0;
-
-  return {
-    pendingActions: pendingActions.count || 0,
-    pendingDrafts: pendingDrafts.count || 0,
-    unreadEmails: unreadEmails.count || 0,
-    todayEvents: todayEvents.count || 0,
-    activeRelationships: activeRelationships.count || 0,
-    weeklyGoalProgress,
-    currentStreak: streak.data?.current_count || 0,
-  };
-}
-
-// ============================================
-// URGENT ITEMS
-// ============================================
-
-async function getUrgentItems(userId: string): Promise<UrgentItem[]> {
-  const items: UrgentItem[] = [];
-  const now = new Date();
-
-  // Urgent autonomy actions
-  const { data: urgentActions } = await supabaseAdmin
-    .from("autonomy_actions")
-    .select("*")
-    .eq("user_id", userId)
-    .eq("status", "pending")
-    .in("priority", ["high", "urgent"])
-    .limit(5);
-
-  for (const a of urgentActions || []) {
-    items.push({
-      id: a.id,
-      type: "action",
-      title: a.title,
-      description: a.description,
-      priority: a.priority,
-      dueAt: a.due_at ? new Date(a.due_at) : undefined,
-      url: "/autonomy",
-    });
-  }
-
-  // Overdue follow-ups
-  const { data: overdueFollowups } = await supabaseAdmin
-    .from("email_followups")
-    .select("*, email_threads(*)")
-    .eq("user_id", userId)
-    .eq("status", "pending")
-    .lt("due_at", now.toISOString())
-    .limit(5);
-
-  for (const f of overdueFollowups || []) {
-    items.push({
-      id: f.id,
-      type: "followup",
-      title: `Follow up: ${f.email_threads?.subject || "Email"}`,
-      description: f.reason,
-      priority: "high",
-      dueAt: new Date(f.due_at),
-      url: "/email",
-    });
-  }
-
-  // Cold relationships (VIP/Key only)
-  const { data: coldRelationships } = await supabaseAdmin
-    .from("relationships")
-    .select("*")
-    .eq("user_id", userId)
-    .in("importance", ["vip", "key"])
-    .lt("health_score", 30)
-    .limit(3);
-
-  for (const r of coldRelationships || []) {
-    items.push({
-      id: r.id,
-      type: "relationship",
-      title: `Reconnect with ${r.name}`,
-      description: `Health score: ${r.health_score}%`,
-      priority: r.importance === "vip" ? "urgent" : "high",
-      url: `/relationships/${r.id}`,
-    });
-  }
-
-  return items.slice(0, 10);
-}
-
-// ============================================
-// SCHEDULE
-// ============================================
-
-async function getTodaySchedule(
-  userId: string,
-  todayStart: Date,
-  todayEnd: Date
-): Promise<ScheduleItem[]> {
-  const { data: events } = await supabaseAdmin
+  const { data: todayEvents } = await supabase
     .from("calendar_events_cache")
-    .select("*")
-    .eq("user_id", userId)
-    .gte("start_time", todayStart.toISOString())
-    .lt("start_time", todayEnd.toISOString())
-    .order("start_time");
+    .select("id, title, start_time")
+    .eq("owner_user_id", userId)
+    .gte("start_time", today.toISOString())
+    .lt("start_time", tomorrow.toISOString());
 
-  return (events || []).map((e) => ({
-    id: e.id,
-    title: e.title,
-    startTime: new Date(e.start_time),
-    endTime: new Date(e.end_time),
-    type: "event" as const,
-    location: e.location,
-  }));
-}
+  // Calculate stats
+  const pendingTasks = tasks.length;
+  const overdueTasks = tasks.filter((t) => {
+    if (!t.due_date) return false;
+    return new Date(t.due_date) < new Date();
+  }).length;
 
-// ============================================
-// GOALS
-// ============================================
+  // Build urgent items
+  const urgentItems: DashboardData["urgentItems"] = [];
 
-async function getActiveGoals(userId: string): Promise<GoalProgress[]> {
-  const { data: plan } = await supabaseAdmin
-    .from("weekly_plans")
-    .select("goals")
-    .eq("user_id", userId)
-    .order("week_start", { ascending: false })
-    .limit(1)
-    .single();
-
-  return (plan?.goals || []).map((g: any) => ({
-    id: g.id,
-    title: g.title,
-    progress: g.currentValue || 0,
-    target: g.targetValue || 100,
-    unit: g.targetMetric || "%",
-    dueDate: undefined,
-  }));
-}
-
-// ============================================
-// RELATIONSHIPS
-// ============================================
-
-async function getRelationshipAlerts(userId: string): Promise<RelationshipAlert[]> {
-  const { data } = await supabaseAdmin
-    .from("relationships")
-    .select("*")
-    .eq("user_id", userId)
-    .lt("health_score", 50)
-    .order("health_score")
-    .limit(5);
-
-  const now = new Date();
-
-  return (data || []).map((r) => {
-    const lastContact = r.last_contact_at ? new Date(r.last_contact_at) : null;
-    const daysSince = lastContact
-      ? Math.floor((now.getTime() - lastContact.getTime()) / (1000 * 60 * 60 * 24))
-      : 999;
-
-    return {
-      id: r.id,
-      name: r.name,
-      reason: daysSince > 30 ? "No contact in 30+ days" : "Low engagement",
-      healthScore: r.health_score,
-      daysSinceContact: daysSince,
-    };
+  overdueTasks.forEach((task) => {
+    const daysOverdue = Math.floor(
+      (Date.now() - new Date(task.due_date!).getTime()) / (1000 * 60 * 60 * 24)
+    );
+    urgentItems.push({
+      id: `task-${task.id}`,
+      type: "task",
+      title: task.title || "Untitled Task",
+      description: `${daysOverdue} days overdue`,
+      priority: daysOverdue > 3 ? "urgent" : "high",
+      url: `/workspace?selected=task-${task.id}`,
+    });
   });
-}
 
-// ============================================
-// INSIGHTS
-// ============================================
+  // Add stalled deals
+  deals.forEach((deal: any) => {
+    const daysSinceUpdate = Math.floor(
+      (Date.now() - new Date(deal.updated_at).getTime()) / (1000 * 60 * 60 * 24)
+    );
+    if (daysSinceUpdate > 7) {
+      urgentItems.push({
+        id: `deal-${deal.id}`,
+        type: "deal",
+        title: deal.name || "Untitled Deal",
+        description: `Stalled for ${daysSinceUpdate} days`,
+        priority: daysSinceUpdate > 14 ? "urgent" : "high",
+        url: `/workspace?selected=deal-${deal.id}`,
+      });
+    }
+  });
 
-async function getRecentInsights(userId: string): Promise<Insight[]> {
-  const { data } = await supabaseAdmin
-    .from("third_brain_insights")
-    .select("*")
-    .eq("user_id", userId)
+  // Get today focus
+  const todayFocus =
+    overdueTasks > 0
+      ? `Clear ${overdueTasks} overdue task${overdueTasks !== 1 ? "s" : ""}`
+      : pendingTasks > 0
+      ? `Complete ${pendingTasks} pending task${pendingTasks !== 1 ? "s" : ""}`
+      : "Keep it simple: do the highest leverage move first.";
+
+  // Get relationship alerts
+  const relationshipAlerts: DashboardData["relationshipAlerts"] = [];
+  const recentContacts = new Set(
+    interactions
+      .filter((i) => {
+        const daysSince = (Date.now() - new Date(i.occurred_at).getTime()) / (1000 * 60 * 60 * 24);
+        return daysSince > 14 && daysSince < 30;
+      })
+      .map((i) => i.contact_id || i.organization_id)
+      .filter(Boolean)
+  );
+
+  if (recentContacts.size > 0) {
+    relationshipAlerts.push({
+      name: `${recentContacts.size} contact${recentContacts.size !== 1 ? "s" : ""}`,
+      reason: "Relationship cooling - touchpoint recommended",
+    });
+  }
+
+  // Get recent insights
+  const { data: recentFragments } = await supabase
+    .from("tb_memory_fragments")
+    .select("content")
+    .eq("owner_user_id", userId)
     .order("created_at", { ascending: false })
     .limit(5);
 
-  return (data || []).map((i) => ({
-    id: i.id,
-    type: i.type,
-    content: i.content,
-    createdAt: new Date(i.created_at),
+  const recentInsights = (recentFragments || []).map((f) => ({
+    content: f.content?.substring(0, 200) || "",
   }));
-}
-
-// ============================================
-// STREAKS
-// ============================================
-
-async function getStreaks(userId: string): Promise<Streak[]> {
-  const { data } = await supabaseAdmin
-    .from("streaks")
-    .select("*")
-    .eq("user_id", userId)
-    .order("current_count", { ascending: false })
-    .limit(5);
-
-  return (data || []).map((s) => ({
-    id: s.id,
-    name: s.name,
-    days: s.current_count,
-    isActive: s.is_active,
-    lastCompletedAt: s.last_completed_at ? new Date(s.last_completed_at) : undefined,
-  }));
-}
-
-// ============================================
-// WEEKLY PROGRESS
-// ============================================
-
-async function getWeeklyProgress(userId: string): Promise<WeeklyProgress> {
-  const { data: plan } = await supabaseAdmin
-    .from("weekly_plans")
-    .select("*")
-    .eq("user_id", userId)
-    .order("week_start", { ascending: false })
-    .limit(1)
-    .single();
-
-  const priorities = plan?.top_priorities || [];
-  const goals = plan?.goals || [];
-
-  // Count interactions this week
-  const weekStart = new Date();
-  weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-  weekStart.setHours(0, 0, 0, 0);
-
-  const { count: interactions } = await supabaseAdmin
-    .from("relationship_interactions")
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .gte("occurred_at", weekStart.toISOString());
 
   return {
-    prioritiesCompleted: priorities.filter((p: any) => p.completed).length,
-    prioritiesTotal: priorities.length,
-    goalsCompleted: goals.filter((g: any) => g.completed).length,
-    goalsTotal: goals.length,
-    focusHours: 0, // TODO: Track from time blocks
-    interactionsLogged: interactions || 0,
+    stats: {
+      todayEvents: todayEvents?.length || 0,
+      pendingActions: pendingTasks,
+      unreadEmails: 0, // TODO: wire email sync
+      activeRelationships: contacts.length,
+    },
+    todayFocus,
+    urgentItems,
+    relationshipAlerts,
+    todaySchedule: (todayEvents || []).map((e) => ({
+      id: e.id,
+      title: e.title || "Untitled Event",
+      startTime: e.start_time,
+    })),
+    recentInsights,
   };
-}
-
-// ============================================
-// HELPERS
-// ============================================
-
-function getGreeting(now: Date): string {
-  const hour = now.getHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 17) return "Good afternoon";
-  return "Good evening";
-}
-
-async function getTodayFocus(
-  userId: string,
-  stats: DashboardStats,
-  urgentItems: UrgentItem[]
-): Promise<string> {
-  if (urgentItems.length > 0) {
-    return `${urgentItems.length} urgent item${urgentItems.length > 1 ? "s" : ""} need attention`;
-  }
-  if (stats.todayEvents > 0) {
-    return `${stats.todayEvents} event${stats.todayEvents > 1 ? "s" : ""} on your calendar`;
-  }
-  if (stats.pendingActions > 0) {
-    return `${stats.pendingActions} action${stats.pendingActions > 1 ? "s" : ""} waiting for you`;
-  }
-  return "Clear schedule - focus on your priorities";
 }

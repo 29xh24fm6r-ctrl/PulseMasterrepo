@@ -5,7 +5,15 @@ import { triggerAutoFollowupForCall } from "@/lib/delegation/auto-followup";
 import { getCallSession, updateCallSession } from "@/lib/comm/store";
 import { logThirdBrainEvent, upsertMemory } from "@/lib/third-brain/service";
 
-const openai = new OpenAI();
+// Lazy initialization of OpenAI client
+function getOpenAIClient(): OpenAI {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    console.warn("❌ Missing OPENAI_API_KEY environment variable");
+    return new OpenAI({ apiKey: "placeholder-key" });
+  }
+  return new OpenAI({ apiKey });
+}
 
 export async function POST(request: Request) {
   try {
@@ -39,6 +47,7 @@ export async function POST(request: Request) {
     const audioFile = new File([audioBuffer], "recording.mp3", { type: "audio/mpeg" });
 
     // Transcribe with Whisper
+    const openai = getOpenAIClient();
     const transcription = await openai.audio.transcriptions.create({
       file: audioFile,
       model: "whisper-1",
@@ -183,6 +192,7 @@ Provide analysis in this JSON format:
 
 Only respond with valid JSON.`;
 
+  const openai = getOpenAIClient();
   const completion = await openai.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [{ role: "user", content: prompt }],

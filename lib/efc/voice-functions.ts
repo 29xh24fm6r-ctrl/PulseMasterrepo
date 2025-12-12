@@ -9,10 +9,18 @@ import { FollowThroughTracker } from "./follow-through-tracker";
 import { ActionSequencer } from "./action-sequencer";
 import { EFC } from "./index";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+function getSupabase() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Missing Supabase environment variables. Please configure NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
+  }
+  
+  return createClient(supabaseUrl, supabaseServiceKey);
+}
+
+const supabase = getSupabase();
 
 // Voice function definitions for OpenAI
 export const EFC_VOICE_TOOLS = [

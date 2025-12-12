@@ -4,23 +4,25 @@ import { canMakeAICall, trackAIUsage } from "@/lib/services/usage";
 // GET /api/emotions/checkin - Get recent emotional states
 
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
-import { createClient } from "@supabase/supabase-js";
+import { requireClerkUserId } from "@/lib/auth/requireUser";
+import { supabaseServer } from "@/lib/supabase/server";
+import { jsonOk, handleRouteError } from "@/lib/api/routeErrors";
 import OpenAI from "openai";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
-const openai = new OpenAI();
+// Lazy initialization of OpenAI client
+function getOpenAIClient(): OpenAI {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    console.warn("❌ Missing OPENAI_API_KEY environment variable");
+    return new OpenAI({ apiKey: "placeholder-key" });
+  }
+  return new OpenAI({ apiKey });
+}
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const userId = await requireClerkUserId();
+    const supabase = supabaseServer();
 
     const body = await req.json();
     const { mood, energy, stress, notes } = body;
@@ -50,6 +52,7 @@ export async function POST(req: NextRequest) {
     let aiInsight = null;
     if (notes && notes.length > 10) {
       try {
+        const openai = getOpenAIClient();
         const completion = await openai.chat.completions.create({
           model: "gpt-4o-mini",
           messages: [
@@ -82,7 +85,8 @@ export async function POST(req: NextRequest) {
     const { data: checkin, error } = await supabase
       .from("emotional_checkins")
       .insert({
-        user_id: userId,
+        owner_user_id: userId, // Tenant isolation
+        user_id: userId, // Keep for backward compatibility
         mood,
         energy,
         stress,
@@ -113,11 +117,12 @@ export async function POST(req: NextRequest) {
         current_stress: stress,
         last_checkin_at: new Date().toISOString(),
       })
-      .eq("user_id", userId);
+      .eq("owner_user_id", userId); // Tenant isolation
 
     // Award XP for check-in
     await supabase.from("xp_transactions").insert({
-      user_id: userId,
+      owner_user_id: userId, // Tenant isolation
+      user_id: userId, // Keep for backward compatibility
       amount: 10,
       source: "emotional_checkin",
       description: "Daily emotional check-in",
@@ -145,7 +150,7 @@ export async function POST(req: NextRequest) {
     const { data: recentCheckins } = await supabase
       .from("emotional_checkins")
       .select("mood, energy, stress, checked_in_at")
-      .eq("user_id", userId)
+      .eq("owner_user_id", userId) // Tenant isolation
       .order("checked_in_at", { ascending: false })
       .limit(7);
 
@@ -163,7 +168,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({
+    return jsonOk({
       success: true,
       checkin: {
         mood,
@@ -179,18 +184,16 @@ export async function POST(req: NextRequest) {
       message: aiInsight || "Check-in saved. Thanks for sharing how you're feeling. 💚",
     });
 
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Emotional check-in error:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return handleRouteError(err);
   }
 }
 
 export async function GET(req: NextRequest) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const userId = await requireClerkUserId();
+    const supabase = supabaseServer();
 
     const { searchParams } = new URL(req.url);
     const days = parseInt(searchParams.get("days") || "7");
@@ -201,7 +204,7 @@ export async function GET(req: NextRequest) {
     const { data: checkins } = await supabase
       .from("emotional_checkins")
       .select("*")
-      .eq("user_id", userId)
+      .eq("owner_user_id", userId) // Tenant isolation
       .gte("checked_in_at", startDate.toISOString())
       .order("checked_in_at", { ascending: false });
 
@@ -245,7 +248,7 @@ export async function GET(req: NextRequest) {
     const today = new Date().toISOString().split("T")[0];
     const todayCheckin = checkins?.find(c => c.checked_in_at.startsWith(today));
 
-    return NextResponse.json({
+    return jsonOk({
       checkins: checkins || [],
       todayCheckin,
       hasCheckedInToday: !!todayCheckin,
@@ -258,8 +261,8 @@ export async function GET(req: NextRequest) {
       daysCovered: days,
     });
 
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Get check-ins error:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return handleRouteError(err);
   }
 }

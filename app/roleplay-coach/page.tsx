@@ -587,12 +587,20 @@ export default function RoleplayCoachPage() {
   return (
     <main className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col">
       {/* Header */}
-      <div className="border-b border-zinc-800 px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button onClick={resetSession} className="p-2 hover:bg-zinc-800 rounded-lg">
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <div>
+      <div className="border-b border-zinc-800 px-4 py-3">
+        <nav className="flex items-center gap-2 text-xs text-zinc-500 mb-3">
+          <Link href="/coaches" className="hover:text-zinc-300 transition-colors">
+            Coaches Corner
+          </Link>
+          <span>/</span>
+          <span className="text-zinc-400">Roleplay Coach</span>
+        </nav>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Link href="/coaches" className="p-2 hover:bg-zinc-800 rounded-lg">
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
+            <div>
             <h1 className="font-semibold flex items-center gap-2">
               {state === "ROLEPLAY" ? (
                 <>

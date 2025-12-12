@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+import { getActiveVoiceForUser } from "@/lib/voice/settings";
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 
@@ -163,6 +164,19 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Get user's voice profile
+    const voiceProfile = await getActiveVoiceForUser(userId);
+    
+    // Map voice profile to OpenAI realtime voice
+    // OpenAI realtime supports: alloy, echo, fable, onyx, nova, shimmer, verse
+    // Default to verse if no profile or if using ElevenLabs
+    let openaiVoice = "verse";
+    if (voiceProfile && voiceProfile.provider === "openai") {
+      // If user has an OpenAI voice profile, use it
+      // For now, default to verse (you can enhance this mapping)
+      openaiVoice = "verse";
+    }
+
     const response = await fetch("https://api.openai.com/v1/realtime/sessions", {
       method: "POST",
       headers: {
@@ -171,7 +185,7 @@ export async function GET(req: NextRequest) {
       },
       body: JSON.stringify({
         model: "gpt-4o-realtime-preview-2024-12-17",
-        voice: "verse",
+        voice: openaiVoice,
         instructions: `You are Pulse, an elite AI executive assistant and life coach. You have access to the user's calendar, tasks, contacts, and memories.
 
 PERSONALITY:

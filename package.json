@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "audit-tenant": "node scripts/audit-owner-filter.ts",
+    "check-tenant-safety": "powershell -ExecutionPolicy Bypass -File scripts/check-tenant-safety.ps1",
+    "fix-imports": "powershell -ExecutionPolicy Bypass -File scripts/fix-all-supabase-imports.ps1"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.35.6",
@@ -14,9 +17,16 @@
     "@notionhq/client": "^2.3.0",
     "@picovoice/porcupine-react": "^3.0.3",
     "@picovoice/web-voice-processor": "^4.0.9",
+    "@radix-ui/react-slot": "^1.2.4",
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.4.2",
     "@supabase/supabase-js": "^2.86.2",
+    "canvas-confetti": "^1.9.4",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
     "formidable": "^3.5.4",
-    "framer-motion": "^12.23.25",
+    "framer-motion": "^12.23.26",
     "googleapis": "^166.0.0",
     "lucide-react": "^0.554.0",
     "next": "^16.0.7",
@@ -27,9 +37,13 @@
     "recharts": "^3.5.1",
     "resend": "^6.5.2",
     "stripe": "^20.0.0",
+    "swr": "^2.3.7",
+    "tailwind-merge": "^3.4.0",
+    "three": "^0.182.0",
     "twilio": "^5.10.7",
     "web-push": "^3.6.7",
-    "youtube-transcript": "^1.2.1"
+    "youtube-transcript": "^1.2.1",
+    "zustand": "^5.0.9"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -38,6 +52,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/stripe": "^8.0.417",
+    "@types/three": "^0.182.0",
     "@types/web-push": "^3.6.4",
     "baseline-browser-mapping": "^2.8.32",
     "eslint": "^9",

@@ -1,11 +1,16 @@
 // app/api/notion/habits/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { Client } from '@notionhq/client';
-
-const notion = new Client({ auth: process.env.NOTION_API_KEY });
-const HABITS_DB = process.env.NOTION_DATABASE_HABITS;
+import { requireFeature } from '@/lib/feature-flags';
 
 export async function GET(request: NextRequest) {
+  // Notion feature disabled for beta safety - use Supabase only
+  try {
+    requireFeature('NOTION');
+  } catch {
+    return NextResponse.json({ ok: false, error: 'Notion integration disabled. Use Supabase endpoints instead.' }, { status: 404 });
+  }
+  
+  return NextResponse.json({ ok: false, error: 'Notion integration disabled' }, { status: 404 });
   try {
     if (!HABITS_DB) {
       return NextResponse.json({ ok: false, error: 'HABITS_DB not configured' }, { status: 500 });

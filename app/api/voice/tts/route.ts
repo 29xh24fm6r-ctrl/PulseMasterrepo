@@ -1,18 +1,43 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
+import { getActiveVoiceForUser, getUserVoiceSettings } from "@/lib/voice/settings";
 
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY || "sk_10d4b0147feefd3c85906bfc7c21311677851479a0256561";
-const VOICE_ID = process.env.ELEVENLABS_VOICE_ID || "EiNlNiXeDU1pqqOPrYMO";
+const DEFAULT_VOICE_ID = process.env.ELEVENLABS_VOICE_ID || "EiNlNiXeDU1pqqOPrYMO";
 
 export async function POST(req: NextRequest) {
   try {
-    const { text, voiceId } = await req.json();
+    const body = await req.json();
+    const { text, voiceId: overrideVoiceId, style } = body;
 
     if (!text) {
       return NextResponse.json({ error: "Text is required" }, { status: 400 });
     }
 
+    // Get user's voice settings if authenticated
+    let activeVoiceId = overrideVoiceId || DEFAULT_VOICE_ID;
+    let speakingRate = 1.0;
+
+    try {
+      const { userId } = await auth();
+      if (userId && !overrideVoiceId) {
+        const voiceProfile = await getActiveVoiceForUser(userId);
+        if (voiceProfile) {
+          activeVoiceId = voiceProfile.provider_voice_id || DEFAULT_VOICE_ID;
+        }
+
+        const userSettings = await getUserVoiceSettings(userId);
+        if (userSettings?.speaking_rate) {
+          speakingRate = userSettings.speaking_rate;
+        }
+      }
+    } catch (err) {
+      // If auth fails, use default voice
+      console.log("[TTS] Using default voice (auth unavailable)");
+    }
+
     const response = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId || VOICE_ID}`,
+      `https://api.elevenlabs.io/v1/text-to-speech/${activeVoiceId}`,
       {
         method: "POST",
         headers: {
@@ -26,9 +51,11 @@ export async function POST(req: NextRequest) {
           voice_settings: {
             stability: 0.5,
             similarity_boost: 0.75,
-            style: 0.0,
+            style: style?.energy || 0.0, // Use energy for style parameter
             use_speaker_boost: true,
           },
+          // Note: ElevenLabs doesn't directly support speaking_rate in this endpoint
+          // You may need to adjust text or use a different approach for rate control
         }),
       }
     );

@@ -3,7 +3,15 @@ import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { getCallSession, updateCallSession } from "@/lib/comm/store";
 
-const openai = new OpenAI();
+// Lazy initialization of OpenAI client
+function getOpenAIClient(): OpenAI {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    console.warn("❌ Missing OPENAI_API_KEY environment variable");
+    return new OpenAI({ apiKey: "placeholder-key" });
+  }
+  return new OpenAI({ apiKey });
+}
 
 export async function POST(request: Request) {
   try {
@@ -42,6 +50,7 @@ Respond in JSON format with these exact fields:
 }
 Only respond with valid JSON, no other text.`;
 
+    const openai = getOpenAIClient();
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],

@@ -12,6 +12,8 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { runThirdBrainDailyCycle } from "@/lib/third-brain/service";
 import { runAutonomyCycle } from "@/lib/autonomy/engine";
 import { recomputeDomainKPIs, generateExecutiveSummary } from "@/lib/executive/engine";
+import { handleAGIEvent } from "@/lib/agi/orchestrator";
+import { scheduleTickTrigger } from "@/lib/agi/triggers";
 
 export const maxDuration = 300; // 5 minutes max
 
@@ -77,6 +79,27 @@ export async function GET(req: NextRequest) {
         // 2. Autonomy cycle
         const autoResult = await runAutonomyCycle(userId);
         results.totalActionsCreated += autoResult.created;
+
+        // 3. Brainstem - Daily brain loop
+        try {
+          const { runDailyBrainLoopForUser } = await import('@/lib/brain/brainstem');
+          await runDailyBrainLoopForUser(userId, new Date());
+        } catch (brainErr) {
+          console.error(`[Cron] Brainstem error for ${userId}:`, brainErr);
+          // Don't fail the entire cron if brainstem fails
+        }
+
+        // 4. AGI Kernel - Chief of Staff reasoning
+        try {
+          const agiRun = await handleAGIEvent(userId, scheduleTickTrigger("cron/pulse_daily"));
+          if (agiRun) {
+            results.agiRunsExecuted = (results.agiRunsExecuted || 0) + 1;
+            results.agiActionsPlanned = (results.agiActionsPlanned || 0) + (agiRun.finalPlan?.length || 0);
+          }
+        } catch (agiErr) {
+          console.error(`[Cron] AGI error for ${userId}:`, agiErr);
+          // Don't fail the entire cron if AGI fails
+        }
 
         // === WEEKLY TASKS (Sunday only) ===
         if (isWeeklyRun) {

@@ -1,13 +1,23 @@
 // Email Service using Resend
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM_EMAIL = "Pulse OS <onboarding@resend.dev>";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://pulselifeos.com";
 
+// Lazy initialization of Resend client
+function getResendClient() {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    console.warn("❌ Missing RESEND_API_KEY environment variable");
+    return null;
+  }
+  return new Resend(apiKey);
+}
+
 async function sendEmail(to: string, subject: string, html: string): Promise<boolean> {
   try {
-    if (!process.env.RESEND_API_KEY) {
+    const resend = getResendClient();
+    if (!resend) {
       console.log("Email skipped (no API key):", subject);
       return false;
     }

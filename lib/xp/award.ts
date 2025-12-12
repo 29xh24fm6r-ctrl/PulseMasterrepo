@@ -29,6 +29,17 @@ const ACTIVITY_XP_MAP: Record<string, { amount: number; category: string }> = {
   // Philosophy Dojo - Training
   philosophy_training_completed: { amount: 35, category: "IXP" },
   philosophy_skill_unlocked: { amount: 50, category: "IXP" },
+  // Coach Engine v3.5
+  coach_session_completed: { amount: 30, category: "PXP" },
+  coach_session_excellent: { amount: 60, category: "PXP" },
+  coach_session_mastery: { amount: 100, category: "PXP" },
+  negotiation_practice: { amount: 40, category: "PXP" },
+  emotional_coaching: { amount: 35, category: "IXP" },
+  scenario_generated: { amount: 25, category: "MXP" },
+  voice_analysis_completed: { amount: 30, category: "PXP" },
+  multi_agent_session: { amount: 50, category: "PXP" },
+  // Emotional Mastery XP (v3.6)
+  coach_emotional_mastery: { amount: 10, category: "MXP" }, // Base amount, multiplied by transition quality
 };
 
 // Calculate if this is a crit (random chance)

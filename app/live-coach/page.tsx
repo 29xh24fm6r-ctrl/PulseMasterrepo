@@ -2,6 +2,7 @@
 import { VoiceOverlay } from "@/components/VoiceOverlay";
 
 import { CoachModal } from "@/app/components/coach-modal";
+import { PulseLiveDock } from "@/components/pulse-live";
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 
@@ -65,11 +66,18 @@ export default function LiveCoachPage() {
   
   const [activityLog, setActivityLog] = useState<string[]>([]);
   
+  // Pulse Live session state
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [currentSpeaker, setCurrentSpeaker] = useState<string>("");
+  const [nudgeMessage, setNudgeMessage] = useState<string>("");
+  
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const transcriptBufferRef = useRef<string>("");
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const analysisIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const statusPollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const chunkStartTimeRef = useRef<number>(0);
 
   function pushLog(msg: string) {
     const stamp = new Date().toLocaleTimeString();
@@ -99,6 +107,24 @@ export default function LiveCoachPage() {
 
   async function startRecording() {
     try {
+      // Start Pulse Live session
+      const sessionRes = await fetch("/api/pulse-live/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          source: "browser",
+          participant_emails: [], // Can be enhanced with calendar attendees
+        }),
+      });
+
+      if (!sessionRes.ok) {
+        throw new Error("Failed to start Pulse Live session");
+      }
+
+      const sessionData = await sessionRes.json();
+      setSessionId(sessionData.session_id);
+      chunkStartTimeRef.current = 0;
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       
       const mediaRecorder = new MediaRecorder(stream);
@@ -106,9 +132,26 @@ export default function LiveCoachPage() {
       audioChunksRef.current = [];
       transcriptBufferRef.current = "";
 
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
+      mediaRecorder.ondataavailable = async (event) => {
+        if (event.data.size > 0 && sessionId) {
           audioChunksRef.current.push(event.data);
+          
+          // Send chunk to Pulse Live
+          const formData = new FormData();
+          formData.append("session_id", sessionId);
+          formData.append("audio", event.data, "chunk.webm");
+          formData.append("start_time", chunkStartTimeRef.current.toString());
+          
+          try {
+            await fetch("/api/pulse-live/chunk", {
+              method: "POST",
+              body: formData,
+            });
+          } catch (err) {
+            console.error("Chunk upload error:", err);
+          }
+          
+          chunkStartTimeRef.current += 3; // Approximate 3 second chunks
         }
       };
 
@@ -119,16 +162,24 @@ export default function LiveCoachPage() {
       setLiveAnalysis(null);
       setQuickCoaching("");
       setCallSummary(null);
+      setNudgeMessage("");
       
       const person = people.find(p => p.id === selectedPersonId);
       setSelectedPersonName(person?.name || "Unknown");
       
-      pushLog(`🎤 Started recording${person ? ` - ${person.name}` : ""}`);
+      pushLog(`🎤 Started Pulse Live session${person ? ` - ${person.name}` : ""}`);
 
       // Start duration counter
       durationIntervalRef.current = setInterval(() => {
         setDuration(prev => prev + 1);
       }, 1000);
+
+      // Poll status every 2 seconds
+      statusPollIntervalRef.current = setInterval(async () => {
+        if (sessionId) {
+          await pollSessionStatus();
+        }
+      }, 2000);
 
       // Start rapid transcription (every 3 seconds for quick feedback)
       let quickCounter = 0;
@@ -149,6 +200,60 @@ export default function LiveCoachPage() {
     } catch (err) {
       pushLog("❌ Microphone access denied");
       console.error("Microphone error:", err);
+    }
+  }
+
+  async function pollSessionStatus() {
+    if (!sessionId) return;
+
+    try {
+      const res = await fetch(`/api/pulse-live/status?session_id=${sessionId}`);
+      if (!res.ok) return;
+
+      const data = await res.json();
+      
+      // Update transcript from segments
+      if (data.recent_segments && data.recent_segments.length > 0) {
+        const segmentsText = data.recent_segments
+          .map((seg: any) => `${seg.speaker_name}: ${seg.text}`)
+          .join("\n");
+        setTranscript(segmentsText);
+        
+        // Update current speaker
+        if (data.current_speaker) {
+          setCurrentSpeaker(data.current_speaker_contact?.full_name || data.current_speaker);
+        }
+      }
+
+      // Update summary
+      if (data.summary) {
+        // Can use summary data for UI updates
+      }
+
+      // Evaluate and show nudge if critical
+      if (data.criticality && data.criticality > 0.6) {
+        const { evaluateNudge, generateNudgeMessage } = await import("@/lib/pulse-live/nudgePolicy");
+        const nudgeDecision = evaluateNudge(data.criticality);
+        if (nudgeDecision.should_nudge && data.summary) {
+          const nudgeMsg = generateNudgeMessage(
+            data.summary.summary_text || "",
+            {
+              objections: data.summary.objections,
+              risks: data.summary.risks,
+              decisions: data.summary.decisions,
+              action_items: data.summary.action_items,
+            },
+            data.criticality
+          );
+          if (nudgeMsg) {
+            setNudgeMessage(nudgeMsg);
+            // Clear after 10 seconds
+            setTimeout(() => setNudgeMessage(""), 10000);
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Status poll error:", err);
     }
   }
 
@@ -178,6 +283,9 @@ export default function LiveCoachPage() {
       if (analysisIntervalRef.current) {
         clearInterval(analysisIntervalRef.current);
       }
+      if (statusPollIntervalRef.current) {
+        clearInterval(statusPollIntervalRef.current);
+      }
 
       pushLog("🛑 Stopped recording");
       
@@ -187,6 +295,26 @@ export default function LiveCoachPage() {
       
       // Generate summary
       await generateSummary();
+      
+      // End Pulse Live session and file into organism
+      if (sessionId) {
+        pushLog("📁 Filing into Pulse organism...");
+        try {
+          const endRes = await fetch("/api/pulse-live/end", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ session_id: sessionId }),
+          });
+          
+          if (endRes.ok) {
+            const endData = await endRes.json();
+            pushLog(`✅ Filed: ${endData.tasks_created} tasks, ${endData.fragments_created} brain fragments`);
+          }
+        } catch (err) {
+          pushLog("❌ Failed to file session");
+          console.error("End session error:", err);
+        }
+      }
     }
   }
 
@@ -383,8 +511,8 @@ export default function LiveCoachPage() {
     <main className="min-h-screen bg-slate-950 text-slate-100 p-6 flex flex-col gap-6">
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">🎤 Pulse Live Coach</h1>
-          <p className="text-slate-400 text-sm">Real-Time AI Coaching During Calls</p>
+          <h1 className="text-2xl font-semibold">🎤 Pulse Live</h1>
+          <p className="text-slate-400 text-sm">Full Brain Engaged • Real-Time Coaching • Auto-Filed</p>
         </div>
         <Link href="/" className="px-4 py-2 bg-slate-800 text-slate-200 font-semibold rounded-xl hover:bg-slate-700">
           ← Back to Dashboard
@@ -429,6 +557,11 @@ export default function LiveCoachPage() {
                 <div className="text-sm text-slate-400">Recording</div>
                 <div className="text-2xl font-bold text-emerald-400">{formatDuration(duration)}</div>
                 {selectedPersonName && <div className="text-sm text-cyan-300 mt-1">📞 {selectedPersonName}</div>}
+                {currentSpeaker && (
+                  <div className="text-xs text-purple-300 mt-1">
+                    🎙️ Speaking: {currentSpeaker}
+                  </div>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 <div className={`w-4 h-4 rounded-full ${isPaused ? 'bg-yellow-400' : 'bg-red-500 animate-pulse'}`} />
@@ -468,6 +601,17 @@ export default function LiveCoachPage() {
                     <h2 className="text-xs font-semibold uppercase text-yellow-300">⚡ INSTANT COACH (Live - 3s updates)</h2>
                   </div>
                   <div className="text-base font-semibold text-yellow-100">{quickCoaching}</div>
+                </section>
+              )}
+
+              {/* Pulse Nudge (severity-based) */}
+              {nudgeMessage && (
+                <section className="bg-gradient-to-br from-red-900/50 to-orange-900/50 border-2 border-red-500 rounded-2xl p-4 shadow-lg animate-pulse">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-2 h-2 bg-red-400 rounded-full animate-pulse" />
+                    <h2 className="text-xs font-semibold uppercase text-red-300">🔥 PULSE NUDGE</h2>
+                  </div>
+                  <div className="text-base font-semibold text-red-100">{nudgeMessage}</div>
                 </section>
               )}
 
@@ -782,7 +926,17 @@ Deal Temperature: ${callSummary.dealTemperature}
         coachIcon="📞"
         coachDescription="Real-time call guidance"
       />
-    <VoiceOverlay coachType="life" />
+      <VoiceOverlay coachType="life" />
+
+      {/* Pulse Live Dock */}
+      <PulseLiveDock
+        sessionId={sessionId}
+        defaultCollapsed={false}
+        onStop={async () => {
+          if (!sessionId) return;
+          await stopRecording();
+        }}
+      />
     </main>
   );
 }

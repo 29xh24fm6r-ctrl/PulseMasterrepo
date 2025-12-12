@@ -78,6 +78,13 @@ export default function WellnessDashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950 text-white p-6">
       <div className="max-w-7xl mx-auto space-y-6">
+        <nav className="flex items-center gap-2 text-sm text-zinc-500">
+          <Link href="/coaches" className="hover:text-zinc-300 transition-colors">
+            Coaches Corner
+          </Link>
+          <span>/</span>
+          <span className="text-zinc-400">Wellness Coach</span>
+        </nav>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-3 bg-gradient-to-br from-pink-500/20 to-rose-500/20 rounded-xl"><Heart className="w-8 h-8 text-pink-400" /></div>

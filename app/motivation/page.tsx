@@ -164,11 +164,19 @@ export default function MotivationPage() {
     <main className="min-h-screen bg-zinc-950 text-zinc-100">
       {/* Header */}
       <header className="border-b border-zinc-800 px-6 py-4">
-        <div className="max-w-3xl mx-auto flex items-center gap-4">
-          <Link href="/" className="p-2 hover:bg-zinc-800 rounded-lg">
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-          <div className="flex-1">
+        <div className="max-w-3xl mx-auto">
+          <nav className="flex items-center gap-2 text-xs text-zinc-500 mb-3">
+            <Link href="/coaches" className="hover:text-zinc-300 transition-colors">
+              Coaches Corner
+            </Link>
+            <span>/</span>
+            <span className="text-zinc-400">Motivational Coach</span>
+          </nav>
+          <div className="flex items-center gap-4">
+            <Link href="/coaches" className="p-2 hover:bg-zinc-800 rounded-lg">
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
+            <div className="flex-1">
             <h1 className="text-xl font-bold flex items-center gap-2">
               <Flame className="w-6 h-6 text-orange-400" />
               Motivational Coach

@@ -305,3 +305,7 @@ All widgets should load data in parallel using `Promise.all()` to minimize load 
 
 *This document should be updated as new data sources are added or requirements change.*
 
+
+
+
+

@@ -168,21 +168,29 @@ export default function CareerCoachPage() {
     <div className="min-h-screen bg-zinc-950">
       {/* Header */}
       <header className="border-b border-zinc-800 bg-zinc-900/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link 
-              href="/"
-              className="p-2 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-white transition-colors"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
+        <div className="max-w-4xl mx-auto px-4 py-4">
+          <nav className="flex items-center gap-2 text-xs text-zinc-500 mb-3">
+            <Link href="/coaches" className="hover:text-zinc-300 transition-colors">
+              Coaches Corner
             </Link>
-            <div>
-              <h1 className="text-xl font-bold text-white">Career Coach</h1>
-              <p className="text-xs text-zinc-500">Your AI career development partner</p>
+            <span>/</span>
+            <span className="text-zinc-400">Career Coach</span>
+          </nav>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Link 
+                href="/coaches"
+                className="p-2 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-white transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </Link>
+              <div>
+                <h1 className="text-xl font-bold text-white">Career Coach</h1>
+                <p className="text-xs text-zinc-500">Your AI career development partner</p>
+              </div>
             </div>
-          </div>
           <button
             onClick={resetProfile}
             className="p-2 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-white transition-colors"

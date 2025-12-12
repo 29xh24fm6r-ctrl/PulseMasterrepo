@@ -13,8 +13,20 @@ import { getTodaysPlan } from "@/lib/planning/engine";
 import { getLatestExecutiveSummary } from "@/lib/executive/engine";
 import { getSuggestedActions } from "@/lib/autonomy/engine";
 import { trackTTSUsage } from "@/lib/services/usage";
+import { getActiveVoiceForUser, getUserVoiceSettings } from "./settings";
 
-const openai = new OpenAI();
+// Lazy initialization of OpenAI client
+function getOpenAIClient(): OpenAI {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    console.warn("❌ Missing OPENAI_API_KEY environment variable");
+    // Return a client with placeholder key to prevent crash
+    return new OpenAI({ apiKey: "placeholder-key" });
+  }
+  return new OpenAI({ apiKey });
+}
+const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
+const DEFAULT_VOICE_ID = process.env.ELEVENLABS_VOICE_ID || "EiNlNiXeDU1pqqOPrYMO";
 
 // ============================================
 // TYPES
@@ -29,6 +41,7 @@ export type VoiceCommandIntent =
   | "complete_task"
   | "emotional_checkin"
   | "get_summary"
+  | "memory_query"
   | "unknown";
 
 export interface VoiceCommandResult {
@@ -94,6 +107,7 @@ Possible intents:
 - complete_task: User completed something
 - emotional_checkin: User is sharing feelings or wants emotional support
 - get_summary: User wants their executive summary / weekly report
+- memory_query: User is asking about past experiences, patterns, or life chapters (e.g., "When have I felt this way before?", "What defines this season?")
 - unknown: Cannot determine intent
 
 Output ONLY valid JSON.`,
@@ -153,6 +167,9 @@ async function executeIntent(
 
     case "complete_task":
       return handleCompleteTask(userId, parameters);
+
+    case "memory_query":
+      return handleMemoryQuery(userId, parameters);
 
     default:
       return {
@@ -415,17 +432,60 @@ async function handleCompleteTask(
 // ============================================
 
 /**
- * Generate speech from text
+ * Generate speech from text using user's voice settings
  */
 export async function generateSpeech(
   userId: string,
   text: string,
-  voice: "alloy" | "echo" | "fable" | "onyx" | "nova" | "shimmer" = "nova"
+  voice?: "alloy" | "echo" | "fable" | "onyx" | "nova" | "shimmer"
 ): Promise<Buffer> {
+  // Get user's voice profile
+  const voiceProfile = await getActiveVoiceForUser(userId);
+  const userSettings = await getUserVoiceSettings(userId);
+
+  // Use ElevenLabs if voice profile is configured and available
+  if (voiceProfile && voiceProfile.provider === "elevenlabs" && ELEVENLABS_API_KEY) {
+    try {
+      const response = await fetch(
+        `https://api.elevenlabs.io/v1/text-to-speech/${voiceProfile.provider_voice_id || DEFAULT_VOICE_ID}`,
+        {
+          method: "POST",
+          headers: {
+            Accept: "audio/mpeg",
+            "Content-Type": "application/json",
+            "xi-api-key": ELEVENLABS_API_KEY,
+          },
+          body: JSON.stringify({
+            text,
+            model_id: "eleven_multilingual_v2",
+            voice_settings: {
+              stability: 0.5,
+              similarity_boost: 0.75,
+              style: voiceProfile.style_preset ? parseFloat(voiceProfile.style_preset) : 0.0,
+              use_speaker_boost: true,
+            },
+          }),
+        }
+      );
+
+      if (response.ok) {
+        const buffer = Buffer.from(await response.arrayBuffer());
+        await trackTTSUsage(userId, text.length, false);
+        return buffer;
+      }
+    } catch (err) {
+      console.warn("[VoiceOrchestrator] ElevenLabs failed, falling back to OpenAI:", err);
+    }
+  }
+
+  // Fallback to OpenAI TTS
+  const openaiVoice = voice || "nova";
+  const openai = getOpenAIClient();
   const response = await openai.audio.speech.create({
     model: "tts-1",
-    voice,
+    voice: openaiVoice,
     input: text,
+    speed: userSettings?.speaking_rate || 1.0,
   });
 
   // Track usage
@@ -464,6 +524,36 @@ export async function generatePulseVoice(
 // ============================================
 // LOGGING
 // ============================================
+
+async function handleMemoryQuery(
+  userId: string,
+  parameters: Record<string, any>
+): Promise<VoiceCommandResult> {
+  try {
+    const { handleMemoryVoiceTurn } = await import('./routes/memory');
+    const result = await handleMemoryVoiceTurn({
+      userId,
+      text: parameters.query || parameters.text || '',
+    });
+
+    return {
+      intent: 'memory_query',
+      confidence: 0.8,
+      parameters,
+      response: result.text,
+      shouldSpeak: true,
+    };
+  } catch (err: any) {
+    console.error('[Voice] Memory query failed:', err);
+    return {
+      intent: 'memory_query',
+      confidence: 0.5,
+      parameters,
+      response: "I'm having trouble accessing your memory right now. Please try again later.",
+      shouldSpeak: true,
+    };
+  }
+}
 
 async function logVoiceInteraction(
   userId: string,

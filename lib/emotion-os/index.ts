@@ -220,27 +220,48 @@ export interface LogInterventionInput {
 import { createClient } from "@supabase/supabase-js";
 
 function getSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Missing Supabase environment variables. Please configure NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
+  }
+  
+  return createClient(supabaseUrl, supabaseServiceKey);
 }
 
 // Get current emotion state
+// userId can be either Clerk ID or database UUID
 export async function getCurrentEmotionState(
   userId: string
 ): Promise<EmotionState | null> {
   const supabase = getSupabase();
 
+  // Try to resolve database ID if userId is a Clerk ID
+  let dbUserId = userId;
+  try {
+    const { data: userRow } = await supabase
+      .from("users")
+      .select("id")
+      .eq("clerk_id", userId)
+      .maybeSingle();
+    
+    if (userRow?.id) {
+      dbUserId = userRow.id;
+    }
+  } catch {
+    // If lookup fails, assume userId is already a database ID
+  }
+
   const { data } = await supabase
     .from("emo_states")
     .select("*")
-    .eq("user_id", userId)
+    .eq("user_id", dbUserId)
     .order("occurred_at", { ascending: false })
     .limit(1)
-    .single();
+    .maybeSingle();
 
-  return data;
+  return data || null;
 }
 
 // Get recent emotion states
@@ -296,6 +317,27 @@ export async function recordCheckin(
     raw_signal: { notes: input.notes, energy_level: input.energy_level },
     occurred_at: new Date().toISOString(),
   });
+
+  // Trigger AGI if significant emotion state detected
+  if (input.intensity && input.intensity > 0.7) {
+    const emotion = input.emotion?.toLowerCase() || "";
+    const isStressed = emotion.includes("stressed") || emotion.includes("overwhelmed") || emotion.includes("burned_out");
+    
+    if (isStressed) {
+      try {
+        const { handleAGIEvent } = await import("@/lib/agi/orchestrator");
+        const { emotionSignalTrigger } = await import("@/lib/agi/triggers");
+        await handleAGIEvent(userId, emotionSignalTrigger({
+          state: emotion,
+          trend: "rising",
+          intensity: input.intensity,
+        }));
+      } catch (agiErr) {
+        // Don't fail emotion recording if AGI fails
+        console.warn("[EmotionOS] AGI trigger failed:", agiErr);
+      }
+    }
+  }
 
   return data;
 }

@@ -129,8 +129,11 @@ export function AutonomyProvider({ children }: { children: ReactNode }) {
 
   // Load on mount
   useEffect(() => {
-    setSettings(loadSettings());
-    setLoaded(true);
+    // Use setTimeout to avoid synchronous setState in effect
+    const timeoutId = setTimeout(() => {
+      setSettings(loadSettings());
+      setLoaded(true);
+    }, 0);
 
     // Listen for changes from other tabs/components
     const handleChange = (e: Event) => {
@@ -139,7 +142,10 @@ export function AutonomyProvider({ children }: { children: ReactNode }) {
     };
 
     window.addEventListener("autonomy-settings-changed", handleChange);
-    return () => window.removeEventListener("autonomy-settings-changed", handleChange);
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener("autonomy-settings-changed", handleChange);
+    };
   }, []);
 
   // Update settings

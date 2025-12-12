@@ -119,7 +119,7 @@ export async function POST(req: NextRequest) {
         // Process notification queue
         dailyResults.notifications = await processNotificationQueue();
 
-        // Update relationship health
+        // Update relationship health (this now triggers AGI internally)
         const users = await getAllUsers();
         let relUpdated = 0;
         for (const userId of users) {

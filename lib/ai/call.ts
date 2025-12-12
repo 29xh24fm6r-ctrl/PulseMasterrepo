@@ -8,7 +8,16 @@
 import OpenAI from "openai";
 import { trackAIUsage, canMakeAICall } from "@/lib/services/usage";
 
-const openai = new OpenAI();
+// Lazy initialization of OpenAI client
+function getOpenAIClient(): OpenAI {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    console.warn("❌ Missing OPENAI_API_KEY environment variable");
+    // Return a client with placeholder key to prevent crash
+    return new OpenAI({ apiKey: "placeholder-key" });
+  }
+  return new OpenAI({ apiKey });
+}
 
 export interface CallAIOptions {
   userId: string;
@@ -64,6 +73,9 @@ export async function callAI(options: CallAIOptions): Promise<CallAIResult> {
     }
     messages.push({ role: "user", content: userPrompt });
 
+    // Get OpenAI client
+    const openai = getOpenAIClient();
+    
     // Call OpenAI
     const completion = await openai.chat.completions.create({
       model,

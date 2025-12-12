@@ -164,6 +164,15 @@ export async function getOrCreateProfile(
     });
   }
 
+  // Initialize brain subsystems for new user
+  try {
+    const { initializeBrainForUser } = await import('@/lib/brain/brainstem');
+    await initializeBrainForUser(userId);
+  } catch (err) {
+    console.error('[Profile] Failed to initialize brain for user', err);
+    // Don't fail profile creation if brain init fails
+  }
+
   return { profile: createdProfile as UserProfile, created: true };
 }
 

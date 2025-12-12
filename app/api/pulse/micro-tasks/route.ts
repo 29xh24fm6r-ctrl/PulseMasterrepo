@@ -2,7 +2,15 @@ import { canMakeAICall, trackAIUsage } from "@/lib/services/usage";
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 
-const openai = new OpenAI();
+// Lazy initialization of OpenAI client
+function getOpenAIClient(): OpenAI {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    console.warn("❌ Missing OPENAI_API_KEY environment variable");
+    return new OpenAI({ apiKey: "placeholder-key" });
+  }
+  return new OpenAI({ apiKey });
+}
 
 export async function POST(request: Request) {
   try {
@@ -32,6 +40,7 @@ Return ONLY a JSON array with this exact format, no other text:
   {"title": "next specific step", "estimatedMinutes": 5}
 ]`;
 
+    const openai = getOpenAIClient();
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
