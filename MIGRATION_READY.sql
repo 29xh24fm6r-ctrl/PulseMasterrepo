@@ -1,5 +1,6 @@
--- Mythic Arc Tables
--- supabase/migrations/008_mythic_arc_tables.sql
+-- Mythic Arc Tables Migration
+-- Run this in Supabase SQL Editor
+-- File: supabase/migrations/008_mythic_arc_tables.sql
 
 -- Mythic Arcs (Hero's Journey style arcs)
 CREATE TABLE IF NOT EXISTS mythic_arcs (

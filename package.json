@@ -9,7 +9,8 @@
     "lint": "eslint",
     "audit-tenant": "node scripts/audit-owner-filter.ts",
     "check-tenant-safety": "powershell -ExecutionPolicy Bypass -File scripts/check-tenant-safety.ps1",
-    "fix-imports": "powershell -ExecutionPolicy Bypass -File scripts/fix-all-supabase-imports.ps1"
+    "fix-imports": "powershell -ExecutionPolicy Bypass -File scripts/fix-all-supabase-imports.ps1",
+    "test:mythic": "tsx scripts/test-mythic-end-to-end.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.35.6",
@@ -55,9 +56,11 @@
     "@types/three": "^0.182.0",
     "@types/web-push": "^3.6.4",
     "baseline-browser-mapping": "^2.8.32",
+    "dotenv": "^17.2.3",
     "eslint": "^9",
     "eslint-config-next": "16.0.1",
     "tailwindcss": "^4",
+    "tsx": "^4.21.0",
     "typescript": "^5"
   }
 }
