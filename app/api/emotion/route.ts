@@ -27,18 +27,16 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       current: currentState,
       today_trend: trend,
+      states: currentState ? [currentState] : [],
     });
   } catch (error: any) {
     console.error("[Emotion GET] Error:", error);
-    const errorMessage = error.message || "Internal server error";
-    const statusCode = error.message?.includes("Missing") ? 500 : 500;
-    return NextResponse.json(
-      { 
-        error: errorMessage,
-        details: process.env.NODE_ENV === "development" ? error.stack : undefined
-      },
-      { status: statusCode }
-    );
+    // Return empty states array instead of error to prevent page crashes
+    return NextResponse.json({
+      current: null,
+      today_trend: null,
+      states: [],
+    });
   }
 }
 
