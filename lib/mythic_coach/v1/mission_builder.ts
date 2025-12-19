@@ -1,12 +1,13 @@
 // Mythic Coach v1 - Mission Builder
 // lib/mythic_coach/v1/mission_builder.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { callAIJson } from '@/lib/ai/call';
 import { MYTHIC_MISSION_PROMPT } from './prompts';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -22,7 +23,7 @@ export async function generateWeeklyMissionsForPlan(
 ) {
   const dbUserId = await resolveUserId(userId);
 
-  const { data: plan, error: planError } = await supabaseAdminClient
+  const { data: plan, error: planError } = await supabaseAdmin
     .from('mythic_training_plans')
     .select('*')
     .eq('id', planId)
@@ -36,7 +37,7 @@ export async function generateWeeklyMissionsForPlan(
 
   // Get user context for mission generation
   const [canonSnapshotRes] = await Promise.all([
-    supabaseAdminClient
+    supabaseAdmin
       .from('life_canon_snapshots')
       .select('*')
       .eq('user_id', dbUserId)
@@ -99,7 +100,7 @@ export async function generateWeeklyMissionsForPlan(
     };
   });
 
-  const { data, error } = await supabaseAdminClient
+  const { data, error } = await supabaseAdmin
     .from('mythic_training_missions')
     .insert(rows)
     .select('*');

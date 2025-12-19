@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { listSystemModules } from '@/lib/masterbrain/registry';
-import { supabaseAdminClient } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 
 export async function GET(req: NextRequest) {
   try {
@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
 
     // Get latest health for each module
     const moduleIds = modules.map((m) => m.id);
-    const { data: healthRecords } = await supabaseAdminClient
+    const { data: healthRecords } = await supabaseAdmin
       .from('system_module_health')
       .select('*, system_modules(*)')
       .in('module_id', moduleIds)
@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     const sevenDaysAgoStr = sevenDaysAgo.toISOString().slice(0, 10);
 
-    const { data: recentMetrics } = await supabaseAdminClient
+    const { data: recentMetrics } = await supabaseAdmin
       .from('system_module_metrics')
       .select('*, system_modules(*)')
       .in('module_id', moduleIds)

@@ -1,12 +1,13 @@
 // Mythic Intelligence Layer v1 - Story Script Generator
 // lib/mythic/story_script.ts
 
-import { supabaseAdminClient } from '../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { callAI } from '@/lib/ai/call';
 import { StoryFramework, SessionType, LifeChapter } from './types';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -25,25 +26,25 @@ export async function generateMythicSessionScript(params: {
 
   // Gather context
   const [chaptersRes, profileRes, identityRes, destinyRes] = await Promise.all([
-    supabaseAdminClient
+    supabaseAdmin
       .from('life_chapters')
       .select('*, mythic_archetypes(*)')
       .eq('user_id', dbUserId)
       .order('timeframe_start', { ascending: false })
       .limit(10),
-    supabaseAdminClient
+    supabaseAdmin
       .from('user_mythic_profile')
       .select('*')
       .eq('user_id', dbUserId)
       .maybeSingle(),
-    supabaseAdminClient
+    supabaseAdmin
       .from('identity_snapshots')
       .select('*')
       .eq('user_id', dbUserId)
       .order('snapshot_time', { ascending: false })
       .limit(1)
       .maybeSingle(),
-    supabaseAdminClient
+    supabaseAdmin
       .from('destiny_arcs')
       .select('*')
       .eq('user_id', dbUserId)

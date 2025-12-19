@@ -1,13 +1,14 @@
 // Master Brain Evolution Engine v1 - Idea Generator
 // lib/masterbrain/evolution/ideas.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { callAIJson } from '@/lib/ai/call';
 import { ImprovementIdea, IdeaSource, ImpactArea, IdeaSeverity } from './types';
 import { listSystemModules } from '../registry';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -18,7 +19,7 @@ async function resolveUserId(clerkId: string): Promise<string> {
 
 export async function generateImprovementIdeasFromDiagnostics(runId: string): Promise<ImprovementIdea[]> {
   // Get diagnostics findings
-  const { data: findings } = await supabaseAdminClient
+  const { data: findings } = await supabaseAdmin
     .from('system_diagnostics_findings')
     .select('*, system_modules(*), system_capabilities(*)')
     .eq('run_id', runId)
@@ -32,7 +33,7 @@ export async function generateImprovementIdeasFromDiagnostics(runId: string): Pr
 
   for (const finding of findings) {
     // Check if idea already exists
-    const { data: existing } = await supabaseAdminClient
+    const { data: existing } = await supabaseAdmin
       .from('system_improvement_ideas')
       .select('*')
       .eq('module_id', finding.module_id ?? '')
@@ -70,7 +71,7 @@ export async function generateImprovementIdeasFromDiagnostics(runId: string): Pr
       created_by: 'system',
     };
 
-    const { data: idea, error } = await supabaseAdminClient
+    const { data: idea, error } = await supabaseAdmin
       .from('system_improvement_ideas')
       .insert(ideaData)
       .select('*')
@@ -95,7 +96,7 @@ export async function generateGlobalImprovementSweep(): Promise<ImprovementIdea[
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
   const sevenDaysAgoStr = sevenDaysAgo.toISOString().slice(0, 10);
 
-  const { data: recentMetrics } = await supabaseAdminClient
+  const { data: recentMetrics } = await supabaseAdmin
     .from('system_module_metrics')
     .select('*, system_modules(*)')
     .gte('date', sevenDaysAgoStr)
@@ -111,7 +112,7 @@ export async function generateGlobalImprovementSweep(): Promise<ImprovementIdea[
 
     if (totalInvocations === 0) {
       // Check if idea already exists
-      const { data: existing } = await supabaseAdminClient
+      const { data: existing } = await supabaseAdmin
         .from('system_improvement_ideas')
         .select('*')
         .eq('module_id', module.id)
@@ -121,7 +122,7 @@ export async function generateGlobalImprovementSweep(): Promise<ImprovementIdea[
 
       if (existing) continue;
 
-      const { data: idea } = await supabaseAdminClient
+      const { data: idea } = await supabaseAdmin
         .from('system_improvement_ideas')
         .insert({
           source: 'ai',
@@ -143,7 +144,7 @@ export async function generateGlobalImprovementSweep(): Promise<ImprovementIdea[
   }
 
   // Get low-rated user feedback
-  const { data: lowRatings } = await supabaseAdminClient
+  const { data: lowRatings } = await supabaseAdmin
     .from('system_user_feedback')
     .select('*, system_modules(*)')
     .lte('rating', 2)
@@ -166,7 +167,7 @@ export async function generateGlobalImprovementSweep(): Promise<ImprovementIdea[
 
       const avgRating = feedbacks.reduce((sum, f) => sum + (f.rating ?? 0), 0) / feedbacks.length;
 
-      const { data: idea } = await supabaseAdminClient
+      const { data: idea } = await supabaseAdmin
         .from('system_improvement_ideas')
         .insert({
           source: 'user',

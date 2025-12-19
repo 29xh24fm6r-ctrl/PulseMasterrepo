@@ -3,7 +3,7 @@
 
 import { supabaseAdmin } from "@/lib/supabase";
 import { callAIJson } from "@/lib/ai/call";
-import { buildPulseCortexContext } from "@/lib/cortex/context";
+import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 
 export interface TwinModel {
   summary: any;
@@ -27,7 +27,7 @@ export async function buildOrUpdateTwinModel(userId: string): Promise<TwinModel>
   const dbUserId = userRow?.id || userId;
 
   // 1. Pull from Cortex context
-  const ctx = await buildPulseCortexContext(userId);
+  const ctx = await getWorkCortexContextForUser(userId);
 
   // 2. Pull from Third Brain / Universal Memory
   // (Would fetch notes, journal entries, tasks, completions, habits, etc.)

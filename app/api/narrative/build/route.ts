@@ -3,7 +3,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { buildPulseCortexContext } from "@/lib/cortex/context";
+import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 import { buildLifeNarrative } from "@/lib/cortex/sovereign/deep-narrative/builder";
 
 export async function GET(req: NextRequest) {
@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const ctx = await buildPulseCortexContext(userId);
+    const ctx = await getWorkCortexContextForUser(userId);
     const narrative = await buildLifeNarrative(userId, ctx);
 
     return NextResponse.json(narrative);

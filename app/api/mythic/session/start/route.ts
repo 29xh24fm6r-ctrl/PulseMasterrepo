@@ -5,10 +5,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { generateMythicSessionScript } from '@/lib/mythic/story_script';
 import { synthesizeMythicSessionAudio } from '@/lib/mythic/voice';
-import { supabaseAdminClient } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Create session record
-    const { data: session, error: sessionError } = await supabaseAdminClient
+    const { data: session, error: sessionError } = await supabaseAdmin
       .from('mythic_sessions')
       .insert({
         user_id: dbUserId,

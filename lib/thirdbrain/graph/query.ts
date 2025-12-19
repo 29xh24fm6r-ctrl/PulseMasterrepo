@@ -174,3 +174,78 @@ export async function getTopNodesByImportance(params: {
   if (error) throw error;
   return data ?? [];
 }
+
+/**
+ * Find similar emotion episodes (stub implementation)
+ * TODO: implement real similarity search against third brain graph / embeddings
+ */
+export async function findSimilarEmotionEpisodes(
+  userId: string,
+  episodeId: string,
+  limit: number = 3
+): Promise<any[]> {
+  try {
+    // Resolve userId to dbUserId if needed
+    const { data: userRow } = await supabaseAdmin
+      .from("users")
+      .select("id")
+      .eq("clerk_id", userId)
+      .maybeSingle();
+
+    const dbUserId = userRow?.id || userId;
+
+    // Query similar emotion episodes from tb_nodes
+    // For now, just return episodes of the same type, excluding the current one
+    const { data } = await supabaseAdmin
+      .from('tb_nodes')
+      .select('*')
+      .eq('user_id', dbUserId)
+      .eq('type', 'emotion_state')
+      .neq('id', episodeId)
+      .order('started_at', { ascending: false })
+      .limit(limit);
+
+    return data || [];
+  } catch (err) {
+    console.error("[findSimilarEmotionEpisodes] Error:", err);
+    return [];
+  }
+}
+
+/**
+ * Find past events with a specific tag (stub implementation)
+ * TODO: implement real tag search
+ */
+export async function findPastEventsWithTag(args: {
+  userId: string;
+  tag: string;
+  limit?: number;
+}): Promise<any[]> {
+  try {
+    const { userId, tag, limit = 20 } = args;
+
+    // Resolve userId to dbUserId if needed
+    const { data: userRow } = await supabaseAdmin
+      .from("users")
+      .select("id")
+      .eq("clerk_id", userId)
+      .maybeSingle();
+
+    const dbUserId = userRow?.id || userId;
+
+    // Query events/nodes that contain the tag
+    // This is a basic implementation - adjust based on your actual schema
+    const { data } = await supabaseAdmin
+      .from('tb_nodes')
+      .select('*')
+      .eq('user_id', dbUserId)
+      .contains('tags', [tag])
+      .order('started_at', { ascending: false })
+      .limit(limit);
+
+    return data || [];
+  } catch (err) {
+    console.error("[findPastEventsWithTag] Error:", err);
+    return [];
+  }
+}

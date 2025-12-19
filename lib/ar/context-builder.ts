@@ -1,7 +1,7 @@
 // AR Context Builder - Minimal Cortex Dataset for AR
 // lib/ar/context-builder.ts
 
-import { buildPulseCortexContext } from "@/lib/cortex/types";
+import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 import { PulseCortexContext } from "@/lib/cortex/types";
 
 export interface ARContext {
@@ -35,7 +35,7 @@ export interface ARContext {
  * Build minimal AR context from Cortex
  */
 export async function buildARContext(userId: string): Promise<ARContext> {
-  const ctx = await buildPulseCortexContext(userId);
+  const ctx = await getWorkCortexContextForUser(userId);
 
   // Extract today's state
   const todaysState = {

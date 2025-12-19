@@ -1,86 +1,76 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { auth } from "@clerk/nextjs/server";
-import { supabaseAdmin } from "@/lib/supabase";
+// app/api/habits/route.ts
+// Supabase-only habits endpoint (migrated from Notion)
+// Sprint 3B: Uses canonical resolveSupabaseUser()
+import { NextRequest, NextResponse } from "next/server";
+import { resolveSupabaseUser } from "@/lib/auth/resolveSupabaseUser";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 
+export const dynamic = "force-dynamic";
+
+// GET - List all habits for user
 export async function GET(req: NextRequest) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const { supabaseUserId } = await resolveSupabaseUser();
 
-    // Get user's database ID
-    const { data: userRow } = await supabaseAdmin
-      .from("users")
-      .select("id")
-      .eq("clerk_id", userId)
-      .single();
+    const { searchParams } = new URL(req.url);
+    const activeOnly = searchParams.get("active") === "true";
 
-    const dbUserId = userRow?.id || userId;
-
-    // Get today's date for checking completion
-    const today = new Date().toISOString().split('T')[0];
-
-    // Query habits with completions
-    const { data: habits, error } = await supabaseAdmin
+    let query = supabaseAdmin
       .from("habits")
-      .select(`
-        *,
-        habit_completions (
-          id,
-          completed_at
-        )
-      `)
-      .eq("user_id", dbUserId)
+      .select("*")
+      .eq("user_id", supabaseUserId)
       .order("created_at", { ascending: false });
 
-    if (error) {
-      console.error("[Habits] Query error:", error);
-      return NextResponse.json({ error: "Failed to fetch habits" }, { status: 500 });
+    if (activeOnly) {
+      query = query.eq("is_active", true);
     }
 
-    // Process habits with completion status
-    const processedHabits = (habits || []).map(h => {
-      const completions = h.habit_completions || [];
-      const lastCompletion = completions.length > 0 
-        ? completions.sort((a: any, b: any) => 
-            new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime()
-          )[0]
-        : null;
-      
-      const lastCompletedDate = lastCompletion?.completed_at 
-        ? new Date(lastCompletion.completed_at).toISOString().split('T')[0]
-        : null;
-      
-      const completedToday = lastCompletedDate === today;
-      
-      // Calculate streak (simplified - would need proper streak calculation in production)
-      const streak = h.streak || 0;
+    const { data: habits, error } = await query;
 
-      return {
-        id: h.id,
-        name: h.name,
-        title: h.name,
-        description: h.description,
-        icon: h.icon,
-        streak,
-        lastCompleted: lastCompletedDate,
-        lastCompletedAt: lastCompletion?.completed_at,
-        frequency: h.frequency || 'daily',
-        category: h.category,
-        completedToday,
-        streakAtRisk: streak >= 3 && !completedToday && new Date().getHours() >= 18,
-        xp: h.xp,
-        createdAt: h.created_at,
-      };
-    });
+    if (error) throw error;
 
-    return NextResponse.json({
-      habits: processedHabits,
-    });
+    return NextResponse.json({ items: habits ?? [] });
   } catch (err: any) {
-    console.error("[Habits] Error:", err);
-    return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });
+    console.error("Habits GET error:", err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
 
+// POST - Create new habit
+export async function POST(req: NextRequest) {
+  try {
+    const { supabaseUserId } = await resolveSupabaseUser();
+    const body = await req.json();
+
+    // Ignore user_id if provided (server sets it)
+    if (body.user_id) {
+      delete body.user_id;
+    }
+
+    const { name, frequency, target, notes, is_active } = body;
+
+    if (!name || !name.trim()) {
+      return NextResponse.json({ error: "Name is required" }, { status: 400 });
+    }
+
+    const { data: habit, error } = await supabaseAdmin
+      .from("habits")
+      .insert({
+        user_id: supabaseUserId,
+        name: name.trim(),
+        frequency: frequency || "daily",
+        target: target || 1,
+        notes: notes?.trim() || null,
+        is_active: is_active !== undefined ? is_active : true,
+      })
+      .select("*")
+      .single();
+
+    if (error) throw error;
+
+    return NextResponse.json({ item: habit }, { status: 200 });
+  } catch (err: any) {
+    console.error("Habits POST error:", err);
+    return NextResponse.json({ error: err.message || "Failed to create habit" }, { status: 500 });
+  }
+}

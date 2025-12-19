@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Sparkles } from "lucide-react";
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 
 interface QuickAction {
   id: string;
@@ -45,8 +46,23 @@ const actions: QuickAction[] = [
 ];
 
 export function QuickActions() {
-  const [isOpen, setIsOpen] = useState(false);
+  // DEPRECATED: This component is deprecated. Use Pulse shell FloatingActions instead.
+  // Keeping for backward compatibility but should not be mounted globally.
+  if (process.env.NODE_ENV !== "production") {
+    console.warn("[QuickActions] DEPRECATED: QuickActions is deprecated. Use Pulse shell FloatingActions instead. This component should not be mounted globally.");
+  }
 
+  const [isOpen, setIsOpen] = useState(false);
+  const pathname = usePathname();
+
+  // Always hide - Pulse shell owns FABs now
+  const pulseRoutes = ['/home', '/workspace', '/people', '/time', '/brain', '/decisions', '/loops', '/coaches', '/crm', '/productivity'];
+  const isInPulseShell = pulseRoutes.some(route => pathname?.startsWith(route));
+
+  // Hard-disable: always return null
+  return null;
+
+  /* Legacy code preserved but unreachable:
   return (
     <div className="fixed bottom-8 right-8 z-40">
       <AnimatePresence>
@@ -92,6 +108,6 @@ export function QuickActions() {
       </motion.button>
     </div>
   );
+  */
 }
-
 

@@ -1,10 +1,11 @@
 // Life Canon v1 - Context Builder
 // lib/life_canon/v1/context.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -31,7 +32,7 @@ export async function buildLifeCanonContext(userId: string, now: Date) {
     strategicSnapshot,
     wisdomLessons,
   ] = await Promise.all([
-    supabaseAdminClient
+    supabaseAdmin
       .from('destiny_arcs')
       .select('*')
       .eq('user_id', dbUserId)
@@ -39,65 +40,65 @@ export async function buildLifeCanonContext(userId: string, now: Date) {
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle(),
-    supabaseAdminClient
+    supabaseAdmin
       .from('timeline_decisions')
       .select('*')
       .eq('user_id', dbUserId)
       .gte('created_at', thirtyDaysAgo)
       .order('created_at', { ascending: false }),
-    supabaseAdminClient
+    supabaseAdmin
       .from('narrative_snapshots')
       .select('*')
       .eq('user_id', dbUserId)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle(),
-    supabaseAdminClient
+    supabaseAdmin
       .from('self_mirror_snapshots')
       .select('*')
       .eq('user_id', dbUserId)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle(),
-    supabaseAdminClient
+    supabaseAdmin
       .from('self_mirror_snapshots')
       .select('*')
       .eq('user_id', dbUserId)
       .order('created_at', { ascending: false })
       .limit(2),
-    supabaseAdminClient
+    supabaseAdmin
       .from('emotion_state_daily')
       .select('*')
       .eq('user_id', dbUserId)
       .gte('date', thirtyDaysAgo)
       .order('date', { ascending: false }),
-    supabaseAdminClient
+    supabaseAdmin
       .from('somatic_state_daily')
       .select('*')
       .eq('user_id', dbUserId)
       .gte('date', thirtyDaysAgo)
       .order('date', { ascending: false }),
-    supabaseAdminClient
+    supabaseAdmin
       .from('relational_state_snapshots')
       .select('*')
       .eq('user_id', dbUserId)
       .gte('snapshot_time', thirtyDaysAgo)
       .order('snapshot_time', { ascending: false })
       .limit(20),
-    supabaseAdminClient
+    supabaseAdmin
       .from('council_sessions')
       .select('*')
       .eq('user_id', dbUserId)
       .gte('created_at', thirtyDaysAgo)
       .order('created_at', { ascending: false }),
-    supabaseAdminClient
+    supabaseAdmin
       .from('strategic_state_snapshots')
       .select('*')
       .eq('user_id', dbUserId)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle(),
-    supabaseAdminClient
+    supabaseAdmin
       .from('wisdom_lessons')
       .select('*')
       .eq('user_id', dbUserId)

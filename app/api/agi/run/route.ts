@@ -6,7 +6,7 @@ import { auth } from "@clerk/nextjs/server";
 import { runAGIKernel } from "@/lib/agi/kernel";
 import { logAGIRunToDB, logAGIActionsToDB } from "@/lib/agi/persistence";
 import { executeActions } from "@/lib/agi/executor";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 
 async function getCurrentUserId(req: NextRequest): Promise<string | null> {
   const { userId } = await auth();
@@ -32,15 +32,17 @@ export async function POST(req: NextRequest) {
 
     const dbUserId = userRow?.id || userId;
 
+    // Check user AGI settings to decide execution
     const { data: settings } = await supabaseAdmin
       .from("user_agi_settings")
-      .select("level")
+      .select("level, require_confirmation_for_high_impact")
       .eq("user_id", dbUserId)
       .maybeSingle();
 
-    const agiLevel = settings?.level || "assist";
+    const level = settings?.level ?? "assist";
+    const requireConfirmation = settings?.require_confirmation_for_high_impact ?? true;
 
-    if (agiLevel === "off") {
+    if (level === "off") {
       return NextResponse.json(
         { error: "AGI is disabled for this user. Please enable it in settings." },
         { status: 403 }
@@ -53,14 +55,7 @@ export async function POST(req: NextRequest) {
       await logAGIActionsToDB(userId, runId, run.finalPlan);
     }
 
-    // Check user AGI settings to decide execution
-    const { data: settings } = await supabaseAdmin
-      .from("user_agi_settings")
-      .select("level, require_confirmation_for_high_impact")
-      .eq("user_id", dbUserId)
-      .maybeSingle();
-
-    const agiLevel = settings?.level || "assist";
+    const agiLevel = level;
 
     // Execute actions based on level
     if (agiLevel === "autopilot") {

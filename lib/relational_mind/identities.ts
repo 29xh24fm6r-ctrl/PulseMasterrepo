@@ -82,16 +82,32 @@ export async function getKeyRelationalIdentitiesForUser(
     .from('relational_identities')
     .select('id, importance, closeness')
     .eq('user_id', dbUserId)
-    .order('importance', { ascending: false, nullsLast: true })
-    .order('closeness', { ascending: false, nullsLast: true })
+    .order('importance', { ascending: false })
+    .order('closeness', { ascending: false })
     .limit(limit);
 
   if (error) throw error;
-  return (data ?? []).map((r: any) => ({
+
+  // Two-step sort: push nulls to end, preserve original order otherwise
+  const sorted = (data ?? []).sort((a: any, b: any) => {
+    // First sort by importance (nulls last)
+    if (a.importance == null && b.importance != null) return 1;
+    if (a.importance != null && b.importance == null) return -1;
+    if (a.importance != null && b.importance != null) {
+      if (b.importance !== a.importance) return b.importance - a.importance;
+    }
+    // Then by closeness (nulls last)
+    if (a.closeness == null && b.closeness != null) return 1;
+    if (a.closeness != null && b.closeness == null) return -1;
+    if (a.closeness != null && b.closeness != null) {
+      return b.closeness - a.closeness;
+    }
+    return 0;
+  });
+
+  return sorted.map((r: any) => ({
     id: r.id,
     importance: r.importance ?? 0.5,
     closeness: r.closeness ?? 0.5,
   }));
 }
-
-

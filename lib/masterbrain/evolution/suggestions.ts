@@ -1,13 +1,14 @@
 // Master Brain Evolution Engine v1 - Suggestion Engine
 // lib/masterbrain/evolution/suggestions.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { callAIJson } from '@/lib/ai/call';
 import { ImprovementIdea } from './types';
 import { listSystemModules } from '../registry';
 
 export async function prioritizeImprovementIdeas(): Promise<ImprovementIdea[]> {
-  const { data: ideas } = await supabaseAdminClient
+  const { data: ideas } = await supabaseAdmin
     .from('system_improvement_ideas')
     .select('*, system_modules(*)')
     .in('status', ['backlog', 'planned'])
@@ -24,7 +25,7 @@ export async function prioritizeImprovementIdeas(): Promise<ImprovementIdea[]> {
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
   const sevenDaysAgoStr = sevenDaysAgo.toISOString().slice(0, 10);
 
-  const { data: recentMetrics } = await supabaseAdminClient
+  const { data: recentMetrics } = await supabaseAdmin
     .from('system_module_metrics')
     .select('*, system_modules(*)')
     .gte('date', sevenDaysAgoStr);

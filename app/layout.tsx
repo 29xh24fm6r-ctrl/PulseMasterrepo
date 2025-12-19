@@ -1,16 +1,16 @@
 import type { Metadata, Viewport } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
-import { CommandPalette } from "./components/command-palette";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 import { UserProvider } from "./providers/user-provider";
-import { GlobalNavEnhanced } from "@/components/GlobalNavEnhanced";
+import { RootNavGate } from "./components/RootNavGate";
+import { LayoutTrace } from "./components/dev/LayoutTrace";
 import ServiceWorkerRegistration from "./components/ServiceWorkerRegistration";
-import { GlobalVoiceButton } from "@/components/GlobalVoiceButton";
 import { CoachPanel } from "@/app/components/coaching/CoachPanel";
 import { WelcomeFlow } from "@/app/components/onboarding/WelcomeFlow";
-import { QuickActions } from "@/app/components/ui/QuickActions";
+import { Toaster } from "sonner";
+import PageViewTracker from "@/components/analytics/PageViewTracker";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -43,17 +43,18 @@ export default function RootLayout({
         <head>
           <link rel="apple-touch-icon" href="/icons/icon-192.png" />
         </head>
-        <body className={`${inter.className} bg-slate-950 text-slate-100`}>
+        <body className={`${inter.className} bg-slate-950 text-slate-100`} suppressHydrationWarning>
           <Providers>
             <UserProvider>
-              <GlobalNavEnhanced />
-              <CommandPalette />
+              <LayoutTrace name="ROOT_LAYOUT" />
+              <RootNavGate />
+              <LayoutTrace name="ROOT_NAV_GATE_RENDERED" />
+              <PageViewTracker />
               {children}
               <ServiceWorkerRegistration />
-              <GlobalVoiceButton />
               <CoachPanel />
               <WelcomeFlow />
-              <QuickActions />
+              <Toaster />
             </UserProvider>
           </Providers>
         </body>

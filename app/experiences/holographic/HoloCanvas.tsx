@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { buildPulseCortexContext } from "@/lib/cortex/context";
+import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 import { PulseCortexContext } from "@/lib/cortex/types";
 
 interface HoloCanvasProps {
@@ -21,7 +21,7 @@ export function HoloCanvas({ userId }: HoloCanvasProps) {
   }, [userId]);
 
   async function loadContext() {
-    const context = await buildPulseCortexContext(userId);
+    const context = await getWorkCortexContextForUser(userId);
     setCtx(context);
   }
 

@@ -3,7 +3,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { buildPulseCortexContext } from "@/lib/cortex/context";
+import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 import { buildSocialGraph } from "@/lib/relationships/social-graph/graph-builder";
 import { detectOpportunities } from "@/lib/relationships/social-graph/opportunity-detector";
 import { detectRisks } from "@/lib/relationships/social-graph/risk-detector";
@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const ctx = await buildPulseCortexContext(userId);
+    const ctx = await getWorkCortexContextForUser(userId);
     const graph = await buildSocialGraph(userId, ctx);
     const opportunities = detectOpportunities(graph);
     const risks = detectRisks(graph);

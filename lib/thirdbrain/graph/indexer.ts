@@ -1,7 +1,8 @@
 // Third Brain Graph v4 - Graph Indexer
 // lib/thirdbrain/graph/indexer.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { KnowledgeNode, KnowledgeEdge, MemoryEvent, NodeKind, EdgeRelation } from './types';
 
 export async function upsertNodeFromEntity(params: {
@@ -17,7 +18,7 @@ export async function upsertNodeFromEntity(params: {
   // Check if node exists by external_ref
   let existingNode: KnowledgeNode | null = null;
   if (externalRef) {
-    const { data } = await supabaseAdminClient
+    const { data } = await supabaseAdmin
       .from('knowledge_nodes')
       .select('*')
       .eq('user_id', userId)
@@ -39,7 +40,7 @@ export async function upsertNodeFromEntity(params: {
 
   if (existingNode) {
     // Update existing node
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await supabaseAdmin
       .from('knowledge_nodes')
       .update({
         ...nodeData,
@@ -53,7 +54,7 @@ export async function upsertNodeFromEntity(params: {
     return data;
   } else {
     // Create new node
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await supabaseAdmin
       .from('knowledge_nodes')
       .insert(nodeData)
       .select('*')
@@ -79,7 +80,7 @@ export async function linkNodes(params: {
   }
 
   // Check if edge already exists
-  const { data: existing } = await supabaseAdminClient
+  const { data: existing } = await supabaseAdmin
     .from('knowledge_edges')
     .select('*')
     .eq('user_id', userId)
@@ -90,7 +91,7 @@ export async function linkNodes(params: {
 
   if (existing) {
     // Update weight
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await supabaseAdmin
       .from('knowledge_edges')
       .update({ weight })
       .eq('id', existing.id)
@@ -102,7 +103,7 @@ export async function linkNodes(params: {
   }
 
   // Create new edge
-  const { data, error } = await supabaseAdminClient
+  const { data, error } = await supabaseAdmin
     .from('knowledge_edges')
     .insert({
       user_id: userId,
@@ -130,7 +131,7 @@ export async function recordMemoryEvent(params: {
 }): Promise<void> {
   const { userId, nodeId, contextId, source, action, weight = 1.0, occurredAt } = params;
 
-  await supabaseAdminClient
+  await supabaseAdmin
     .from('memory_events')
     .insert({
       user_id: userId,
@@ -144,7 +145,7 @@ export async function recordMemoryEvent(params: {
 
   // Update node's last_touched_at if nodeId provided
   if (nodeId) {
-    await supabaseAdminClient
+    await supabaseAdmin
       .from('knowledge_nodes')
       .update({ last_touched_at: new Date().toISOString() })
       .eq('id', nodeId);
@@ -157,7 +158,7 @@ export async function recomputeNodeImportance(userId: string, nodeId: string): P
   ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
   const ninetyDaysAgoStr = ninetyDaysAgo.toISOString();
 
-  const { data: events } = await supabaseAdminClient
+  const { data: events } = await supabaseAdmin
     .from('memory_events')
     .select('weight, occurred_at')
     .eq('user_id', userId)
@@ -167,7 +168,7 @@ export async function recomputeNodeImportance(userId: string, nodeId: string): P
 
   if (!events || events.length === 0) {
     // No recent activity, decay importance
-    await supabaseAdminClient
+    await supabaseAdmin
       .from('knowledge_nodes')
       .update({ importance: 0.0 })
       .eq('id', nodeId);
@@ -188,14 +189,14 @@ export async function recomputeNodeImportance(userId: string, nodeId: string): P
   // Normalize to 0-10 scale (cap at 10)
   const importance = Math.min(totalImportance / 10, 10);
 
-  await supabaseAdminClient
+  await supabaseAdmin
     .from('knowledge_nodes')
     .update({ importance: Math.round(importance * 100) / 100 })
     .eq('id', nodeId);
 }
 
 export async function recomputeAllNodeImportances(userId: string): Promise<void> {
-  const { data: nodes } = await supabaseAdminClient
+  const { data: nodes } = await supabaseAdmin
     .from('knowledge_nodes')
     .select('id')
     .eq('user_id', userId);

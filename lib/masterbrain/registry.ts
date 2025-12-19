@@ -1,7 +1,8 @@
 // Master Brain Registry + Diagnostics v1 - Registry
 // lib/masterbrain/registry.ts
 
-import { supabaseAdminClient } from '../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { SystemModule, SystemCapability } from './types';
 
 const CORE_MODULES = [
@@ -43,14 +44,14 @@ const CAPABILITIES = [
 
 export async function ensureSystemModulesSeeded(): Promise<void> {
   for (const module of CORE_MODULES) {
-    const { data: existing } = await supabaseAdminClient
+    const { data: existing } = await supabaseAdmin
       .from('system_modules')
       .select('*')
       .eq('key', module.key)
       .maybeSingle();
 
     if (!existing) {
-      await supabaseAdminClient
+      await supabaseAdmin
         .from('system_modules')
         .insert({
           key: module.key,
@@ -64,7 +65,7 @@ export async function ensureSystemModulesSeeded(): Promise<void> {
 
   // Seed capabilities
   for (const cap of CAPABILITIES) {
-    const { data: module } = await supabaseAdminClient
+    const { data: module } = await supabaseAdmin
       .from('system_modules')
       .select('id')
       .eq('key', cap.moduleKey)
@@ -72,7 +73,7 @@ export async function ensureSystemModulesSeeded(): Promise<void> {
 
     if (!module) continue;
 
-    const { data: existing } = await supabaseAdminClient
+    const { data: existing } = await supabaseAdmin
       .from('system_capabilities')
       .select('*')
       .eq('module_id', module.id)
@@ -80,7 +81,7 @@ export async function ensureSystemModulesSeeded(): Promise<void> {
       .maybeSingle();
 
     if (!existing) {
-      await supabaseAdminClient
+      await supabaseAdmin
         .from('system_capabilities')
         .insert({
           module_id: module.id,
@@ -95,7 +96,7 @@ export async function ensureSystemModulesSeeded(): Promise<void> {
 export async function listSystemModules(): Promise<SystemModule[]> {
   await ensureSystemModulesSeeded();
 
-  const { data: modules } = await supabaseAdminClient
+  const { data: modules } = await supabaseAdmin
     .from('system_modules')
     .select('*')
     .order('category', { ascending: true })
@@ -107,7 +108,7 @@ export async function listSystemModules(): Promise<SystemModule[]> {
 export async function listSystemCapabilities(): Promise<SystemCapability[]> {
   await ensureSystemModulesSeeded();
 
-  const { data: capabilities } = await supabaseAdminClient
+  const { data: capabilities } = await supabaseAdmin
     .from('system_capabilities')
     .select('*')
     .order('module_id', { ascending: true })
@@ -119,7 +120,7 @@ export async function listSystemCapabilities(): Promise<SystemCapability[]> {
 export async function getModuleByKey(key: string): Promise<SystemModule | null> {
   await ensureSystemModulesSeeded();
 
-  const { data: module } = await supabaseAdminClient
+  const { data: module } = await supabaseAdmin
     .from('system_modules')
     .select('*')
     .eq('key', key)

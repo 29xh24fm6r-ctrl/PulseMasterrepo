@@ -3,10 +3,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { supabaseAdminClient } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -29,27 +29,27 @@ export async function GET(req: NextRequest) {
     const nextWeekStr = nextWeek.toISOString().slice(0, 10);
 
     const [focusRes, plansRes, missionsRes, reflectionsRes] = await Promise.all([
-      supabaseAdminClient
+      supabaseAdmin
         .from('mythic_training_focus')
         .select('*')
         .eq('user_id', dbUserId)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle(),
-      supabaseAdminClient
+      supabaseAdmin
         .from('mythic_training_plans')
         .select('*')
         .eq('user_id', dbUserId)
         .eq('status', 'active')
         .order('created_at', { ascending: false }),
-      supabaseAdminClient
+      supabaseAdmin
         .from('mythic_training_missions')
         .select('*')
         .eq('user_id', dbUserId)
         .gte('due_date', now.toISOString().slice(0, 10))
         .lte('due_date', nextWeekStr)
         .order('due_date', { ascending: true }),
-      supabaseAdminClient
+      supabaseAdmin
         .from('mythic_training_reflections')
         .select('*')
         .eq('user_id', dbUserId)

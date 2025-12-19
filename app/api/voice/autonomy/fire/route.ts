@@ -3,7 +3,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { buildPulseCortexContext } from "@/lib/cortex/context";
+import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 import { generateVoiceIntervention } from "@/lib/voice/autonomy/voice-autonomy-engine";
 import { evaluateTriggers } from "@/lib/voice/autonomy/voice-triggers";
 import { shouldFireIntervention } from "@/lib/voice/autonomy/voice-autonomy-engine";
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     const { trigger, personaOverride } = body;
 
     // Build context
-    const ctx = await buildPulseCortexContext(userId);
+    const ctx = await getWorkCortexContextForUser(userId);
 
     // If no trigger specified, evaluate all triggers
     if (!trigger) {

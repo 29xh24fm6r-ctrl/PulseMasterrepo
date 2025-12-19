@@ -1,0 +1,89 @@
+// lib/features/canaries/habits.canary.ts
+import "server-only";
+import type { CanaryFn, CanaryContext, CanaryResult } from "../canary.types";
+import { supabaseAdmin } from "@/lib/supabase/admin";
+import { hintMissingTable, hintRlsDenied, hintApiDown } from "../canary/hints";
+
+export const habitsCanary: CanaryFn = async (ctx: CanaryContext): Promise<CanaryResult> => {
+  const checks: CanaryResult["checks"] = [];
+  const featureId = "habits";
+
+  // Check 1: API endpoint reachable
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/api/habits`, {
+      method: "HEAD",
+      headers: { "Content-Type": "application/json" },
+    });
+    const apiOk = response.status < 500;
+    checks.push({
+      id: "api_reachable",
+      label: "API endpoint reachable",
+      ok: apiOk,
+      details: apiOk ? "GET /api/habits responds" : `HTTP ${response.status}`,
+      fixHint: apiOk ? undefined : hintApiDown("/api/habits"),
+    });
+  } catch (err: any) {
+    checks.push({
+      id: "api_reachable",
+      label: "API endpoint reachable",
+      ok: false,
+      details: err?.message || "Failed to reach API",
+      fixHint: hintApiDown("/api/habits"),
+    });
+  }
+
+  // Check 2: DB table exists
+  try {
+    const { error } = await supabaseAdmin.from("habits").select("id").limit(1);
+    const tableOk = !error;
+    const isMissingTable = error?.code === "42P01" || error?.message?.includes("does not exist");
+    checks.push({
+      id: "db_table_exists",
+      label: "Database table accessible",
+      ok: tableOk,
+      details: tableOk ? "habits table exists and is queryable" : error?.message,
+      fixHint: tableOk ? undefined : isMissingTable ? hintMissingTable("habits") : hintRlsDenied("habits"),
+    });
+  } catch (err: any) {
+    checks.push({
+      id: "db_table_exists",
+      label: "Database table accessible",
+      ok: false,
+      details: err?.message || "Failed to query habits table",
+      fixHint: hintMissingTable("habits"),
+    });
+  }
+
+  // Check 3: RLS structure
+  try {
+    const { data, error } = await supabaseAdmin.from("habits").select("id, user_id").limit(1);
+    const rlsOk = !error && (!data || data.length === 0 || data[0]?.user_id);
+    checks.push({
+      id: "rls_structure",
+      label: "RLS structure valid",
+      ok: rlsOk,
+      details: rlsOk ? "habits.user_id column present" : error?.message || "Missing user_id column",
+      fixHint: rlsOk ? undefined : hintRlsDenied("habits"),
+    });
+  } catch (err: any) {
+    checks.push({
+      id: "rls_structure",
+      label: "RLS structure valid",
+      ok: false,
+      details: err?.message || "Failed to verify RLS structure",
+      fixHint: hintRlsDenied("habits"),
+    });
+  }
+
+  const ok = checks.every((c) => c.ok);
+  const severity = ok ? "ok" : checks.some((c) => !c.ok) ? "fail" : "warn";
+  return {
+    featureId,
+    ok,
+    severity,
+    checks,
+    createdAt: new Date().toISOString(),
+    message: ok ? "All checks passed" : `${checks.filter((c) => !c.ok).length} check(s) failed`,
+  };
+};
+

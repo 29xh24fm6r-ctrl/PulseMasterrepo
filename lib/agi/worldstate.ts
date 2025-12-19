@@ -221,8 +221,8 @@ export async function buildWorldState(userId: AGIUserId): Promise<WorldState> {
     // Try Identity Engine v3 first
     try {
       const { scanIdentity } = await import("@/lib/identity/v3/identity-scanner");
-      const { buildPulseCortexContext } = await import("@/lib/cortex/context");
-      const cortexCtx = await buildPulseCortexContext(userId);
+      const { getWorkCortexContextForUser } = await import("@/lib/cortex/context");
+      const cortexCtx = await getWorkCortexContextForUser(userId);
       const identityProfile = await scanIdentity(userId, cortexCtx);
       
       identityArchetype = identityProfile.currentArchetype;

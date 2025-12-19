@@ -6,8 +6,8 @@ import { auth } from '@clerk/nextjs/server';
 import { computeDomainStates } from '@/lib/thirdbrain/civilization/engine';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { supabaseAdminClient } = await import('@/lib/supabase/admin');
-  const { data: userRow } = await supabaseAdminClient
+  const { supabaseAdmin } = await import('@/lib/supabase/admin');
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)

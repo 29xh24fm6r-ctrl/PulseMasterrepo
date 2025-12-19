@@ -1,11 +1,12 @@
 // Mythic Coach Engine v1 - Session Logging
 // lib/mythic/coach/log.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { MythicContext, MythicCoachMode, MythicPlaybook } from './types';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -27,7 +28,7 @@ export async function logMythicCoachSession(params: {
 }): Promise<void> {
   const dbUserId = await resolveUserId(params.userId);
 
-  const { error } = await supabaseAdminClient
+  const { error } = await supabaseAdmin
     .from('mythic_coach_sessions')
     .insert({
       user_id: dbUserId,

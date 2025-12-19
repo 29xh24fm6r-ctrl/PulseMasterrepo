@@ -81,9 +81,9 @@ export async function recomputeBehaviorProfileForContact(
   const channelCounts: Record<string, number> = {};
   const responseTimes: number[] = [];
   const theirResponseTimes: number[] = [];
-  const conflictEvents: number = 0;
-  const negativeSentimentEvents: number = 0;
-  const totalSentiment = 0;
+  let conflictEvents: number = 0;
+  let negativeSentimentEvents: number = 0;
+  let totalSentiment = 0;
 
   for (const event of events) {
     // Count by channel

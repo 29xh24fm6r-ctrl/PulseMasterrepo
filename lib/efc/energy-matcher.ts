@@ -1,7 +1,8 @@
 // Executive Function Cortex: Energy Matcher
 // Tracks user energy and matches tasks to current state
 
-import { createClient } from "@supabase/supabase-js";
+import "server-only";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import OpenAI from "openai";
 import {
   EnergyState,
@@ -11,17 +12,6 @@ import {
 } from "./types";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
-function getSupabase() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  
-  if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error('Missing Supabase environment variables. Please configure NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
-  }
-  
-  return createClient(supabaseUrl, supabaseServiceKey);
-}
 
 // ============================================
 // ENERGY LEVEL CHARACTERISTICS
@@ -75,7 +65,7 @@ export async function recordEnergyState(
     notes?: string;
   }
 ): Promise<EnergyState> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   const profile = ENERGY_PROFILES[state.energy_level];
 
   const energyState: EnergyState = {
@@ -107,7 +97,7 @@ export async function recordEnergyState(
 export async function getCurrentEnergyState(
   userId: string
 ): Promise<EnergyState | null> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
 
   const { data } = await supabase
     .from("efc_energy_states")
@@ -143,7 +133,7 @@ export async function getCurrentEnergyState(
 // ============================================
 
 async function estimateEnergyState(userId: string): Promise<EnergyState> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   const hour = new Date().getHours();
 
   // Base estimation on time of day

@@ -1,7 +1,8 @@
 // Executive Function Cortex: Follow-Through Tracker
 // Monitors commitments, tracks progress, and nudges completion
 
-import { createClient } from "@supabase/supabase-js";
+import "server-only";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import OpenAI from "openai";
 import { CognitiveMesh } from "../cognitive-mesh";
 import {
@@ -13,17 +14,6 @@ import {
 } from "./types";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
-function getSupabase() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  
-  if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error('Missing Supabase environment variables. Please configure NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
-  }
-  
-  return createClient(supabaseUrl, supabaseServiceKey);
-}
 
 // ============================================
 // COMMITMENT TRACKING
@@ -40,7 +30,7 @@ export async function createCommitment(
     related_entity_ids?: string[];
   }
 ): Promise<Commitment> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
 
   const { data, error } = await supabase
     .from("efc_commitments")
@@ -84,7 +74,7 @@ export async function getActiveCommitments(
     limit?: number;
   } = {}
 ): Promise<Commitment[]> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
 
   let query = supabase
     .from("efc_commitments")
@@ -119,7 +109,7 @@ export async function updateCommitmentProgress(
   notes?: string,
   blockers?: string[]
 ): Promise<Commitment> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
 
   // Get current commitment
   const { data: current } = await supabase
@@ -180,7 +170,7 @@ export async function markCommitmentBroken(
   commitmentId: string,
   reason?: string
 ): Promise<void> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
 
   await supabase
     .from("efc_commitments")
@@ -208,7 +198,7 @@ export async function createNudge(
     suggested_action_data?: any;
   }
 ): Promise<FollowThroughNudge> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
 
   const { data, error } = await supabase
     .from("efc_nudges")
@@ -231,7 +221,7 @@ export async function createNudge(
 export async function getActiveNudges(
   userId: string
 ): Promise<FollowThroughNudge[]> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
 
   const { data } = await supabase
     .from("efc_nudges")
@@ -248,7 +238,7 @@ export async function acknowledgeNudge(
   userId: string,
   nudgeId: string
 ): Promise<void> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
 
   await supabase
     .from("efc_nudges")
@@ -265,7 +255,7 @@ export async function snoozeNudge(
   nudgeId: string,
   hours: number
 ): Promise<void> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
 
   await supabase
     .from("efc_nudges")
@@ -283,7 +273,7 @@ export async function snoozeNudge(
 export async function generateNudgesForUser(
   userId: string
 ): Promise<FollowThroughNudge[]> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   const now = new Date();
   const generatedNudges: FollowThroughNudge[] = [];
 
@@ -444,7 +434,7 @@ export async function calculateFollowThroughScore(
   onTime: number;
   late: number;
 }> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
 
   const { data: commitments } = await supabase
     .from("efc_commitments")

@@ -1,12 +1,13 @@
 // Boardroom Brain v1 - Decision Theater Engine
 // lib/boardroom/decision_theater.ts
 
-import { supabaseAdminClient } from '../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { callAIJson } from '@/lib/ai/call';
 import { DecisionScenario, ScenarioParameters, ScenarioOutcomeSummary } from './types';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -23,13 +24,13 @@ export async function generateDecisionScenarios(params: {
 
   // Get decision and options
   const [decisionRes, optionsRes] = await Promise.all([
-    supabaseAdminClient
+    supabaseAdmin
       .from('decisions')
       .select('*')
       .eq('id', params.decisionId)
       .eq('user_id', dbUserId)
       .maybeSingle(),
-    supabaseAdminClient
+    supabaseAdmin
       .from('decision_options')
       .select('*')
       .eq('decision_id', params.decisionId)
@@ -44,20 +45,20 @@ export async function generateDecisionScenarios(params: {
 
   // Get current state for simulation
   const [financeRes, dealsRes, mythicRes] = await Promise.all([
-    supabaseAdminClient
+    supabaseAdmin
       .from('financial_state_snapshots')
       .select('*')
       .eq('user_id', dbUserId)
       .order('snapshot_time', { ascending: false })
       .limit(1)
       .maybeSingle(),
-    supabaseAdminClient
+    supabaseAdmin
       .from('deals')
       .select('*')
       .eq('user_id', dbUserId)
       .in('status', ['active', 'negotiating'])
       .limit(10),
-    supabaseAdminClient
+    supabaseAdmin
       .from('user_mythic_profile')
       .select('*')
       .eq('user_id', dbUserId)
@@ -106,7 +107,7 @@ Return JSON with:
       const { narrative_summary, risk_score, outcomes } = result.data;
 
       // Insert scenario
-      const { data: scenario, error } = await supabaseAdminClient
+      const { data: scenario, error } = await supabaseAdmin
         .from('decision_scenarios')
         .insert({
           decision_id: params.decisionId,

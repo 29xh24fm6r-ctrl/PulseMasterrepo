@@ -3,10 +3,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { supabaseAdminClient } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -31,30 +31,30 @@ export async function GET(req: NextRequest) {
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 86400000).toISOString().slice(0, 10);
 
     const [progressRes, plansRes, missionsRes, achievementsRes, beltLevelsRes] = await Promise.all([
-      supabaseAdminClient
+      supabaseAdmin
         .from('mythic_belt_progress')
         .select('*')
         .eq('user_id', dbUserId),
-      supabaseAdminClient
+      supabaseAdmin
         .from('mythic_training_plans')
         .select('*')
         .eq('user_id', dbUserId)
         .eq('status', 'active')
         .order('created_at', { ascending: false }),
-      supabaseAdminClient
+      supabaseAdmin
         .from('mythic_training_missions')
         .select('*')
         .eq('user_id', dbUserId)
         .gte('due_date', nowStr)
         .lte('due_date', nextWeekStr)
         .order('due_date', { ascending: true }),
-      supabaseAdminClient
+      supabaseAdmin
         .from('mythic_achievements')
         .select('*')
         .eq('user_id', dbUserId)
         .gte('created_at', thirtyDaysAgo)
         .order('created_at', { ascending: false }),
-      supabaseAdminClient
+      supabaseAdmin
         .from('mythic_belt_levels')
         .select('*'),
     ]);

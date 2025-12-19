@@ -3,10 +3,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { supabaseAdminClient } from '@/lib/supabase/admin';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -28,7 +28,7 @@ export async function GET(
     const userId = await resolveUserId(clerkId);
 
     // Get timeline
-    const { data: timeline, error: timelineError } = await supabaseAdminClient
+    const { data: timeline, error: timelineError } = await supabaseAdmin
       .from('destiny_timelines')
       .select('*')
       .eq('id', params.id)
@@ -41,7 +41,7 @@ export async function GET(
     }
 
     // Get waypoints
-    const { data: waypoints, error: waypointsError } = await supabaseAdminClient
+    const { data: waypoints, error: waypointsError } = await supabaseAdmin
       .from('destiny_waypoints')
       .select('*')
       .eq('timeline_id', params.id)
@@ -52,7 +52,7 @@ export async function GET(
     // Get milestones for each waypoint
     const waypointsWithMilestones = await Promise.all(
       (waypoints ?? []).map(async (waypoint) => {
-        const { data: milestones } = await supabaseAdminClient
+        const { data: milestones } = await supabaseAdmin
           .from('destiny_milestones')
           .select('*')
           .eq('waypoint_id', waypoint.id)
@@ -66,7 +66,7 @@ export async function GET(
     );
 
     // Get score history
-    const { data: scores, error: scoresError } = await supabaseAdminClient
+    const { data: scores, error: scoresError } = await supabaseAdmin
       .from('destiny_timeline_scores')
       .select('*')
       .eq('timeline_id', params.id)

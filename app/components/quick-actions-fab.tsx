@@ -132,20 +132,23 @@ export function QuickActionsFAB() {
     if (!contactForm.name.trim()) return;
     setSaving(true);
     try {
-      const res = await fetch("/api/second-brain/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: contactForm.name,
-          company: contactForm.company,
-          email: contactForm.email,
-          notes: contactForm.notes,
-        }),
+      const { postJson } = await import("@/lib/http/postJson");
+      const { ok, data } = await postJson("/api/contacts", {
+        name: contactForm.name,
+        company: contactForm.company || undefined,
+        email: contactForm.email || undefined,
+        notes: contactForm.notes || undefined,
       });
-      if (res.ok) {
-        setSuccess(true);
-        setTimeout(closeModal, 1000);
+
+      if (!ok) {
+        const msg = data?.error || "Failed to create contact";
+        console.error("Failed to create contact:", msg);
+        // Could show toast/alert here
+        return;
       }
+
+      setSuccess(true);
+      setTimeout(closeModal, 1000);
     } catch (err) {
       console.error("Failed to create contact:", err);
     } finally {

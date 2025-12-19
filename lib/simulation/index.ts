@@ -1,17 +1,7 @@
 // Life Simulation Engine
-import { createClient } from "@supabase/supabase-js";
+import "server-only";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import { llmJson } from "../llm/client";
-
-function getSupabase() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  
-  if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error('Missing Supabase environment variables. Please configure NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
-  }
-  
-  return createClient(supabaseUrl, supabaseServiceKey);
-}
 
 export interface Simulation {
   id: string;
@@ -41,7 +31,7 @@ export interface WhatIf {
 }
 
 export async function analyzeWhatIf(userId: string, question: string, context?: Record<string, any>): Promise<WhatIf> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   const contextStr = context ? Object.entries(context).map(([k, v]) => k + ": " + JSON.stringify(v)).join("\n") : "No additional context";
 
   const prompt = `Analyze this "what if" question.
@@ -79,7 +69,7 @@ Return JSON:
 }
 
 export async function createSimulation(userId: string, input: { title: string; description?: string; type: string; baseScenario: Record<string, any>; variables?: any[]; timeHorizon?: string }): Promise<Simulation> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   const { data, error } = await supabase.from("sim_simulations").insert({
     user_id: userId,
     title: input.title,
@@ -95,7 +85,7 @@ export async function createSimulation(userId: string, input: { title: string; d
 }
 
 export async function runSimulation(simulationId: string): Promise<{ scenarios: any[]; recommendedPath: string }> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   const { data: simulation } = await supabase.from("sim_simulations").select("*").eq("id", simulationId).single();
   if (!simulation) throw new Error("Simulation not found");
 
@@ -139,7 +129,7 @@ Return JSON:
 }
 
 export async function generateDecisionTree(simulationId: string, rootDecision: string): Promise<any> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   const { data: simulation } = await supabase.from("sim_simulations").select("*").eq("id", simulationId).single();
   if (!simulation) throw new Error("Simulation not found");
 
@@ -173,7 +163,7 @@ Return JSON:
 }
 
 export async function getSimulations(userId: string, status?: string): Promise<Simulation[]> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   let query = supabase.from("sim_simulations").select("*").eq("user_id", userId).order("created_at", { ascending: false });
   if (status) query = query.eq("status", status);
   const { data } = await query.limit(20);
@@ -181,7 +171,7 @@ export async function getSimulations(userId: string, status?: string): Promise<S
 }
 
 export async function getWhatIfs(userId: string, limit = 20): Promise<WhatIf[]> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   const { data } = await supabase.from("sim_what_ifs").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(limit);
   return data || [];
 }

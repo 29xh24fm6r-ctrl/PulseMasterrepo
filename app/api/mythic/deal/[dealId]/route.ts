@@ -3,10 +3,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { supabaseAdminClient } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -28,7 +28,7 @@ export async function GET(
     const dbUserId = await resolveUserId(userId);
     const dealId = params.dealId;
 
-    const { data: runs, error } = await supabaseAdminClient
+    const { data: runs, error } = await supabaseAdmin
       .from('deal_archetype_runs')
       .select('*, mythic_archetypes(*)')
       .eq('user_id', dbUserId)

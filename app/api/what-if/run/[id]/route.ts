@@ -3,10 +3,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { supabaseAdminClient } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -29,19 +29,19 @@ export async function GET(
     const runId = params.id;
 
     const [runRes, outcomeRes, scenarioRes] = await Promise.all([
-      supabaseAdminClient
+      supabaseAdmin
         .from('what_if_runs')
         .select('*')
         .eq('id', runId)
         .eq('user_id', dbUserId)
         .maybeSingle(),
-      supabaseAdminClient
+      supabaseAdmin
         .from('what_if_outcomes')
         .select('*')
         .eq('run_id', runId)
         .eq('user_id', dbUserId)
         .maybeSingle(),
-      supabaseAdminClient
+      supabaseAdmin
         .from('what_if_scenarios')
         .select('*')
         .eq('user_id', dbUserId)
@@ -55,7 +55,7 @@ export async function GET(
     // Get scenario if we have scenario_id
     let scenario = null;
     if (runRes.data.scenario_id) {
-      const { data: scenarioData } = await supabaseAdminClient
+      const { data: scenarioData } = await supabaseAdmin
         .from('what_if_scenarios')
         .select('*')
         .eq('id', runRes.data.scenario_id)

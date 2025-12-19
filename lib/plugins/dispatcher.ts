@@ -1,17 +1,7 @@
 // Plugin Event Dispatcher
-import { createClient } from "@supabase/supabase-js";
+import "server-only";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import crypto from "crypto";
-
-function getSupabase() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  
-  if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error('Missing Supabase environment variables. Please configure NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
-  }
-  
-  return createClient(supabaseUrl, supabaseServiceKey);
-}
 
 type EventType = 
   | "tb.fragment_created"
@@ -34,7 +24,7 @@ export async function dispatchEvent(
   userId: string,
   data: Record<string, any>
 ): Promise<{ dispatched: number; errors: number }> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
 
   // Find subscribed apps
   const { data: subscriptions } = await supabase

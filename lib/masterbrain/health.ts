@@ -1,7 +1,8 @@
 // Master Brain Registry + Diagnostics v1 - Health Engine
 // lib/masterbrain/health.ts
 
-import { supabaseAdminClient } from '../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { ModuleHealth, ModuleStatus } from './types';
 import { getModuleByKey } from './registry';
 
@@ -10,14 +11,14 @@ export async function runModuleHealthCheck(moduleKey: string): Promise<ModuleHea
   if (!module) return null;
 
   // Get capabilities for this module
-  const { data: capabilities } = await supabaseAdminClient
+  const { data: capabilities } = await supabaseAdmin
     .from('system_capabilities')
     .select('*')
     .eq('module_id', module.id);
 
   if (!capabilities || capabilities.length === 0) {
     // No API routes to check, mark as ok
-    const { data: health } = await supabaseAdminClient
+    const { data: health } = await supabaseAdmin
       .from('system_module_health')
       .insert({
         module_id: module.id,
@@ -35,7 +36,7 @@ export async function runModuleHealthCheck(moduleKey: string): Promise<ModuleHea
 
   // For v1, we'll do a simple check: look at recent metrics
   // In production, you'd make actual API calls
-  const { data: recentMetrics } = await supabaseAdminClient
+  const { data: recentMetrics } = await supabaseAdmin
     .from('system_module_metrics')
     .select('*')
     .eq('module_id', module.id)
@@ -63,7 +64,7 @@ export async function runModuleHealthCheck(moduleKey: string): Promise<ModuleHea
     statusReason = `${totalErrors} errors in last 7 days`;
   }
 
-  const { data: health } = await supabaseAdminClient
+  const { data: health } = await supabaseAdmin
     .from('system_module_health')
     .insert({
       module_id: module.id,
@@ -103,7 +104,7 @@ export async function recordModuleInvocation(params: {
   const today = new Date().toISOString().slice(0, 10);
 
   // Get or create today's metrics
-  const { data: existing } = await supabaseAdminClient
+  const { data: existing } = await supabaseAdmin
     .from('system_module_metrics')
     .select('*')
     .eq('module_id', module.id)
@@ -128,12 +129,12 @@ export async function recordModuleInvocation(params: {
   };
 
   if (existing) {
-    await supabaseAdminClient
+    await supabaseAdmin
       .from('system_module_metrics')
       .update(updateData)
       .eq('id', existing.id);
   } else {
-    await supabaseAdminClient
+    await supabaseAdmin
       .from('system_module_metrics')
       .insert({
         module_id: module.id,

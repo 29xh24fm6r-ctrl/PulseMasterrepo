@@ -5,6 +5,37 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { AutopilotAction } from "./types";
 
 /**
+ * Execute action based on type - direct returns per case, no mutable state
+ */
+async function executeActionByType(
+  action: AutopilotAction
+): Promise<Record<string, any>> {
+  switch (action.action_type) {
+    case "email_followup":
+      return await executeEmailFollowup(action);
+
+    case "create_task":
+      return await executeCreateTask(action);
+
+    case "complete_task":
+      return await executeCompleteTask(action);
+
+    case "relationship_checkin":
+      return await executeRelationshipCheckin(action);
+
+    case "deal_nudge":
+      return await executeDealNudge(action);
+
+    case "meeting_prep":
+      return await executeMeetingPrep(action);
+
+    default:
+      // Hard failure is correct here (unknown action type must not be silently ignored)
+      throw new Error(`Unknown autopilot action type: ${action.action_type}`);
+  }
+}
+
+/**
  * Execute an autopilot action
  */
 export async function executeAutopilotAction(
@@ -28,31 +59,9 @@ export async function executeAutopilotAction(
     };
   }
 
-  const result: Record<string, any> = {};
-
   try {
-    switch (action.action_type) {
-      case "email_followup":
-        result = await executeEmailFollowup(action);
-        break;
-      case "create_task":
-        result = await executeCreateTask(action);
-        break;
-      case "complete_task":
-        result = await executeCompleteTask(action);
-        break;
-      case "relationship_checkin":
-        result = await executeRelationshipCheckin(action);
-        break;
-      case "deal_nudge":
-        result = await executeDealNudge(action);
-        break;
-      case "meeting_prep":
-        result = await executeMeetingPrep(action);
-        break;
-      default:
-        throw new Error(`Unknown action type: ${action.action_type}`);
-    }
+    // Execute action - direct returns, no mutable state
+    const result = await executeActionByType(action);
 
     // Update action status
     await supabaseAdmin
@@ -65,11 +74,14 @@ export async function executeAutopilotAction(
       .eq("id", actionId);
 
     return { success: true, result };
-  } catch (err: any) {
-    console.error(`[Autopilot] Execution failed for ${action.action_type}:`, err);
+  } catch (err) {
+    // Provide action context without leaking sensitive payloads
+    const message = err instanceof Error ? err.message : String(err);
+    const errorMessage = `Autopilot executor failed for type="${action.action_type}": ${message}`;
+    console.error(`[Autopilot] ${errorMessage}`, err);
     return {
       success: false,
-      result: { error: err.message },
+      result: { error: message },
     };
   }
 }

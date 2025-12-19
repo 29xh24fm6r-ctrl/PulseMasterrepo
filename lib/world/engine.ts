@@ -3,7 +3,7 @@
 
 import { supabaseAdmin } from "@/lib/supabase";
 import { getTwinModel } from "@/lib/twin/engine";
-import { buildPulseCortexContext } from "@/lib/cortex/context";
+import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 import { callAIJson } from "@/lib/ai/call";
 
 export interface WorldInfluence {
@@ -60,7 +60,7 @@ export async function computeWorldInfluenceForUser(
   const twin = await getTwinModel(userId);
 
   // Pull Cortex context
-  const ctx = await buildPulseCortexContext(userId);
+  const ctx = await getWorkCortexContextForUser(userId);
 
   // Pull user's world adjustments
   const { data: userAdjustments } = await supabaseAdmin

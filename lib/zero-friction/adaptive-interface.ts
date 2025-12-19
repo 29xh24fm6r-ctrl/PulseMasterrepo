@@ -2,7 +2,7 @@
 // lib/zero-friction/adaptive-interface.ts
 
 import { CognitiveProfile } from "./cognitive-profile";
-import { buildPulseCortexContext } from "@/lib/cortex/context";
+import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 
 export interface AdaptiveInterfaceConfig {
   showComplexFeatures: boolean;
@@ -27,7 +27,7 @@ export async function composeAdaptiveInterface(
   profile: CognitiveProfile
 ): Promise<AdaptiveInterfaceConfig> {
   // Get current emotional state
-  const ctx = await buildPulseCortexContext(userId);
+  const ctx = await getWorkCortexContextForUser(userId);
   const emotion = ctx.emotion?.detected_emotion || "neutral";
   const stress = ctx.emotion?.intensity || 0.5;
 

@@ -4,10 +4,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getCreativeProject } from '@/lib/creative/projects';
-import { supabaseAdminClient } from '@/lib/supabase/admin';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -35,13 +35,13 @@ export async function GET(
     }
 
     // Get sessions and assets for this project
-    const { data: sessions } = await supabaseAdminClient
+    const { data: sessions } = await supabaseAdmin
       .from('creative_sessions')
       .select('*')
       .eq('project_id', params.id)
       .order('started_at', { ascending: false });
 
-    const { data: assets } = await supabaseAdminClient
+    const { data: assets } = await supabaseAdmin
       .from('creative_assets')
       .select('*')
       .eq('project_id', params.id)

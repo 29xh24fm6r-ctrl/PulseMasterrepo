@@ -1,13 +1,14 @@
 // Master Brain Registry + Diagnostics v1 - Diagnostics Engine
 // lib/masterbrain/diagnostics.ts
 
-import { supabaseAdminClient } from '../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { DiagnosticsRun, DiagnosticsFinding, DiagnosticsSeverity } from './types';
 import { listSystemModules } from './registry';
 import { runAllHealthChecks } from './health';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -24,7 +25,7 @@ export async function runDiagnostics(params: {
   findings: DiagnosticsFinding[];
 }> {
   // Create run record
-  const { data: run, error: runError } = await supabaseAdminClient
+  const { data: run, error: runError } = await supabaseAdmin
     .from('system_diagnostics_runs')
     .insert({
       run_type: params.runType,
@@ -85,7 +86,7 @@ export async function runDiagnostics(params: {
     for (const module of modules) {
       if (module.category !== 'coach' && module.category !== 'simulation') continue;
 
-      const { data: metrics } = await supabaseAdminClient
+      const { data: metrics } = await supabaseAdmin
         .from('system_module_metrics')
         .select('*')
         .eq('module_id', module.id)
@@ -117,7 +118,7 @@ export async function runDiagnostics(params: {
 
     if (dbUserId) {
       // Check mythic profile staleness
-      const { data: mythicProfile } = await supabaseAdminClient
+      const { data: mythicProfile } = await supabaseAdmin
         .from('user_mythic_profile')
         .select('last_story_refresh_at')
         .eq('user_id', dbUserId)
@@ -149,7 +150,7 @@ export async function runDiagnostics(params: {
       }
 
       // Check deal archetype runs
-      const { data: latestDealRun } = await supabaseAdminClient
+      const { data: latestDealRun } = await supabaseAdmin
         .from('deal_archetype_runs')
         .select('created_at')
         .eq('user_id', dbUserId)
@@ -183,7 +184,7 @@ export async function runDiagnostics(params: {
       }
 
       // Check boardroom decisions
-      const { data: openDecisions } = await supabaseAdminClient
+      const { data: openDecisions } = await supabaseAdmin
         .from('decisions')
         .select('*')
         .eq('user_id', dbUserId)
@@ -227,7 +228,7 @@ export async function runDiagnostics(params: {
         recommendation: f.recommendation,
       }));
 
-      const { data: insertedFindings } = await supabaseAdminClient
+      const { data: insertedFindings } = await supabaseAdmin
         .from('system_diagnostics_findings')
         .insert(findingsToInsert)
         .select('*');
@@ -239,7 +240,7 @@ export async function runDiagnostics(params: {
 
       const summary = `Diagnostics completed: ${criticalCount} critical, ${warningCount} warnings, ${infoCount} info items.`;
 
-      await supabaseAdminClient
+      await supabaseAdmin
         .from('system_diagnostics_runs')
         .update({
           status: 'completed',
@@ -256,7 +257,7 @@ export async function runDiagnostics(params: {
 
     // No findings
     const summary = 'Diagnostics completed: All systems healthy.';
-    await supabaseAdminClient
+    await supabaseAdmin
       .from('system_diagnostics_runs')
       .update({
         status: 'completed',
@@ -270,7 +271,7 @@ export async function runDiagnostics(params: {
       findings: [],
     };
   } catch (err) {
-    await supabaseAdminClient
+    await supabaseAdmin
       .from('system_diagnostics_runs')
       .update({
         status: 'failed',

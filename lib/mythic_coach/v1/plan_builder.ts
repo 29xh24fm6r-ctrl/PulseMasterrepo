@@ -1,12 +1,13 @@
 // Mythic Coach v1 - Plan Builder
 // lib/mythic_coach/v1/plan_builder.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { callAIJson } from '@/lib/ai/call';
 import { MYTHIC_PLAN_PROMPT } from './prompts';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -24,14 +25,14 @@ export async function createMythicPlanForTarget(
   const dbUserId = await resolveUserId(userId);
 
   const [canonSnapshotRes, strategicSnapshotRes] = await Promise.all([
-    supabaseAdminClient
+    supabaseAdmin
       .from('life_canon_snapshots')
       .select('*')
       .eq('user_id', dbUserId)
       .order('snapshot_time', { ascending: false })
       .limit(1)
       .maybeSingle(),
-    supabaseAdminClient
+    supabaseAdmin
       .from('strategic_state_snapshots')
       .select('*')
       .eq('user_id', dbUserId)
@@ -72,7 +73,7 @@ export async function createMythicPlanForTarget(
   const expectedEnd = new Date(now);
   expectedEnd.setDate(expectedEnd.getDate() + durationDays);
 
-  const { data, error } = await supabaseAdminClient
+  const { data, error } = await supabaseAdmin
     .from('mythic_training_plans')
     .insert({
       user_id: dbUserId,

@@ -1,7 +1,8 @@
 // Decision Theater v2 - Tree Builder
 // lib/boardroom/theater_v2/builder.ts
 
-import { supabaseAdminClient } from '../../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { DecisionTree, DecisionTreeNode, DecisionTreeEdge } from './types';
 
 export async function createDecisionTreeForDecision(params: {
@@ -15,7 +16,7 @@ export async function createDecisionTreeForDecision(params: {
   // Get decision to infer name if not provided
   let treeName = name;
   if (!treeName) {
-    const { data: decision } = await supabaseAdminClient
+    const { data: decision } = await supabaseAdmin
       .from('decisions')
       .select('title')
       .eq('id', decisionId)
@@ -24,7 +25,7 @@ export async function createDecisionTreeForDecision(params: {
     treeName = decision ? `${decision.title} – Multi-Stage` : 'Decision Tree';
   }
 
-  const { data: tree, error } = await supabaseAdminClient
+  const { data: tree, error } = await supabaseAdmin
     .from('decision_trees')
     .insert({
       decision_id: decisionId,
@@ -38,7 +39,7 @@ export async function createDecisionTreeForDecision(params: {
   if (error) throw error;
 
   // Create root node "Now"
-  await supabaseAdminClient
+  await supabaseAdmin
     .from('decision_tree_nodes')
     .insert({
       tree_id: tree.id,
@@ -67,7 +68,7 @@ export async function addNodeToTree(params: {
   // Determine depth
   let depth = 0;
   if (parentNodeId) {
-    const { data: parent } = await supabaseAdminClient
+    const { data: parent } = await supabaseAdmin
       .from('decision_tree_nodes')
       .select('depth')
       .eq('id', parentNodeId)
@@ -78,7 +79,7 @@ export async function addNodeToTree(params: {
     }
   }
 
-  const { data: node, error } = await supabaseAdminClient
+  const { data: node, error } = await supabaseAdmin
     .from('decision_tree_nodes')
     .insert({
       tree_id: treeId,
@@ -113,7 +114,7 @@ export async function connectNodes(params: {
   }
 
   // Check if edge already exists
-  const { data: existing } = await supabaseAdminClient
+  const { data: existing } = await supabaseAdmin
     .from('decision_tree_edges')
     .select('*')
     .eq('tree_id', treeId)
@@ -125,7 +126,7 @@ export async function connectNodes(params: {
     return existing;
   }
 
-  const { data: edge, error } = await supabaseAdminClient
+  const { data: edge, error } = await supabaseAdmin
     .from('decision_tree_edges')
     .insert({
       tree_id: treeId,
@@ -158,7 +159,7 @@ export async function createTwoStageTreeFromTimelines(params: {
   });
 
   // Get root node
-  const { data: rootNode } = await supabaseAdminClient
+  const { data: rootNode } = await supabaseAdmin
     .from('decision_tree_nodes')
     .select('*')
     .eq('tree_id', tree.id)

@@ -91,15 +91,16 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
 
   // Calculate stats
   const pendingTasks = tasks.length;
-  const overdueTasks = tasks.filter((t) => {
+  const overdueTasksArray = tasks.filter((t) => {
     if (!t.due_date) return false;
     return new Date(t.due_date) < new Date();
-  }).length;
+  });
+  const overdueTasksCount = overdueTasksArray.length;
 
   // Build urgent items
   const urgentItems: DashboardData["urgentItems"] = [];
 
-  overdueTasks.forEach((task) => {
+  overdueTasksArray.forEach((task) => {
     const daysOverdue = Math.floor(
       (Date.now() - new Date(task.due_date!).getTime()) / (1000 * 60 * 60 * 24)
     );
@@ -132,8 +133,8 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
 
   // Get today focus
   const todayFocus =
-    overdueTasks > 0
-      ? `Clear ${overdueTasks} overdue task${overdueTasks !== 1 ? "s" : ""}`
+    overdueTasksCount > 0
+      ? `Clear ${overdueTasksCount} overdue task${overdueTasksCount !== 1 ? "s" : ""}`
       : pendingTasks > 0
       ? `Complete ${pendingTasks} pending task${pendingTasks !== 1 ? "s" : ""}`
       : "Keep it simple: do the highest leverage move first.";

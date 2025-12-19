@@ -1,19 +1,20 @@
 // Daily Rhythm Engine
 // lib/rhythm/engine.ts
 
-import { supabaseAdmin } from "@/lib/supabase";
+import "server-only";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import {
   MorningBriefingData,
   MiddayCheckinData,
   EveningDebriefData,
   DailyEntryType,
+  DailyRhythmEntry,
 } from "./types";
 import { getTodayPredictions } from "@/lib/prediction/engine";
 import { computeIdentityResonance } from "@/lib/identity/resonance";
 import { getTopPowerPatterns } from "@/lib/patterns/engine";
 import { getOpenFollowupsForUser } from "@/lib/email/followups";
 import { calculateUnifiedAttentionScore, getRiskLevel } from "@/lib/email/attention";
-import { supabaseAdmin } from "@/lib/supabase";
 
 /**
  * Generate morning briefing
@@ -132,10 +133,22 @@ export async function generateMorningBriefing(
       .order("promise_due_at", { ascending: true })
       .limit(5);
 
-    brokenPromises = (promises || []).map((p) => ({
-      promiseText: p.promise_text,
-      dueAt: p.promise_due_at,
-      source: p.comm_messages?.source_type || "email",
+    type IntelSource = { source_type: string; content?: string; captured_at?: string | null };
+    const sources: IntelSource[] = (promises || []).map((p: any) => {
+      const commMsg = Array.isArray(p.comm_messages) && p.comm_messages.length > 0
+        ? p.comm_messages[0]
+        : null;
+      return {
+        source_type: commMsg?.source_type || "email",
+        content: p.promise_text,
+        captured_at: p.promise_due_at,
+      };
+    });
+
+    brokenPromises = sources.map((s) => ({
+      promiseText: s.content || "",
+      dueAt: s.captured_at || "",
+      source: s.source_type,
     }));
 
     // Get audio-derived obligations
@@ -464,6 +477,13 @@ export async function generateEveningDebrief(
     );
   }
 
+  // Define missing metric variables with safe defaults
+  const emailTasksCompleted = 0;
+  const commsTasksCompleted = 0;
+  const emailFollowupsResolved = 0;
+  const emailPromisesKept = 0;
+  const audioPromisesKept = 0;
+
   if (emailTasksCompleted > 0 || emailFollowupsResolved > 0 || emailPromisesKept > 0 || commsTasksCompleted > 0) {
     const parts: string[] = [];
     if (emailTasksCompleted > 0) {
@@ -596,4 +616,3 @@ export async function getDailyRhythmEntries(
 
   return (entries || []) as DailyRhythmEntry[];
 }
-

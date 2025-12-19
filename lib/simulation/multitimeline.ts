@@ -1,7 +1,8 @@
 // Multi-Timeline Simulation Layer v1
 // lib/simulation/multitimeline.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { callAI } from '@/lib/ai/call';
 import { BranchSimulationRun } from '../boardroom/theater_v2/types';
 import { getTreePaths } from '../boardroom/theater_v2/paths';
@@ -24,7 +25,7 @@ export async function runBranchSimulations(params: {
 
   for (const path of paths) {
     // 2. Get nodes in path
-    const { data: pathNodes } = await supabaseAdminClient
+    const { data: pathNodes } = await supabaseAdmin
       .from('decision_tree_nodes')
       .select('*')
       .in('id', path.pathNodeIds)
@@ -57,7 +58,7 @@ export async function runBranchSimulations(params: {
       } else if (i === 0) {
         // First stage: use timeline horizon or default
         if (currentNode.related_timeline_id) {
-          const { data: timeline } = await supabaseAdminClient
+          const { data: timeline } = await supabaseAdmin
             .from('destiny_timelines')
             .select('time_horizon_years')
             .eq('id', currentNode.related_timeline_id)
@@ -127,7 +128,7 @@ Generate a 2-3 sentence narrative summary describing what this path would feel l
       : `Path: ${pathNodes.map((n) => n.label).join(' → ')}`;
 
     // 8. Save branch simulation run
-    const { data: run, error } = await supabaseAdminClient
+    const { data: run, error } = await supabaseAdmin
       .from('branch_simulation_runs')
       .insert({
         tree_id: treeId,

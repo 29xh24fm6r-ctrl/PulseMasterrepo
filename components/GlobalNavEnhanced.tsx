@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { UserButton } from "@clerk/nextjs";
-import { ChevronDown, Home, Menu, X, Crown, Sparkles } from "lucide-react";
+import { ChevronDown, Home, Menu, X, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { LayoutTrace } from "@/app/components/dev/LayoutTrace";
+import { UserAvatar } from "@/components/auth/UserAvatar";
 
 const NAV_GROUPS = [
   {
@@ -37,7 +38,7 @@ const NAV_GROUPS = [
     links: [
       { href: "/work", label: "Command Center", icon: "💼" },
       { href: "/deals", label: "Deals", icon: "💰" },
-      { href: "/contacts", label: "Contacts", icon: "👥" },
+      { href: "/people", label: "Contacts", icon: "👥" },
       { href: "/follow-ups", label: "Follow-ups", icon: "📧" },
     ],
   },
@@ -121,6 +122,7 @@ export function GlobalNavEnhanced() {
 
   return (
     <>
+      <LayoutTrace name="GLOBAL_NAV_ENHANCED" />
       {/* Desktop Nav */}
       <nav className="hidden md:block sticky top-0 z-50 glass border-b border-white/10">
         <div className="max-w-7xl mx-auto px-6">
@@ -249,7 +251,7 @@ export function GlobalNavEnhanced() {
             {/* Right side */}
             <div className="flex items-center gap-3">
               <Link
-                href="/realtime-voice"
+                href="/voice"
                 className="relative px-4 py-2 bg-gradient-to-r from-violet-600 to-pink-600 rounded-xl text-sm font-medium hover:opacity-90 transition-all hover:scale-105 hover:shadow-lg hover:shadow-violet-500/50 flex items-center gap-2 overflow-hidden group"
               >
                 <motion.div
@@ -259,17 +261,9 @@ export function GlobalNavEnhanced() {
                 />
                 <span className="relative z-10">🎙️ Voice</span>
               </Link>
-              <div className="relative">
-                <UserButton afterSignOutUrl="/sign-in" />
-                {isPlusUser && (
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="absolute -top-1 -right-1 bg-gradient-to-r from-amber-400 to-orange-500 rounded-full p-1"
-                  >
-                    <Crown className="w-3 h-3 text-white" />
-                  </motion.div>
-                )}
+              {/* User Avatar - z-index wrapper to ensure visibility */}
+              <div className="relative z-50">
+                <UserAvatar />
               </div>
             </div>
           </div>
@@ -291,13 +285,9 @@ export function GlobalNavEnhanced() {
             >
               🎙️
             </Link>
-            <div className="relative">
-              <UserButton afterSignOutUrl="/sign-in" />
-              {isPlusUser && (
-                <div className="absolute -top-1 -right-1 bg-amber-500 rounded-full p-0.5">
-                  <Crown className="w-3 h-3 text-white" />
-                </div>
-              )}
+            {/* User Avatar - z-index wrapper to ensure visibility */}
+            <div className="relative z-50">
+              <UserAvatar />
             </div>
             <button
               onClick={() => setMobileOpen(!mobileOpen)}

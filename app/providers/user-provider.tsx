@@ -8,8 +8,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (isSignedIn && user) {
-      // Sync user to Supabase
-      fetch("/api/user/sync", { method: "POST" }).catch(console.error);
+      // Sync user to Supabase (fire and forget, don't block UI)
+      fetch("/api/user/sync", { method: "POST" })
+        .catch((err) => {
+          // Silently handle errors - this is a background sync operation
+          if (process.env.NODE_ENV === "development") {
+            console.debug("[UserProvider] Sync error (non-blocking):", err);
+          }
+        });
     }
   }, [isSignedIn, user]);
 

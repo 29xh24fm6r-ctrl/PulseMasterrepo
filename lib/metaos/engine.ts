@@ -2,7 +2,7 @@
 // lib/metaos/engine.ts
 
 import { supabaseAdmin } from "@/lib/supabase";
-import { buildPulseCortexContext } from "@/lib/cortex/context";
+import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 import { callAIJson } from "@/lib/ai/call";
 
 export interface MetaOSProfile {
@@ -30,7 +30,7 @@ export async function rebuildUserOS(userId: string): Promise<OSRebuild> {
   const dbUserId = userRow?.id || userId;
 
   // 1. Analyze usage patterns
-  const ctx = await buildPulseCortexContext(userId);
+  const ctx = await getWorkCortexContextForUser(userId);
 
   // Get existing meta profile
   const { data: existingProfile } = await supabaseAdmin

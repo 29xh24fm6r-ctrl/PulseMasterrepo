@@ -1,12 +1,13 @@
 // Boardroom Brain v1 - Executive Council Engine
 // lib/boardroom/council.ts
 
-import { supabaseAdminClient } from '../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { callAIJson, callAI } from '@/lib/ai/call';
 import { ExecutiveCouncilMember, ExecutiveCouncilVote } from './types';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -57,7 +58,7 @@ export async function ensureDefaultCouncilSeeded(userId: string): Promise<void> 
   const dbUserId = await resolveUserId(userId);
 
   for (const member of DEFAULT_COUNCIL_MEMBERS) {
-    const { data: existing } = await supabaseAdminClient
+    const { data: existing } = await supabaseAdmin
       .from('executive_council_members')
       .select('*')
       .eq('user_id', dbUserId)
@@ -65,7 +66,7 @@ export async function ensureDefaultCouncilSeeded(userId: string): Promise<void> 
       .maybeSingle();
 
     if (!existing) {
-      await supabaseAdminClient
+      await supabaseAdmin
         .from('executive_council_members')
         .insert({
           user_id: dbUserId,
@@ -86,7 +87,7 @@ export async function getDefaultCouncilMembers(userId: string): Promise<Executiv
 
   await ensureDefaultCouncilSeeded(userId);
 
-  const { data: members } = await supabaseAdminClient
+  const { data: members } = await supabaseAdmin
     .from('executive_council_members')
     .select('*')
     .eq('user_id', dbUserId)
@@ -107,13 +108,13 @@ export async function runCouncilVote(params: {
 
   // Get decision and options
   const [decisionRes, optionsRes, membersRes] = await Promise.all([
-    supabaseAdminClient
+    supabaseAdmin
       .from('decisions')
       .select('*, strategic_domains(*), strategic_objectives(*)')
       .eq('id', params.decisionId)
       .eq('user_id', dbUserId)
       .maybeSingle(),
-    supabaseAdminClient
+    supabaseAdmin
       .from('decision_options')
       .select('*')
       .eq('decision_id', params.decisionId)
@@ -132,21 +133,21 @@ export async function runCouncilVote(params: {
   // Get context (deal, finances, mythic profile)
   const [dealRes, financeRes, mythicRes] = await Promise.all([
     decision.context?.dealId
-      ? supabaseAdminClient
+      ? supabaseAdmin
           .from('deals')
           .select('*')
           .eq('id', decision.context.dealId)
           .eq('user_id', dbUserId)
           .maybeSingle()
       : Promise.resolve({ data: null }),
-    supabaseAdminClient
+    supabaseAdmin
       .from('financial_state_snapshots')
       .select('*')
       .eq('user_id', dbUserId)
       .order('snapshot_time', { ascending: false })
       .limit(1)
       .maybeSingle(),
-    supabaseAdminClient
+    supabaseAdmin
       .from('user_mythic_profile')
       .select('*')
       .eq('user_id', dbUserId)
@@ -210,7 +211,7 @@ Return JSON with:
     const chosenOption = options.find((opt: any) => opt.label === chosen_option_label) ?? options[0];
 
     // Insert vote
-    const { data: vote, error } = await supabaseAdminClient
+    const { data: vote, error } = await supabaseAdmin
       .from('executive_council_votes')
       .upsert({
         decision_id: params.decisionId,
@@ -245,18 +246,31 @@ Return JSON with:
 
   const majorityOption = options.find((opt: any) => opt.id === majorityOptionId);
 
+  const voteSummary = votes.map((v) => ({
+    member: members.find((m) => m.id === v.member_id)?.name,
+    option: options.find((o) => o.id === v.option_id)?.label,
+    rationale: v.rationale,
+    confidence: v.confidence,
+  }));
+
+  const voteJson = JSON.stringify(voteSummary, null, 2);
+  const majorityLabel = majorityOption?.label ?? "No clear majority";
+
+  const userPrompt = `Votes:\n${voteJson}\n\nMajority: ${majorityLabel}`;
+
   const summaryResult = await callAI({
     userId: params.userId,
-    feature: 'council_aggregate_summary',
-    systemPrompt: 'Summarize executive council votes into a concise aggregate summary.',
-    userPrompt: `Votes:\n${JSON.stringify(votes.map((v) => ({ member: members.find((m) => m.id === v.member_id)?.name, option: options.find((o) => o.id === v.option_id)?.label, rationale: v.rationale, confidence: v.confidence })), null, 2))}\n\nMajority: ${majorityOption?.label}`,
+    feature: "council_aggregate_summary",
+    systemPrompt: "Summarize executive council votes into a concise aggregate summary.",
+    userPrompt,
     maxTokens: 500,
     temperature: 0.7,
   });
 
-  const aggregateSummary = summaryResult.success && summaryResult.text
-    ? summaryResult.text
-    : `Majority recommendation: ${majorityOption?.label ?? 'No clear majority'}`;
+  const aggregateSummary =
+    summaryResult.success && summaryResult.text
+      ? summaryResult.text
+      : `Majority recommendation: ${majorityLabel}`;
 
   return { votes, aggregateSummary };
 }

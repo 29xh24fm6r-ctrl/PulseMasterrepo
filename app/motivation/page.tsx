@@ -177,22 +177,23 @@ export default function MotivationPage() {
               <ArrowLeft className="w-5 h-5" />
             </Link>
             <div className="flex-1">
-            <h1 className="text-xl font-bold flex items-center gap-2">
-              <Flame className="w-6 h-6 text-orange-400" />
-              Motivational Coach
-            </h1>
-            <p className="text-sm text-zinc-500">60+ legendary voices to inspire you</p>
+              <h1 className="text-xl font-bold flex items-center gap-2">
+                <Flame className="w-6 h-6 text-orange-400" />
+                Motivational Coach
+              </h1>
+              <p className="text-sm text-zinc-500">60+ legendary voices to inspire you</p>
+            </div>
+            <button
+              onClick={() => setPrefersGentle(!prefersGentle)}
+              className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                prefersGentle
+                  ? "bg-emerald-500/20 text-emerald-400"
+                  : "bg-zinc-800 text-zinc-400"
+              }`}
+            >
+              {prefersGentle ? "🌱 Gentle Mode" : "⚡ Standard Mode"}
+            </button>
           </div>
-          <button
-            onClick={() => setPrefersGentle(!prefersGentle)}
-            className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
-              prefersGentle
-                ? "bg-emerald-500/20 text-emerald-400"
-                : "bg-zinc-800 text-zinc-400"
-            }`}
-          >
-            {prefersGentle ? "🌱 Gentle Mode" : "⚡ Standard Mode"}
-          </button>
         </div>
       </header>
 

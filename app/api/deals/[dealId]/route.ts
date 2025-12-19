@@ -1,39 +1,31 @@
 // Deal Detail API
 // app/api/deals/[dealId]/route.ts
-
+// Sprint 3B: Uses canonical resolveSupabaseUser()
+import "server-only";
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { resolveSupabaseUser } from "@/lib/auth/resolveSupabaseUser";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 
+export const dynamic = "force-dynamic";
+
+// GET - Get deal by ID
 export async function GET(
   req: NextRequest,
-  { params }: { params: { dealId: string } }
+  { params }: { params: Promise<{ dealId: string }> | { dealId: string } }
 ) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const { supabaseUserId } = await resolveSupabaseUser();
+    const resolvedParams = params instanceof Promise ? await params : params;
+    const dealId = resolvedParams.dealId;
 
-    // Get user's database ID
-    const { data: userRow } = await supabaseAdmin
-      .from("users")
-      .select("id")
-      .eq("clerk_id", userId)
-      .single();
-
-    const dbUserId = userRow?.id || userId;
-
-    const dealId = params.dealId;
-
-    const { data: deal } = await supabaseAdmin
+    const { data: deal, error } = await supabaseAdmin
       .from("deals")
       .select("*, deal_participants(*, contacts(*))")
       .eq("id", dealId)
-      .eq("user_id", dbUserId)
+      .eq("user_id", supabaseUserId)
       .single();
 
-    if (!deal) {
+    if (error || !deal) {
       return NextResponse.json({ error: "Deal not found" }, { status: 404 });
     }
 
@@ -47,58 +39,95 @@ export async function GET(
   }
 }
 
+// PATCH - Update deal
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { dealId: string } }
+  { params }: { params: Promise<{ dealId: string }> | { dealId: string } }
 ) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const { supabaseUserId } = await resolveSupabaseUser();
+    const resolvedParams = params instanceof Promise ? await params : params;
+    const dealId = resolvedParams.dealId;
+
+    const body = await req.json();
+    const { name, company, amount, stage, close_date, notes } = body;
+
+    // Ignore user_id if provided (server sets it)
+    if (body.user_id) {
+      delete body.user_id;
     }
 
-    // Get user's database ID
-    const { data: userRow } = await supabaseAdmin
-      .from("users")
-      .select("id")
-      .eq("clerk_id", userId)
-      .single();
-
-    const dbUserId = userRow?.id || userId;
-
-    const dealId = params.dealId;
-    const body = await req.json();
-
     // Verify ownership
-    const { data: existing } = await supabaseAdmin
+    const { data: existing, error: checkError } = await supabaseAdmin
       .from("deals")
       .select("id")
       .eq("id", dealId)
-      .eq("user_id", dbUserId)
+      .eq("user_id", supabaseUserId)
       .single();
 
-    if (!existing) {
+    if (checkError || !existing) {
       return NextResponse.json({ error: "Deal not found" }, { status: 404 });
     }
 
-    // Update deal
-    const { data: updated } = await supabaseAdmin
+    // Build update payload
+    const updatePayload: any = {};
+    if (name !== undefined) updatePayload.name = name?.trim() || null;
+    if (company !== undefined) updatePayload.company = company?.trim() || null;
+    if (amount !== undefined) updatePayload.amount = amount ? parseFloat(amount) : null;
+    if (stage !== undefined) updatePayload.stage = stage;
+    if (close_date !== undefined) updatePayload.close_date = close_date || null;
+    if (notes !== undefined) updatePayload.notes = notes?.trim() || null;
+
+    const { data: deal, error } = await supabaseAdmin
       .from("deals")
-      .update({
-        ...body,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updatePayload)
       .eq("id", dealId)
+      .eq("user_id", supabaseUserId)
       .select("*")
       .single();
 
-    return NextResponse.json(updated);
+    if (error) throw error;
+
+    return NextResponse.json({ item: deal });
   } catch (err: any) {
-    console.error("[DealUpdate] Error:", err);
-    return NextResponse.json(
-      { error: err.message || "Failed to update deal" },
-      { status: 500 }
-    );
+    console.error("Deals PATCH error:", err);
+    return NextResponse.json({ error: err.message || "Failed to update deal" }, { status: 500 });
   }
 }
 
+// DELETE - Delete deal
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ dealId: string }> | { dealId: string } }
+) {
+  try {
+    const { supabaseUserId } = await resolveSupabaseUser();
+    const resolvedParams = params instanceof Promise ? await params : params;
+    const dealId = resolvedParams.dealId;
+
+    // Verify ownership
+    const { data: existing, error: checkError } = await supabaseAdmin
+      .from("deals")
+      .select("id")
+      .eq("id", dealId)
+      .eq("user_id", supabaseUserId)
+      .single();
+
+    if (checkError || !existing) {
+      return NextResponse.json({ error: "Deal not found" }, { status: 404 });
+    }
+
+    const { error } = await supabaseAdmin
+      .from("deals")
+      .delete()
+      .eq("id", dealId)
+      .eq("user_id", supabaseUserId);
+
+    if (error) throw error;
+
+    return NextResponse.json({ success: true });
+  } catch (err: any) {
+    console.error("Deals DELETE error:", err);
+    return NextResponse.json({ error: err.message || "Failed to delete deal" }, { status: 500 });
+  }
+}

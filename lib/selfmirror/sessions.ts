@@ -1,7 +1,8 @@
 // Global Sense of Self Mirror v1 - Mirror Session Engine
 // lib/selfmirror/sessions.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { callAIJson } from '@/lib/ai/call';
 import { SelfMirrorSession, SelfMirrorMode } from './types';
 import { buildSelfIdentitySnapshot } from './snapshots';
@@ -14,7 +15,7 @@ export async function startSelfMirrorSession(params: {
   const { userId, mode } = params;
 
   // 1. Ensure latest snapshot & facets
-  const { data: latestSnapshot } = await supabaseAdminClient
+  const { data: latestSnapshot } = await supabaseAdmin
     .from('self_identity_snapshots')
     .select('*')
     .eq('user_id', userId)
@@ -33,7 +34,7 @@ export async function startSelfMirrorSession(params: {
   const facets = await recomputeSelfMirrorFacets(userId);
 
   // 2. Get Emotion OS patterns
-  const { data: emotionStates } = await supabaseAdminClient
+  const { data: emotionStates } = await supabaseAdmin
     .from('emotion_state_daily')
     .select('date, stress_score, resilience_score')
     .eq('user_id', userId)
@@ -41,7 +42,7 @@ export async function startSelfMirrorSession(params: {
     .limit(7);
 
   // 3. Get Civilization summary
-  const { data: domainStates } = await supabaseAdminClient
+  const { data: domainStates } = await supabaseAdmin
     .from('civilization_domain_state')
     .select('*, civilization_domains(*)')
     .eq('civilization_domains.user_id', userId)
@@ -95,7 +96,7 @@ ${domainStates?.map((s: any) => `- ${s.civilization_domains?.name}: activity ${s
   const { summary, insights, reflection_questions, micro_adjustments } = result.data;
 
   // 6. Save session
-  const { data: session, error } = await supabaseAdminClient
+  const { data: session, error } = await supabaseAdmin
     .from('self_mirror_sessions')
     .insert({
       user_id: userId,

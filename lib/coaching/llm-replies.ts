@@ -115,6 +115,7 @@ export async function generateCoachReply(
     });
   }
 
+  try {
     // Apply voice transformation using Persona Engine v3 (Memory + Motion + DNA)
     let transformedReply = reply || `I understand. Let me help you with that.`;
     

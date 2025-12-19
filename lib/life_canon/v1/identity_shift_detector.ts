@@ -1,13 +1,14 @@
 // Life Canon v1 - Identity Shift Detector
 // lib/life_canon/v1/identity_shift_detector.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { callAIJson } from '@/lib/ai/call';
 import { IDENTITY_SHIFT_DETECTOR_PROMPT } from './narrative_prompts';
 import { buildLifeCanonContext } from './context';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -21,7 +22,7 @@ export async function detectIdentityShiftsForUser(userId: string, now: Date) {
   const context = await buildLifeCanonContext(userId, now);
 
   // Get last identity transform
-  const { data: lastTransform } = await supabaseAdminClient
+  const { data: lastTransform } = await supabaseAdmin
     .from('identity_transforms')
     .select('*')
     .eq('user_id', dbUserId)
@@ -60,7 +61,7 @@ export async function detectIdentityShiftsForUser(userId: string, now: Date) {
   }
 
   // Insert identity transform
-  const { data: inserted, error } = await supabaseAdminClient
+  const { data: inserted, error } = await supabaseAdmin
     .from('identity_transforms')
     .insert({
       user_id: dbUserId,

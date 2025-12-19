@@ -1,7 +1,8 @@
 // Timeline Coach v1 - Coach Engine
 // lib/timeline/coach.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { callAIJson } from '@/lib/ai/call';
 import { TimelineCoachSession, TimelineCoachMode } from '../destiny/types';
 import { getCurrentDestinyAnchor } from '../destiny/anchor';
@@ -15,7 +16,7 @@ export async function runTimelineCoachSession(params: {
   const { userId, mode, question, timelineIds } = params;
 
   // 1. Load active timelines
-  const { data: allTimelines } = await supabaseAdminClient
+  const { data: allTimelines } = await supabaseAdmin
     .from('destiny_timelines')
     .select('*')
     .eq('user_id', userId)
@@ -33,7 +34,7 @@ export async function runTimelineCoachSession(params: {
     // Get latest scores for all timelines
     const timelineScores = new Map<string, any>();
     for (const timeline of allTimelines) {
-      const { data: latestScore } = await supabaseAdminClient
+      const { data: latestScore } = await supabaseAdmin
         .from('destiny_timeline_scores')
         .select('*')
         .eq('timeline_id', timeline.id)
@@ -68,7 +69,7 @@ export async function runTimelineCoachSession(params: {
   // 3. Get latest scores for selected timelines
   const timelineData: any[] = [];
   for (const timeline of selectedTimelines) {
-    const { data: latestScore } = await supabaseAdminClient
+    const { data: latestScore } = await supabaseAdmin
       .from('destiny_timeline_scores')
       .select('*')
       .eq('timeline_id', timeline.id)
@@ -76,7 +77,7 @@ export async function runTimelineCoachSession(params: {
       .limit(1)
       .maybeSingle();
 
-    const { data: waypoints } = await supabaseAdminClient
+    const { data: waypoints } = await supabaseAdmin
       .from('destiny_waypoints')
       .select('*')
       .eq('timeline_id', timeline.id)
@@ -90,7 +91,7 @@ export async function runTimelineCoachSession(params: {
   }
 
   // 4. Get Self Mirror context
-  const { data: latestSnapshot } = await supabaseAdminClient
+  const { data: latestSnapshot } = await supabaseAdmin
     .from('self_identity_snapshots')
     .select('*')
     .eq('user_id', userId)
@@ -98,20 +99,20 @@ export async function runTimelineCoachSession(params: {
     .limit(1)
     .maybeSingle();
 
-  const { data: facets } = await supabaseAdminClient
+  const { data: facets } = await supabaseAdmin
     .from('self_mirror_facets')
     .select('*')
     .eq('user_id', userId);
 
   // 5. Get Mythic profile
-  const { data: mythicProfile } = await supabaseAdminClient
+  const { data: mythicProfile } = await supabaseAdmin
     .from('user_mythic_profile')
     .select('*')
     .eq('user_id', userId)
     .maybeSingle();
 
   // 6. Get Civilization domain states
-  const { data: domainStates } = await supabaseAdminClient
+  const { data: domainStates } = await supabaseAdmin
     .from('civilization_domain_state')
     .select('*, civilization_domains(*)')
     .eq('civilization_domains.user_id', userId)
@@ -177,7 +178,7 @@ Question: ${question ?? 'Help me understand these paths'}`;
   const { response, summary, recommendations, followup_actions } = result.data;
 
   // 9. Save session
-  const { data: session, error } = await supabaseAdminClient
+  const { data: session, error } = await supabaseAdmin
     .from('timeline_coach_sessions')
     .insert({
       user_id: userId,

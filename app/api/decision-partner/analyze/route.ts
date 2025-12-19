@@ -3,7 +3,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { buildPulseCortexContext } from "@/lib/cortex/context";
+import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 import { analyzeDecision } from "@/lib/cortex/sovereign/decision-partner/analyzer";
 import { DecisionScenario } from "@/lib/cortex/sovereign/decision-partner/types";
 
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
       status: "analyzing",
     };
 
-    const ctx = await buildPulseCortexContext(userId);
+    const ctx = await getWorkCortexContextForUser(userId);
     const analysis = await analyzeDecision(userId, scenario, ctx);
 
     return NextResponse.json(analysis);

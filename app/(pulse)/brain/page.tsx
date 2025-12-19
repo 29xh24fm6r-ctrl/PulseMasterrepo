@@ -1,16 +1,14 @@
-"use client";
+import { auth } from "@clerk/nextjs/server";
+import { getBrainOverview } from "@/lib/brain/overview";
+import BrainOverview from "@/components/brain/brain-overview";
 
-/**
- * Brain Surface - Memory & Intel
- * app/(pulse)/brain/page.tsx
- */
+export default async function BrainPage() {
+  const { userId } = await auth();
+  if (!userId) {
+    return <div className="p-8 text-red-400">Unauthorized</div>;
+  }
 
-export default function BrainPage() {
-  return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold text-white mb-6">Brain - Memory & Intel</h1>
-      <div className="text-gray-400">Coming soon...</div>
-    </div>
-  );
+  const data = await getBrainOverview(userId);
+  return <BrainOverview data={data} />;
 }
 

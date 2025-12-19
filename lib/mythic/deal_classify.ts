@@ -1,13 +1,14 @@
 // Mythic Intelligence Layer v1 - Deal Archetype Classification
 // lib/mythic/deal_classify.ts
 
-import { supabaseAdminClient } from '../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { callAIJson } from '@/lib/ai/call';
 import { extractDealSignals } from './deal_extract';
 import { DealArchetypeRun } from './types';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -26,7 +27,7 @@ export async function classifyDealArchetype(params: {
   const signals = await extractDealSignals(params.dealId, params.userId);
 
   // Get deal info
-  const { data: deal } = await supabaseAdminClient
+  const { data: deal } = await supabaseAdmin
     .from('deals')
     .select('*')
     .eq('id', params.dealId)
@@ -38,7 +39,7 @@ export async function classifyDealArchetype(params: {
   }
 
   // Get available deal archetypes
-  const { data: archetypes } = await supabaseAdminClient
+  const { data: archetypes } = await supabaseAdmin
     .from('mythic_archetypes')
     .select('*')
     .eq('kind', 'deal');
@@ -92,7 +93,7 @@ Return JSON with:
     recommended_strategy: recommended_strategy,
   };
 
-  const { data: existing } = await supabaseAdminClient
+  const { data: existing } = await supabaseAdmin
     .from('deal_archetype_runs')
     .select('*')
     .eq('user_id', dbUserId)
@@ -103,7 +104,7 @@ Return JSON with:
 
   let run: DealArchetypeRun;
   if (existing) {
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await supabaseAdmin
       .from('deal_archetype_runs')
       .update(runData)
       .eq('id', existing.id)
@@ -113,7 +114,7 @@ Return JSON with:
     if (error) throw error;
     run = data;
   } else {
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await supabaseAdmin
       .from('deal_archetype_runs')
       .insert(runData)
       .select('*')

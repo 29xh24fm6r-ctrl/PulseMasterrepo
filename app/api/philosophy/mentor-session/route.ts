@@ -53,12 +53,15 @@ interface MentorSessionRequest {
 
 async function fetchMasteredSkills(): Promise<MasteredSkill[]> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-    const res = await fetch(`${baseUrl}/api/philosophy/skills?mastered=true`, {
-      cache: 'no-store',
-    });
-    const data = await res.json();
-    return data.ok ? data.masteredSkills : [];
+    // ✅ Use shared function instead of HTTP call
+    const { getAllMasteredSkills } = await import("@/lib/philosophy/skills");
+    const mastered = await getAllMasteredSkills();
+    return mastered.map(m => ({
+      treeId: m.treeId,
+      treeName: m.treeName,
+      skillId: m.skillId,
+      skillName: m.skillName,
+    }));
   } catch {
     return [];
   }

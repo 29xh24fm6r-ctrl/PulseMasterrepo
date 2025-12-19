@@ -2,7 +2,7 @@
 // lib/twin/future-self.ts
 
 import { getTwinModel } from "./engine";
-import { buildPulseCortexContext } from "@/lib/cortex/context";
+import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 import { callAIJson } from "@/lib/ai/call";
 
 export interface FutureSelfMessageInput {
@@ -29,7 +29,7 @@ export async function generateFutureSelfMessage(
   }
 
   // Load Cortex context
-  const ctx = await buildPulseCortexContext(input.userId);
+  const ctx = await getWorkCortexContextForUser(input.userId);
 
   // Load Neural Reality state (if available)
   // const neuralState = await buildNeuralRealityState(input.userId);

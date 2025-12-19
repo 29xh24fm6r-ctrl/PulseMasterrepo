@@ -1,7 +1,8 @@
 // Conscious Workspace v1 - Daily Timeline Projection
 // lib/workspace/daily_projection.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { callAI } from '@/lib/ai/call';
 import { DailyTimelineView, SuggestedAction } from './types';
 
@@ -20,7 +21,7 @@ export async function generateDailyTimelineView(params: {
   let milestonesContext = '';
 
   if (timelineId) {
-    const { data: timeline } = await supabaseAdminClient
+    const { data: timeline } = await supabaseAdmin
       .from('destiny_timelines')
       .select('*')
       .eq('id', timelineId)
@@ -30,7 +31,7 @@ export async function generateDailyTimelineView(params: {
       timelineContext = `Timeline: ${timeline.name}\nDescription: ${timeline.description ?? 'N/A'}\nHorizon: ${timeline.time_horizon_years} years\nDomains: ${timeline.primary_domains.join(', ')}`;
 
       // Get waypoints around this date
-      const { data: waypoints } = await supabaseAdminClient
+      const { data: waypoints } = await supabaseAdmin
         .from('destiny_waypoints')
         .select('*')
         .eq('timeline_id', timelineId)
@@ -41,7 +42,7 @@ export async function generateDailyTimelineView(params: {
 
         // Get milestones for waypoints near this date
         const waypointIds = waypoints.map((w) => w.id);
-        const { data: milestones } = await supabaseAdminClient
+        const { data: milestones } = await supabaseAdmin
           .from('destiny_milestones')
           .select('*, destiny_waypoints(*)')
           .in('waypoint_id', waypointIds)
@@ -55,7 +56,7 @@ export async function generateDailyTimelineView(params: {
   }
 
   if (branchRunId) {
-    const { data: branchRun } = await supabaseAdminClient
+    const { data: branchRun } = await supabaseAdmin
       .from('branch_simulation_runs')
       .select('*, decision_tree_nodes(*)')
       .eq('id', branchRunId)
@@ -67,7 +68,7 @@ export async function generateDailyTimelineView(params: {
   }
 
   // 2. Get calendar events for the day
-  const { data: calendarEvents } = await supabaseAdminClient
+  const { data: calendarEvents } = await supabaseAdmin
     .from('calendar_events')
     .select('*')
     .eq('user_id', userId)
@@ -75,7 +76,7 @@ export async function generateDailyTimelineView(params: {
     .lte('start_time', `${dateStr}T23:59:59`);
 
   // 3. Get tasks due/overdue
-  const { data: tasks } = await supabaseAdminClient
+  const { data: tasks } = await supabaseAdmin
     .from('tasks')
     .select('*')
     .eq('user_id', userId)
@@ -85,7 +86,7 @@ export async function generateDailyTimelineView(params: {
     .limit(20);
 
   // 4. Get deals needing attention
-  const { data: deals } = await supabaseAdminClient
+  const { data: deals } = await supabaseAdmin
     .from('deals')
     .select('*')
     .eq('user_id', userId)
@@ -94,7 +95,7 @@ export async function generateDailyTimelineView(params: {
     .limit(10);
 
   // 5. Get Civilization domain state
-  const { data: domainStates } = await supabaseAdminClient
+  const { data: domainStates } = await supabaseAdmin
     .from('civilization_domain_state')
     .select('*, civilization_domains(*)')
     .eq('civilization_domains.user_id', userId)
@@ -102,7 +103,7 @@ export async function generateDailyTimelineView(params: {
     .limit(10);
 
   // 6. Get Self Mirror facets
-  const { data: facets } = await supabaseAdminClient
+  const { data: facets } = await supabaseAdmin
     .from('self_mirror_facets')
     .select('*')
     .eq('user_id', userId);
@@ -180,7 +181,7 @@ Generate:
   }
 
   // 9. Upsert daily timeline view
-  const { data: view, error } = await supabaseAdminClient
+  const { data: view, error } = await supabaseAdmin
     .from('daily_timeline_views')
     .upsert(
       {

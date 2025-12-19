@@ -5,7 +5,8 @@
  * Syncs email metadata to Supabase and integrates with Third Brain
  */
 
-import { supabaseAdmin } from "@/lib/supabase";
+import "server-only";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import { google } from "googleapis";
 import { refreshAccessToken } from "@/app/lib/gmail-utils";
 

@@ -1,12 +1,13 @@
 // Mythic Intelligence Layer v1 - Story Extraction
 // lib/mythic/story_extract.ts
 
-import { supabaseAdminClient } from '../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { callAIJson } from '@/lib/ai/call';
 import { LifeChapter, MythicProfile, KeyEvent } from './types';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -20,25 +21,25 @@ export async function buildLifeChaptersForUser(userId: string): Promise<LifeChap
 
   // Gather data from various sources
   const [memoryRes, identityRes, emotionRes, dealsRes] = await Promise.all([
-    supabaseAdminClient
+    supabaseAdmin
       .from('memory_events')
       .select('*')
       .eq('user_id', dbUserId)
       .order('created_at', { ascending: true })
       .limit(100),
-    supabaseAdminClient
+    supabaseAdmin
       .from('identity_snapshots')
       .select('*')
       .eq('user_id', dbUserId)
       .order('snapshot_time', { ascending: false })
       .limit(10),
-    supabaseAdminClient
+    supabaseAdmin
       .from('emotion_state_daily')
       .select('*')
       .eq('user_id', dbUserId)
       .order('date', { ascending: false })
       .limit(90),
-    supabaseAdminClient
+    supabaseAdmin
       .from('deals')
       .select('*')
       .eq('user_id', dbUserId)
@@ -117,7 +118,7 @@ Return JSON with a chapters array.`,
     .map((c) => c.dominant_archetype_slug)
     .filter((s): s is string => s !== null);
   
-  const { data: archetypes } = await supabaseAdminClient
+  const { data: archetypes } = await supabaseAdmin
     .from('mythic_archetypes')
     .select('id, slug')
     .in('slug', archetypeSlugs);
@@ -140,13 +141,13 @@ Return JSON with a chapters array.`,
   }));
 
   // Archive old active chapters
-  await supabaseAdminClient
+  await supabaseAdmin
     .from('life_chapters')
     .update({ status: 'archived' })
     .eq('user_id', dbUserId)
     .eq('status', 'active');
 
-  const { data: insertedChapters, error } = await supabaseAdminClient
+  const { data: insertedChapters, error } = await supabaseAdmin
     .from('life_chapters')
     .insert(chapterRows)
     .select('*');
@@ -160,7 +161,7 @@ export async function refreshUserMythicProfile(userId: string): Promise<MythicPr
   const dbUserId = await resolveUserId(userId);
 
   // Get current chapters
-  const { data: chapters } = await supabaseAdminClient
+  const { data: chapters } = await supabaseAdmin
     .from('life_chapters')
     .select('*')
     .eq('user_id', dbUserId)
@@ -195,7 +196,7 @@ Return JSON with these fields.`,
 
   // Resolve archetype slugs to IDs
   const archetypeSlugs = dominant_life_archetypes.map((a) => a.archetype_slug);
-  const { data: archetypes } = await supabaseAdminClient
+  const { data: archetypes } = await supabaseAdmin
     .from('mythic_archetypes')
     .select('id, slug')
     .in('slug', archetypeSlugs);
@@ -219,14 +220,14 @@ Return JSON with these fields.`,
     updated_at: new Date().toISOString(),
   };
 
-  const { data: existing } = await supabaseAdminClient
+  const { data: existing } = await supabaseAdmin
     .from('user_mythic_profile')
     .select('*')
     .eq('user_id', dbUserId)
     .maybeSingle();
 
   if (existing) {
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await supabaseAdmin
       .from('user_mythic_profile')
       .update(profileData)
       .eq('user_id', dbUserId)
@@ -236,7 +237,7 @@ Return JSON with these fields.`,
     if (error) throw error;
     return data;
   } else {
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await supabaseAdmin
       .from('user_mythic_profile')
       .insert({ ...profileData, created_at: new Date().toISOString() })
       .select('*')

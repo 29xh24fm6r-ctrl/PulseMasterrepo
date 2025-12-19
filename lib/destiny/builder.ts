@@ -1,7 +1,8 @@
 // Destiny Engine v2 - Timeline Builder
 // lib/destiny/builder.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { callAIJson } from '@/lib/ai/call';
 import { DestinyTimeline, DestinyWaypoint } from './types';
 
@@ -13,7 +14,7 @@ export async function createTimelineFromObjective(params: {
   const { userId, objectiveId, baseKey } = params;
 
   // Get strategic objective
-  const { data: objective } = await supabaseAdminClient
+  const { data: objective } = await supabaseAdmin
     .from('strategic_objectives')
     .select('*')
     .eq('id', objectiveId)
@@ -64,7 +65,7 @@ export async function createTimelineFromObjective(params: {
   }
 
   // Create timeline
-  const { data: timeline, error } = await supabaseAdminClient
+  const { data: timeline, error } = await supabaseAdmin
     .from('destiny_timelines')
     .insert({
       user_id: userId,
@@ -96,7 +97,7 @@ export async function createCustomTimeline(params: {
 }): Promise<DestinyTimeline> {
   const { userId, name, description, timeHorizonYears = 3.0, primaryDomains = ['work'], archetype, mythicFrame } = params;
 
-  const { data: timeline, error } = await supabaseAdminClient
+  const { data: timeline, error } = await supabaseAdmin
     .from('destiny_timelines')
     .insert({
       user_id: userId,
@@ -116,7 +117,7 @@ export async function createCustomTimeline(params: {
 
 export async function generateDefaultWaypointsForTimeline(timelineId: string): Promise<DestinyWaypoint[]> {
   // Get timeline
-  const { data: timeline } = await supabaseAdminClient
+  const { data: timeline } = await supabaseAdmin
     .from('destiny_timelines')
     .select('*')
     .eq('id', timelineId)
@@ -127,7 +128,7 @@ export async function generateDefaultWaypointsForTimeline(timelineId: string): P
   }
 
   // Get related strategic objectives
-  const { data: objectives } = await supabaseAdminClient
+  const { data: objectives } = await supabaseAdmin
     .from('strategic_objectives')
     .select('*')
     .eq('user_id', timeline.user_id)
@@ -135,7 +136,7 @@ export async function generateDefaultWaypointsForTimeline(timelineId: string): P
     .limit(5);
 
   // Get Third Brain graph nodes related to primary domains
-  const { data: nodes } = await supabaseAdminClient
+  const { data: nodes } = await supabaseAdmin
     .from('knowledge_nodes')
     .select('*')
     .eq('user_id', timeline.user_id)
@@ -188,7 +189,7 @@ ${nodes?.map((n) => `- ${n.title} (${n.kind})`).join('\n') ?? 'None'}`;
       targetDate = targetDateObj.toISOString().slice(0, 10);
     }
 
-    const { data: waypoint, error } = await supabaseAdminClient
+    const { data: waypoint, error } = await supabaseAdmin
       .from('destiny_waypoints')
       .insert({
         timeline_id: timelineId,

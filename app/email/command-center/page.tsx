@@ -413,55 +413,7 @@ export default function EmailCommandCenterPage() {
           </div>
         )}
 
-            {overview.openEmailTasks.length === 0 ? (
-              <div className="text-sm text-zinc-400">No open tasks from emails.</div>
-            ) : (
-              <div className="space-y-3">
-                {overview.openEmailTasks.map((task) => (
-                  <div
-                    key={task.id}
-                    className="border border-zinc-700 rounded-lg p-3 space-y-2"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="text-sm font-medium text-white">{task.title}</div>
-                        {task.description && (
-                          <div className="text-xs text-zinc-400 mt-1">{task.description}</div>
-                        )}
-                        <div className="flex items-center gap-2 mt-2">
-                          {task.dueAt && (
-                            <div className="text-xs text-zinc-400">
-                              Due: {new Date(task.dueAt).toLocaleDateString()}
-                            </div>
-                          )}
-                          {task.priority && (
-                            <span
-                              className={`px-2 py-0.5 rounded text-xs ${PRIORITY_COLORS[task.priority] || PRIORITY_COLORS.normal}`}
-                            >
-                              {task.priority}
-                            </span>
-                          )}
-                        </div>
-                        {task.threadSubject && (
-                          <div className="text-xs text-zinc-500 mt-1">
-                            From: {task.threadSubject}
-                          </div>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => markTaskDone(task.id)}
-                        className="px-2 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-xs transition-colors"
-                      >
-                        Done
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
+            
         {/* Waiting on Others */}
         {overview.waitingOnOthers.length > 0 && (
           <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6 space-y-4">

@@ -1,11 +1,12 @@
 // Mythic Dojo v1 - Belt Progress System
 // lib/mythic_dojo/v1/progress.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { getBeltLadder } from './belt_table';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -27,7 +28,7 @@ export async function awardMythicXpForMission(
 
   const dateStr = missionDate.toISOString().slice(0, 10);
 
-  const { data: currentRow } = await supabaseAdminClient
+  const { data: currentRow } = await supabaseAdmin
     .from('mythic_belt_progress')
     .select('*')
     .eq('user_id', dbUserId)
@@ -75,9 +76,9 @@ export async function awardMythicXpForMission(
   };
 
   if (!currentRow) {
-    await supabaseAdminClient.from('mythic_belt_progress').insert(payload);
+    await supabaseAdmin.from('mythic_belt_progress').insert(payload);
   } else {
-    await supabaseAdminClient
+    await supabaseAdmin
       .from('mythic_belt_progress')
       .update(payload)
       .eq('id', currentRow.id);

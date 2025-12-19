@@ -1,11 +1,12 @@
 // Mythic Coach Engine v1 - Settings
 // lib/mythic/coach/settings.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { MythicCoachSettings } from './types';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -17,7 +18,7 @@ async function resolveUserId(clerkId: string): Promise<string> {
 export async function getMythicCoachSettings(userId: string): Promise<MythicCoachSettings> {
   const dbUserId = await resolveUserId(userId);
 
-  const { data, error } = await supabaseAdminClient
+  const { data, error } = await supabaseAdmin
     .from('user_mythic_coach_settings')
     .select('*')
     .eq('user_id', dbUserId)
@@ -39,7 +40,7 @@ export async function getMythicCoachSettings(userId: string): Promise<MythicCoac
       updated_at: new Date().toISOString(),
     };
 
-    const { data: created, error: createError } = await supabaseAdminClient
+    const { data: created, error: createError } = await supabaseAdmin
       .from('user_mythic_coach_settings')
       .insert(defaultSettings)
       .select('*')
@@ -63,7 +64,7 @@ export async function updateMythicCoachSettings(
     updated_at: new Date().toISOString(),
   };
 
-  const { data, error } = await supabaseAdminClient
+  const { data, error } = await supabaseAdmin
     .from('user_mythic_coach_settings')
     .update(updateData)
     .eq('user_id', dbUserId)
@@ -85,7 +86,7 @@ export async function updateMythicCoachSettings(
         created_at: new Date().toISOString(),
       };
 
-      const { data: created, error: createError } = await supabaseAdminClient
+      const { data: created, error: createError } = await supabaseAdmin
         .from('user_mythic_coach_settings')
         .insert(defaultSettings)
         .select('*')

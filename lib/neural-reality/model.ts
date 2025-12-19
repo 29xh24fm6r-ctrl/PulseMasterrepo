@@ -1,7 +1,7 @@
 // Neural Reality Model - Merge All Systems
 // lib/neural-reality/model.ts
 
-import { buildPulseCortexContext } from "@/lib/cortex/context";
+import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 import { processPhysiologySignals, generatePhysiologyInsights } from "@/lib/physiology/engine";
 import { scanIdentity } from "@/lib/identity/v3";
 import { NeuralRealityState, NeuralInsight, NeuralPrediction, NeuralRecommendation } from "./types";
@@ -15,7 +15,7 @@ export async function buildNeuralRealityState(
   physiologySignals?: PhysiologySignal[]
 ): Promise<NeuralRealityState> {
   // Build Cortex context
-  const cortex = await buildPulseCortexContext(userId);
+  const cortex = await getWorkCortexContextForUser(userId);
 
   // Process physiology signals (if available)
   const physiology = physiologySignals

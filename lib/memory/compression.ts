@@ -1,18 +1,8 @@
 // Memory Compression Library
-import { createClient } from "@supabase/supabase-js";
+import "server-only";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import { llmJson } from "../llm/client";
 import OpenAI from "openai";
-
-function getSupabase() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  
-  if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error('Missing Supabase environment variables. Please configure NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
-  }
-  
-  return createClient(supabaseUrl, supabaseServiceKey);
-}
 
 export interface CompressedMemory {
   id: string;
@@ -40,7 +30,7 @@ export interface CompressionSettings {
 }
 
 export async function getCompressionSettings(userId: string): Promise<CompressionSettings> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   const { data } = await supabase.from("mem_compression_settings").select("*").eq("user_id", userId).single();
   if (data) return data;
   const defaults: CompressionSettings = {
@@ -72,7 +62,7 @@ Return JSON: {"summary": "...", "key_facts": ["..."], "emotional_tone": "...", "
 }
 
 export async function compressDaily(userId: string, date: Date): Promise<CompressedMemory | null> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   const settings = await getCompressionSettings(userId);
   const startOfDay = new Date(date);
   startOfDay.setHours(0, 0, 0, 0);
@@ -119,7 +109,7 @@ export async function runAutoCompression(userId: string): Promise<{ daily_compre
 }
 
 export async function getCompressedMemories(userId: string, type?: "daily" | "weekly" | "monthly" | "topic"): Promise<CompressedMemory[]> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   let query = supabase.from("mem_compressed").select("*").eq("user_id", userId).order("time_period_start", { ascending: false });
   if (type) query = query.eq("compression_type", type);
   const { data } = await query.limit(50);
@@ -127,7 +117,7 @@ export async function getCompressedMemories(userId: string, type?: "daily" | "we
 }
 
 export async function searchCompressedMemories(userId: string, queryText: string, limit = 10): Promise<CompressedMemory[]> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   const embedding = await generateEmbedding(queryText);
   const { data } = await supabase.rpc("search_compressed_memories", { query_embedding: embedding, match_user_id: userId, match_count: limit });
   return data || [];

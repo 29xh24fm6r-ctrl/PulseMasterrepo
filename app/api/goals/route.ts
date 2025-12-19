@@ -355,15 +355,12 @@ export async function POST(request: NextRequest) {
 
       // Award XP when goal is completed
       try {
-        await fetch(new URL("/api/xp/log", request.url).toString(), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            activity: "Goal Completed",
-            xp: 100, // Base XP, would be goal.xpReward in production
-            category: "IXP",
-            source: "goals",
-          }),
+        // ✅ Use shared function instead of HTTP call
+        const { logXP } = await import("@/lib/xp/log");
+        await logXP({
+          activity: "Goal Completed",
+          sourceType: "deal", // Using "deal" as closest match, adjust if needed
+          sourceId: goalId,
         });
       } catch (err) {
         console.error("Failed to award XP:", err);

@@ -1,11 +1,12 @@
 // Creative Cortex v2 - Style Profiles
 // lib/creative/style.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { CreativeStyleProfile } from './types';
 
 export async function getCreativeStyleProfiles(userId: string): Promise<CreativeStyleProfile[]> {
-  const { data, error } = await supabaseAdminClient
+  const { data, error } = await supabaseAdmin
     .from('creative_style_profiles')
     .select('*')
     .eq('user_id', userId)
@@ -17,7 +18,7 @@ export async function getCreativeStyleProfiles(userId: string): Promise<Creative
 }
 
 export async function getDefaultStyleProfile(userId: string): Promise<CreativeStyleProfile | null> {
-  const { data, error } = await supabaseAdminClient
+  const { data, error } = await supabaseAdmin
     .from('creative_style_profiles')
     .select('*')
     .eq('user_id', userId)
@@ -34,14 +35,14 @@ export async function upsertCreativeStyleProfile(
 ): Promise<CreativeStyleProfile> {
   // If setting as default, unset other defaults
   if (profile.is_default) {
-    await supabaseAdminClient
+    await supabaseAdmin
       .from('creative_style_profiles')
       .update({ is_default: false })
       .eq('user_id', userId)
       .eq('is_default', true);
   }
 
-  const { data, error } = await supabaseAdminClient
+  const { data, error } = await supabaseAdmin
     .from('creative_style_profiles')
     .upsert(
       {

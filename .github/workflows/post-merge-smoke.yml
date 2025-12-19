@@ -1,0 +1,50 @@
+name: Post-merge smoke
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch: {}
+
+concurrency:
+  group: post-merge-smoke
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: smoke
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check required secret configured
+        run: |
+          if [ -z "${{ secrets.PROD_SMOKE_BASE_URL }}" ]; then
+            echo "Missing secret PROD_SMOKE_BASE_URL"
+            exit 1
+          fi
+
+      - name: Wait for deployment to be ready
+        run: |
+          BASE="${{ secrets.PROD_SMOKE_BASE_URL }}"
+          echo "Waiting for $BASE ..."
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/api/health/db" || true)
+            if [ "$code" = "200" ]; then
+              echo "Health endpoint is up."
+              exit 0
+            fi
+            echo "Attempt $i: got $code. Retrying..."
+            sleep 10
+          done
+          echo "Timed out waiting for deployment."
+          exit 1
+
+      - name: Smoke: health/db
+        run: |
+          BASE="${{ secrets.PROD_SMOKE_BASE_URL }}"
+          curl -fsS "$BASE/api/health/db"
+
+      - name: Smoke: homepage (optional)
+        run: |
+          BASE="${{ secrets.PROD_SMOKE_BASE_URL }}"
+          curl -fsS "$BASE/" -o /dev/null
+

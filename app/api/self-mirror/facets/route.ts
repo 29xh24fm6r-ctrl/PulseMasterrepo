@@ -3,10 +3,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { supabaseAdminClient } from '@/lib/supabase/admin';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
 
     const userId = await resolveUserId(clerkId);
 
-    const { data: facets, error } = await supabaseAdminClient
+    const { data: facets, error } = await supabaseAdmin
       .from('self_mirror_facets')
       .select('*')
       .eq('user_id', userId)

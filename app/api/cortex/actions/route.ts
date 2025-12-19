@@ -3,7 +3,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { buildPulseCortexContext } from "@/lib/cortex/context";
+import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 import {
   evaluateAutonomy,
   getDomainActions,
@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     const highRiskOnly = searchParams.get("highRisk") === "true";
 
     // Build context
-    const context = await buildPulseCortexContext(userId);
+    const context = await getWorkCortexContextForUser(userId);
 
     // Get actions
     let actions;

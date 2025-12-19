@@ -48,11 +48,12 @@ export async function recomputeRelationshipHealthForUser(userId: string): Promis
 
   const dbUserId = userRow?.id || userId;
 
-  // Get all contacts
+  // Get all contacts (only active)
   const { data: contacts } = await supabaseAdmin
     .from("crm_contacts")
     .select("*")
-    .eq("user_id", dbUserId);
+    .eq("user_id", dbUserId)
+    .eq("status", "active");
 
   if (!contacts) return;
 

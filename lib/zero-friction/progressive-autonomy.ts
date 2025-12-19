@@ -2,7 +2,7 @@
 // lib/zero-friction/progressive-autonomy.ts
 
 import { supabaseAdmin } from "@/lib/supabase";
-import { buildPulseCortexContext } from "@/lib/cortex/context";
+import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 
 export type AutonomyLevel = 0 | 1 | 2 | 3 | 4;
 
@@ -65,7 +65,7 @@ export async function evaluateAutonomyLevel(userId: string): Promise<AutonomySta
   const currentLevel = currentState.currentLevel;
 
   // Get user context
-  const ctx = await buildPulseCortexContext(userId);
+  const ctx = await getWorkCortexContextForUser(userId);
 
   // Get interaction events
   const { data: events } = await supabaseAdmin

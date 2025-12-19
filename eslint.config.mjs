@@ -13,6 +13,36 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  // Prevent importing server-only supabase admin client in client code
+  // Allow in API routes (app/api/**) and lib/** (server-only files)
+  {
+    files: [
+      "app/**/*.{ts,tsx}",
+      "components/**/*.{ts,tsx}",
+    ],
+    ignores: [
+      "app/api/**", // API routes are server-side, allow admin client
+    ],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "@/lib/supabase/admin",
+              message: "Do not import server-only supabase admin client in client code. Use the browser client or call an API route.",
+            },
+          ],
+          patterns: [
+            {
+              group: ["@/lib/supabase/admin*"],
+              message: "Do not import server-only supabase admin client in client code. Use the browser client or call an API route.",
+            },
+          ],
+        },
+      ],
+    },
+  },
 ]);
 
 export default eslintConfig;

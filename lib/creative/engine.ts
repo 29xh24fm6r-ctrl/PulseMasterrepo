@@ -1,7 +1,8 @@
 // Creative Cortex v2 - Creative Engine
 // lib/creative/engine.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { callAI } from '@/lib/ai/call';
 import { CreativeSession, CreativeAsset, CreativeSessionMode } from './types';
 import { getEgoNetwork } from '../thirdbrain/graph/query';
@@ -24,7 +25,7 @@ export async function runCreativeSession(params: {
   let projectContext = '';
   let relatedNodeId: string | null = null;
   if (projectId) {
-    const { data: project } = await supabaseAdminClient
+    const { data: project } = await supabaseAdmin
       .from('creative_projects')
       .select('*')
       .eq('id', projectId)
@@ -51,7 +52,7 @@ export async function runCreativeSession(params: {
   }
 
   // 3. Get Self Mirror context
-  const { data: latestSnapshot } = await supabaseAdminClient
+  const { data: latestSnapshot } = await supabaseAdmin
     .from('self_identity_snapshots')
     .select('roles, values, strengths')
     .eq('user_id', userId)
@@ -66,7 +67,7 @@ export async function runCreativeSession(params: {
 
   // 4. Get style profile
   let styleProfile = styleProfileId
-    ? await supabaseAdminClient
+    ? await supabaseAdmin
         .from('creative_style_profiles')
         .select('*')
         .eq('id', styleProfileId)
@@ -119,7 +120,7 @@ export async function runCreativeSession(params: {
   const assetKind = assetKindMap[mode];
 
   // 8. Create session
-  const { data: session, error: sessionError } = await supabaseAdminClient
+  const { data: session, error: sessionError } = await supabaseAdmin
     .from('creative_sessions')
     .insert({
       user_id: userId,
@@ -137,7 +138,7 @@ export async function runCreativeSession(params: {
   if (sessionError) throw sessionError;
 
   // 9. Create primary asset
-  const { data: primaryAsset, error: assetError } = await supabaseAdminClient
+  const { data: primaryAsset, error: assetError } = await supabaseAdmin
     .from('creative_assets')
     .insert({
       user_id: userId,
@@ -155,7 +156,7 @@ export async function runCreativeSession(params: {
   if (assetError) throw assetError;
 
   // 10. Update session with created assets
-  await supabaseAdminClient
+  await supabaseAdmin
     .from('creative_sessions')
     .update({
       created_assets: [{ id: primaryAsset.id, type: assetKind, title: primaryAsset.title }],

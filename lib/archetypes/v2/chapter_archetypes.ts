@@ -1,12 +1,13 @@
 // Archetype Engine v2 - Chapter Archetypes
 // lib/archetypes/v2/chapter_archetypes.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { callAIJson } from '@/lib/ai/call';
 import { ARCHETYPE_ANALYZER_PROMPT } from './prompts';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -18,7 +19,7 @@ async function resolveUserId(clerkId: string): Promise<string> {
 export async function updateChapterArchetypesForUser(userId: string) {
   const dbUserId = await resolveUserId(userId);
 
-  const { data: chapters } = await supabaseAdminClient
+  const { data: chapters } = await supabaseAdmin
     .from('life_chapters')
     .select('*')
     .eq('user_id', dbUserId)
@@ -28,7 +29,7 @@ export async function updateChapterArchetypesForUser(userId: string) {
 
   for (const chapter of chapters) {
     // Fetch events inside chapter window
-    const { data: events } = await supabaseAdminClient
+    const { data: events } = await supabaseAdmin
       .from('canon_events')
       .select('*')
       .eq('user_id', dbUserId)
@@ -62,7 +63,7 @@ export async function updateChapterArchetypesForUser(userId: string) {
     const { currentMix } = result.data;
     const primary = currentMix?.[0]?.id ?? null;
 
-    const { error } = await supabaseAdminClient
+    const { error } = await supabaseAdmin
       .from('chapter_archetypes')
       .upsert(
         {

@@ -3,12 +3,12 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { supabaseAdminClient } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { awardMythicXpForMission } from '@/lib/mythic_dojo/v1/progress';
 import { evaluateMythicAchievements } from '@/lib/mythic_dojo/v1/achievements';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     const dbUserId = await resolveUserId(userId);
 
     // Get mission
-    const { data: mission, error: missionError } = await supabaseAdminClient
+    const { data: mission, error: missionError } = await supabaseAdmin
       .from('mythic_training_missions')
       .select('*')
       .eq('id', missionId)
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Update mission status
-    const { error: updateError } = await supabaseAdminClient
+    const { error: updateError } = await supabaseAdmin
       .from('mythic_training_missions')
       .update({
         status: 'completed',

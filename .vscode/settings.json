@@ -1,0 +1,36 @@
+{
+  "files.exclude": {
+    "**/.next/**": true,
+    "**/node_modules/**": true,
+    "**/dist/**": true,
+    "**/.turbo/**": true
+  },
+  "files.watcherExclude": {
+    "**/.git/**": true,
+    "**/node_modules/**": true,
+    "**/.next/**": true,
+    "**/dist/**": true,
+    "**/build/**": true,
+    "**/out/**": true,
+    "**/.turbo/**": true,
+    "**/.vercel/**": true,
+    "**/coverage/**": true,
+    "**/supabase/.branches/**": true,
+    "**/supabase/.temp/**": true,
+    "**/supabase/.cache/**": true
+  },
+  "search.exclude": {
+    "**/node_modules/**": true,
+    "**/.next/**": true,
+    "**/dist/**": true,
+    "**/build/**": true,
+    "**/out/**": true,
+    "**/.turbo/**": true,
+    "**/.vercel/**": true,
+    "**/coverage/**": true
+  },
+  "typescript.tsserver.maxTsServerMemory": 4096,
+  "typescript.disableAutomaticTypeAcquisition": true,
+  "extensions.autoUpdate": false,
+  "extensions.autoCheckUpdates": false
+}

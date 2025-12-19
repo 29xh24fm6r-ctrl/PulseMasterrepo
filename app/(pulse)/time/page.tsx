@@ -1,16 +1,14 @@
-"use client";
+import { auth } from "@clerk/nextjs/server";
+import { getTimeOverview } from "@/lib/time/overview";
+import TimeOverview from "@/components/time/time-overview";
 
-/**
- * Time Surface - Capacity OS
- * app/(pulse)/time/page.tsx
- */
+export default async function TimePage() {
+  const { userId } = await auth();
+  if (!userId) {
+    return <div className="p-8 text-red-400">Unauthorized</div>;
+  }
 
-export default function TimePage() {
-  return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold text-white mb-6">Time - Capacity OS</h1>
-      <div className="text-gray-400">Coming soon...</div>
-    </div>
-  );
+  const data = await getTimeOverview(userId);
+  return <TimeOverview data={data} />;
 }
 

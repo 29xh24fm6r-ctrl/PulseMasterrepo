@@ -1,7 +1,8 @@
 // Conscious Workspace v1 - Workspace Day Log Engine
 // lib/workspace/day_log.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { callAI } from '@/lib/ai/call';
 import { WorkspaceDayLog } from './types';
 import { recordSelfPerceptionSignal } from '../selfmirror/signals';
@@ -16,7 +17,7 @@ export async function finalizeWorkspaceDay(params: {
   const dateStr = date.toISOString().slice(0, 10);
 
   // 1. Load current focus state
-  const { data: focusState } = await supabaseAdminClient
+  const { data: focusState } = await supabaseAdmin
     .from('workspace_focus_states')
     .select('*')
     .eq('user_id', userId)
@@ -27,7 +28,7 @@ export async function finalizeWorkspaceDay(params: {
 
   // 2. Aggregate day data
   // Get completed tasks
-  const { data: completedTasks } = await supabaseAdminClient
+  const { data: completedTasks } = await supabaseAdmin
     .from('tasks')
     .select('*')
     .eq('user_id', userId)
@@ -35,7 +36,7 @@ export async function finalizeWorkspaceDay(params: {
     .eq('completed_at::date', dateStr);
 
   // Get calendar events
-  const { data: calendarEvents } = await supabaseAdminClient
+  const { data: calendarEvents } = await supabaseAdmin
     .from('calendar_events')
     .select('*')
     .eq('user_id', userId)
@@ -43,7 +44,7 @@ export async function finalizeWorkspaceDay(params: {
     .lte('start_time', `${dateStr}T23:59:59`);
 
   // Get deals moved forward
-  const { data: dealUpdates } = await supabaseAdminClient
+  const { data: dealUpdates } = await supabaseAdmin
     .from('deals')
     .select('*')
     .eq('user_id', userId)
@@ -51,7 +52,7 @@ export async function finalizeWorkspaceDay(params: {
     .lte('updated_at', `${dateStr}T23:59:59`);
 
   // Get emotion state for the day
-  const { data: emotionState } = await supabaseAdminClient
+  const { data: emotionState } = await supabaseAdmin
     .from('emotion_state_daily')
     .select('*')
     .eq('user_id', userId)
@@ -73,7 +74,7 @@ export async function finalizeWorkspaceDay(params: {
   };
 
   // 4. Get Self Mirror alignment before/after
-  const { data: snapshotBefore } = await supabaseAdminClient
+  const { data: snapshotBefore } = await supabaseAdmin
     .from('self_identity_snapshots')
     .select('overall_self_alignment')
     .eq('user_id', userId)
@@ -82,7 +83,7 @@ export async function finalizeWorkspaceDay(params: {
     .limit(1)
     .maybeSingle();
 
-  const { data: snapshotAfter } = await supabaseAdminClient
+  const { data: snapshotAfter } = await supabaseAdmin
     .from('self_identity_snapshots')
     .select('overall_self_alignment')
     .eq('user_id', userId)
@@ -128,7 +129,7 @@ ${manualSummary ? `Manual Reflection: ${manualSummary}\n\n` : ''}Generate a 3-5 
   }
 
   // 7. Save day log
-  const { data: dayLog, error } = await supabaseAdminClient
+  const { data: dayLog, error } = await supabaseAdmin
     .from('workspace_day_log')
     .upsert(
       {
@@ -163,7 +164,7 @@ ${manualSummary ? `Manual Reflection: ${manualSummary}\n\n` : ''}Generate a 3-5 
 
   // Update civilization domain states (weekly, not daily - but trigger if needed)
   // This would typically run weekly, but we can trigger it here if it's been a while
-  const lastDomainState = await supabaseAdminClient
+  const lastDomainState = await supabaseAdmin
     .from('civilization_domain_state')
     .select('snapshot_date')
     .eq('civilization_domains.user_id', userId)

@@ -3,10 +3,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { supabaseAdminClient } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -29,22 +29,22 @@ export async function GET(
     const decisionId = params.id;
 
     const [decisionRes, optionsRes, votesRes, scenariosRes] = await Promise.all([
-      supabaseAdminClient
+      supabaseAdmin
         .from('decisions')
         .select('*, strategic_domains(*), strategic_objectives(*)')
         .eq('id', decisionId)
         .eq('user_id', dbUserId)
         .maybeSingle(),
-      supabaseAdminClient
+      supabaseAdmin
         .from('decision_options')
         .select('*')
         .eq('decision_id', decisionId)
         .order('created_at', { ascending: true }),
-      supabaseAdminClient
+      supabaseAdmin
         .from('executive_council_votes')
         .select('*, executive_council_members(*), decision_options(*)')
         .eq('decision_id', decisionId),
-      supabaseAdminClient
+      supabaseAdmin
         .from('decision_scenarios')
         .select('*, decision_options(*)')
         .eq('decision_id', decisionId)

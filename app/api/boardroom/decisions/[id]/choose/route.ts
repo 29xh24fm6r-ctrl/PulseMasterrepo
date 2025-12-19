@@ -3,10 +3,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { supabaseAdminClient } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -36,7 +36,7 @@ export async function POST(
     const decisionId = params.id;
 
     // Get option label
-    const { data: option } = await supabaseAdminClient
+    const { data: option } = await supabaseAdmin
       .from('decision_options')
       .select('label')
       .eq('id', optionId)
@@ -48,7 +48,7 @@ export async function POST(
     }
 
     // Update decision
-    const { data: decision, error } = await supabaseAdminClient
+    const { data: decision, error } = await supabaseAdmin
       .from('decisions')
       .update({
         chosen_option: option.label,

@@ -1,7 +1,7 @@
 // Future Self Model - Behavior Prediction & Trajectory Modeling
 // lib/future-self/model.ts
 
-import { buildPulseCortexContext } from "@/lib/cortex/context";
+import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 import { scanIdentity } from "@/lib/identity/v3";
 import { runLifeSimulation } from "@/lib/simulation/v3/engine";
 import { FutureSelfPrediction } from "./types";
@@ -13,7 +13,7 @@ export async function generateFutureSelfPrediction(
   userId: string,
   horizonDays: number = 90
 ): Promise<FutureSelfPrediction> {
-  const ctx = await buildPulseCortexContext(userId);
+  const ctx = await getWorkCortexContextForUser(userId);
   const identityProfile = await scanIdentity(userId, ctx);
 
   // Run simulation for predictions

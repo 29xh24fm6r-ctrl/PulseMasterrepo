@@ -1,113 +1,51 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
-import { UserButton } from "@clerk/nextjs";
+import { useState, useEffect, useMemo } from "react";
+import dynamic from "next/dynamic";
 import { ChevronDown, Home, Menu, X, Crown } from "lucide-react";
+import { buildNavSections } from "@/lib/features/nav";
+import { iconForFeatureId } from "@/lib/features/nav-icons";
 
-const NAV_GROUPS = [
-  {
-    id: 'home',
-    label: 'Home',
-    href: '/home',
-    links: [],
+// Dynamically import UserButton to prevent hydration mismatch
+// Using a more stable import pattern to avoid HMR issues
+const UserButton = dynamic(
+  async () => {
+    const mod = await import("@clerk/nextjs");
+    return { default: mod.UserButton };
   },
-  {
-    id: 'productivity',
-    label: 'Productivity',
-    href: '/productivity',
-    links: [
-      { href: "/productivity", label: "Flow Engine", icon: "⚡" },
-      { href: "/tasks", label: "Tasks", icon: "✅" },
-      { href: "/planner", label: "Day Planner", icon: "📅" },
-      { href: "/pomodoro", label: "Focus Timer", icon: "🍅" },
-      { href: "/goals", label: "Goals", icon: "🎯" },
-    ],
-  },
-  {
-    id: 'work',
-    label: 'Work',
-    href: '/work',
-    links: [
-      { href: "/work", label: "Command Center", icon: "💼" },
-      { href: "/deals", label: "Deals", icon: "💰" },
-      { href: "/contacts", label: "Contacts", icon: "👥" },
-      { href: "/follow-ups", label: "Follow-ups", icon: "📧" },
-    ],
-  },
-  {
-    id: 'wellness',
-    label: 'Wellness',
-    href: '/wellness',
-    links: [
-      { href: "/wellness", label: "Emotional Climate", icon: "🧘" },
-      { href: "/emotions", label: "Emotions", icon: "😊" },
-      { href: "/morning", label: "Morning Routine", icon: "🌅" },
-      { href: "/journal", label: "Journal", icon: "📓" },
-    ],
-  },
-  {
-    id: 'growth',
-    label: 'Growth',
-    href: '/growth',
-    links: [
-      { href: "/growth", label: "The Dojo", icon: "✨" },
-      { href: "/identity", label: "Identity", icon: "🔮" },
-      { href: "/habits", label: "Habits", icon: "🔥" },
-      { href: "/achievements", label: "Achievements", icon: "🏆" },
-    ],
-  },
-  {
-    id: 'strategy',
-    label: 'Strategy',
-    href: '/strategy',
-    links: [
-      { href: "/strategy", label: "War Room", icon: "🧭" },
-      { href: "/life-intelligence/simulation", label: "Simulations", icon: "🔮" },
-      { href: "/goals", label: "Goals", icon: "🎯" },
-      { href: "/intelligence", label: "Insights", icon: "💡" },
-    ],
-  },
-  {
-    id: 'coaches',
-    label: 'Coaches',
-    href: '/coaches',
-    links: [
-      { href: "/coaches", label: "Coaches Corner", icon: "🧠" },
-      { href: "/deal-coach", label: "Deal Coach", icon: "💰" },
-      { href: "/career-coach", label: "Career Coach", icon: "💼" },
-      { href: "/roleplay-coach", label: "Roleplay Coach", icon: "🎭" },
-      { href: "/motivation", label: "Motivational Coach", icon: "✨" },
-      { href: "/confidant", label: "Confidant", icon: "💬" },
-      { href: "/wellness", label: "Wellness Coach", icon: "🧘" },
-      { href: "/productivity", label: "Executive Function Coach", icon: "🧠" },
-      { href: "/philosophy-dojo", label: "Philosophy Dojo", icon: "⚔️" },
-    ],
-  },
-  {
-    id: 'dojo',
-    label: 'Dojo',
-    href: '/philosophy-dojo',
-    links: [],
-  },
-  {
-    id: 'more',
-    label: 'More',
-    href: '/settings',
-    links: [
-      { href: "/xp", label: "XP", icon: "⚡" },
-      { href: "/frontier", label: "Frontier", icon: "🚀" },
-      { href: "/vault", label: "Vault", icon: "🔒" },
-      { href: "/settings", label: "Settings", icon: "⚙️" },
-    ],
-  },
-];
+  { 
+    ssr: false,
+    loading: () => <div className="w-8 h-8 rounded-full bg-zinc-800 animate-pulse" />
+  }
+);
+
+// Registry-driven navigation - no hardcoded routes
 
 export function GlobalNav() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [isPlusUser, setIsPlusUser] = useState(false);
+
+  // Registry-driven navigation sections
+  const [accessCtx, setAccessCtx] = useState<any>(null);
+  const sections = useMemo(() => {
+    if (!accessCtx) return buildNavSections({ visibility: "core+beta" });
+    // Client-side gate evaluation (simplified - full eval would need server)
+    // For now, just use basic sections; we'll enhance with lock states next
+    return buildNavSections({ visibility: "core+beta" });
+  }, [accessCtx]);
+
+  useEffect(() => {
+    // Fetch access context for client-side gating
+    fetch("/api/access/me")
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        if (data?.ctx) setAccessCtx(data.ctx);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetch("/api/profile")
@@ -124,7 +62,10 @@ export function GlobalNav() {
     return null;
   }
 
-  const isActive = (href: string) => pathname === href;
+  const isActive = (href: string) => {
+    if (href === "/") return pathname === "/";
+    return pathname === href || pathname?.startsWith(href + "/");
+  };
 
   return (
     <>
@@ -140,45 +81,72 @@ export function GlobalNav() {
               </span>
             </Link>
 
-            {/* Nav Groups */}
+            {/* Registry-Driven Nav */}
             <div className="flex items-center gap-1">
-              {NAV_GROUPS.map((group) => (
-                group.links.length === 0 ? (
-                  <Link
-                    key={group.id}
-                    href={group.href || '/'}
-                    className={`flex items-center gap-1 px-3 py-2 text-sm transition-colors rounded-lg ${
-                      isActive(group.href || '')
-                        ? "bg-violet-600/20 text-violet-300"
-                        : "text-zinc-400 hover:text-white hover:bg-zinc-800"
-                    }`}
-                  >
-                    {group.label}
-                  </Link>
-                ) : (
+              {sections.map((section) => {
+                // For desktop, show first item as main link, rest in dropdown
+                const firstItem = section.items[0];
+                const restItems = section.items.slice(1);
+                
+                if (!firstItem) return null;
+
+                const Icon = iconForFeatureId(firstItem.id);
+                const sectionActive = section.items.some((it) => isActive(it.href));
+
+                if (restItems.length === 0) {
+                  // Single item - no dropdown
+                  return (
+                    <Link
+                      key={firstItem.id}
+                      href={firstItem.href}
+                      className={`flex items-center gap-1 px-3 py-2 text-sm transition-colors rounded-lg ${
+                        isActive(firstItem.href)
+                          ? "bg-violet-600/20 text-violet-300"
+                          : "text-zinc-400 hover:text-white hover:bg-zinc-800"
+                      }`}
+                    >
+                      <Icon className="w-4 h-4" />
+                      {firstItem.label}
+                      {firstItem.status === "beta" && (
+                        <span className="ml-1 rounded-full bg-violet-500/20 px-1.5 py-0.5 text-[10px] text-violet-300">
+                          BETA
+                        </span>
+                      )}
+                    </Link>
+                  );
+                }
+
+                // Multiple items - dropdown
+                return (
                   <div
-                    key={group.id}
+                    key={section.title}
                     className="relative"
-                    onMouseEnter={() => setOpenDropdown(group.id)}
+                    onMouseEnter={() => setOpenDropdown(section.title)}
                     onMouseLeave={() => setOpenDropdown(null)}
                   >
                     <div className={`flex items-center rounded-lg ${
-                      isActive(group.href || '') || group.links.some((l) => isActive(l.href))
+                      sectionActive
                         ? "bg-violet-600/20"
                         : "hover:bg-zinc-800"
                     }`}>
                       <Link
-                        href={group.href || group.links[0]?.href || '/'}
-                        className={`px-3 py-2 text-sm transition-colors ${
-                          isActive(group.href || '') || group.links.some((l) => isActive(l.href))
+                        href={firstItem.href}
+                        className={`flex items-center gap-1 px-3 py-2 text-sm transition-colors ${
+                          sectionActive
                             ? "text-violet-300"
                             : "text-zinc-400 hover:text-white"
                         }`}
                       >
-                        {group.label}
+                        <Icon className="w-4 h-4" />
+                        {firstItem.label}
+                        {firstItem.status === "beta" && (
+                          <span className="ml-1 rounded-full bg-violet-500/20 px-1.5 py-0.5 text-[10px] text-violet-300">
+                            BETA
+                          </span>
+                        )}
                       </Link>
                       <button className={`pr-2 py-2 ${
-                        isActive(group.href || '') || group.links.some((l) => isActive(l.href))
+                        sectionActive
                           ? "text-violet-300"
                           : "text-zinc-400 hover:text-white"
                       }`}>
@@ -186,33 +154,41 @@ export function GlobalNav() {
                       </button>
                     </div>
 
-                    {openDropdown === group.id && (
+                    {openDropdown === section.title && (
                       <div className="absolute top-full left-0 mt-1 py-2 bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl min-w-[180px]">
-                        {group.links.map((link) => (
-                          <Link
-                            key={link.href}
-                            href={link.href}
-                            className={`flex items-center gap-3 px-4 py-2 text-sm transition-colors ${
-                              isActive(link.href)
-                                ? "bg-violet-600/20 text-violet-300"
-                                : "text-zinc-400 hover:text-white hover:bg-zinc-800"
-                            }`}
-                          >
-                            <span>{link.icon}</span>
-                            <span>{link.label}</span>
-                          </Link>
-                        ))}
+                        {restItems.map((item) => {
+                          const ItemIcon = iconForFeatureId(item.id);
+                          return (
+                            <Link
+                              key={item.href}
+                              href={item.href}
+                              className={`flex items-center gap-3 px-4 py-2 text-sm transition-colors ${
+                                isActive(item.href)
+                                  ? "bg-violet-600/20 text-violet-300"
+                                  : "text-zinc-400 hover:text-white hover:bg-zinc-800"
+                              }`}
+                            >
+                              <ItemIcon className="w-4 h-4" />
+                              <span>{item.label}</span>
+                              {item.status === "beta" && (
+                                <span className="ml-auto rounded-full bg-violet-500/20 px-2 py-0.5 text-[10px] text-violet-300">
+                                  BETA
+                                </span>
+                              )}
+                            </Link>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
-                )
-              ))}
+                );
+              })}
             </div>
 
             {/* Right side */}
             <div className="flex items-center gap-3">
               <Link
-                href="/realtime-voice"
+                href="/voice"
                 className="px-3 py-1.5 bg-gradient-to-r from-violet-600 to-pink-600 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity flex items-center gap-1"
               >
                 🎙️ Voice
@@ -268,47 +244,38 @@ export function GlobalNav() {
         {mobileOpen && (
           <div className="absolute top-14 left-0 right-0 bg-zinc-950 border-b border-zinc-800 max-h-[80vh] overflow-y-auto">
             <div className="p-4 space-y-4">
-              <Link
-                href="/"
-                onClick={() => setMobileOpen(false)}
-                className="flex items-center gap-3 px-4 py-3 bg-zinc-900 rounded-xl"
-              >
-                <Home className="w-5 h-5" />
-                <span>Dashboard</span>
-              </Link>
-
-              {NAV_GROUPS.map((group) => (
-                <div key={group.id}>
+              {sections.map((section) => (
+                <div key={section.title}>
                   <div className="text-xs text-zinc-500 uppercase tracking-wider px-4 mb-2">
-                    {group.label}
+                    {section.title}
                   </div>
                   <div className="grid grid-cols-2 gap-2">
-                    {group.links.map((link) => (
-                      <Link
-                        key={link.href}
-                        href={link.href}
-                        onClick={() => setMobileOpen(false)}
-                        className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                          isActive(link.href)
-                            ? "bg-violet-600/20 text-violet-300 border border-violet-500/30"
-                            : "bg-zinc-900 text-zinc-400 hover:text-white"
-                        }`}
-                      >
-                        <span>{link.icon}</span>
-                        <span className="truncate">{link.label}</span>
-                      </Link>
-                    ))}
+                    {section.items.map((item) => {
+                      const Icon = iconForFeatureId(item.id);
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setMobileOpen(false)}
+                          className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                            isActive(item.href)
+                              ? "bg-violet-600/20 text-violet-300 border border-violet-500/30"
+                              : "bg-zinc-900 text-zinc-400 hover:text-white"
+                          }`}
+                        >
+                          <Icon className="w-4 h-4" />
+                          <span className="truncate">{item.label}</span>
+                          {item.status === "beta" && (
+                            <span className="ml-auto rounded-full bg-violet-500/20 px-1.5 py-0.5 text-[10px] text-violet-300">
+                              BETA
+                            </span>
+                          )}
+                        </Link>
+                      );
+                    })}
                   </div>
                 </div>
               ))}
-
-              <Link
-                href="/voice"
-                onClick={() => setMobileOpen(false)}
-                className="flex items-center justify-center gap-2 px-4 py-3 bg-zinc-800 rounded-xl font-medium"
-              >
-                🎙️ Voice Assistant
-              </Link>
             </div>
           </div>
         )}

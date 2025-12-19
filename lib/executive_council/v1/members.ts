@@ -1,7 +1,8 @@
 // Executive Council Mode v1 - Members Management
 // lib/executive_council/v1/members.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { CouncilRoleId } from './types';
 
 const DEFAULT_MEMBERS: { role_id: CouncilRoleId; display_name: string; description: string; weight: number }[] = [
@@ -16,7 +17,7 @@ const DEFAULT_MEMBERS: { role_id: CouncilRoleId; display_name: string; descripti
 ];
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -28,7 +29,7 @@ async function resolveUserId(clerkId: string): Promise<string> {
 export async function ensureCouncilMembersForUser(userId: string) {
   const dbUserId = await resolveUserId(userId);
 
-  const { data } = await supabaseAdminClient
+  const { data } = await supabaseAdmin
     .from('council_members')
     .select('*')
     .eq('user_id', dbUserId);
@@ -45,7 +46,7 @@ export async function ensureCouncilMembersForUser(userId: string) {
     config: {},
   }));
 
-  const { data: inserted, error } = await supabaseAdminClient
+  const { data: inserted, error } = await supabaseAdmin
     .from('council_members')
     .insert(rows)
     .select('*');

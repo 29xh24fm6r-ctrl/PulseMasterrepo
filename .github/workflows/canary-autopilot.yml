@@ -1,0 +1,90 @@
+name: Canary Autopilot
+
+on:
+  schedule:
+    # Nightly at 3:17 AM UTC (adjust anytime)
+    - cron: "17 3 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  canary_autopilot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+
+      - name: Start Next.js (background)
+        shell: bash
+        run: |
+          nohup npm start > /tmp/next-start.log 2>&1 &
+          echo $! > /tmp/next-start.pid
+        env:
+          NODE_ENV: production
+          PORT: "3000"
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+      - name: Wait for server
+        shell: bash
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:3000/ >/dev/null; then
+              echo "Server is up."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Server failed to start. Logs:"
+          tail -n 200 /tmp/next-start.log || true
+          exit 1
+
+      - name: Run canaries (capture JSON)
+        id: canaries
+        shell: bash
+        run: |
+          set -e
+          curl -sS -X POST "http://localhost:3000/api/ops/features/canary" \
+            -H "Content-Type: application/json" \
+            -H "x-canary-ci-token: $CANARY_CI_TOKEN" \
+            -d '{}' > /tmp/canary.json
+          echo "Wrote /tmp/canary.json"
+          cat /tmp/canary.json | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const j=JSON.parse(d);console.log('summary', j.summary||{}); if(!j.ok) process.exit(2);});"
+        env:
+          CANARY_CI_TOKEN: ${{ secrets.CANARY_CI_TOKEN }}
+
+      - name: Create or update GitHub issue if failing
+        shell: bash
+        run: node scripts/canary-autopilot-issue.mjs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CANARY_JSON_PATH: /tmp/canary.json
+
+      - name: Stop Next.js
+        if: always()
+        shell: bash
+        run: |
+          if [ -f /tmp/next-start.pid ]; then
+            kill $(cat /tmp/next-start.pid) || true
+          fi
+          pkill -f "next start" || true
+          tail -n 200 /tmp/next-start.log || true
+

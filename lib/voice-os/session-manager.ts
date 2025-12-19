@@ -2,7 +2,7 @@
 // lib/voice-os/session-manager.ts
 
 import { supabaseAdmin } from "@/lib/supabase";
-import { buildPulseCortexContext } from "@/lib/cortex/context";
+import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 import { VoiceSession, VoiceContext, VoiceBriefing } from "./types";
 import { v4 as uuidv4 } from "uuid";
 
@@ -78,7 +78,7 @@ export function addConversationTurn(
  * Generate voice briefing from Cortex context
  */
 export async function generateVoiceBriefing(userId: string): Promise<VoiceBriefing> {
-  const ctx = await buildPulseCortexContext(userId);
+  const ctx = await getWorkCortexContextForUser(userId);
 
   // Extract priorities
   const priorities = ctx.domains.strategy?.currentQuarterFocus?.bigThree || [

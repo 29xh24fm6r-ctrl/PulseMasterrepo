@@ -42,15 +42,31 @@ export default function JournalHistoryPage() {
   async function fetchEntries() {
     setLoading(true);
     try {
+      const { getJson } = await import("@/lib/http/getJson");
       const params = new URLSearchParams();
-      if (moodFilter) params.set('mood', moodFilter);
-      if (dateRange.start) params.set('startDate', dateRange.start);
-      if (dateRange.end) params.set('endDate', dateRange.end);
+      if (dateRange.start) params.set('start_date', dateRange.start);
+      if (dateRange.end) params.set('end_date', dateRange.end);
 
-      const res = await fetch(`/api/journal/pull?${params}`);
-      if (res.ok) {
-        const data = await res.json();
-        setEntries(data.entries || []);
+      const url = `/api/journal${params.toString() ? `?${params}` : ''}`;
+      const { ok, data } = await getJson(url);
+      
+      if (ok) {
+        // Map Supabase format to UI format
+        const mappedEntries = (data.items || []).map((entry: any) => ({
+          id: entry.id,
+          title: entry.title || 'Untitled',
+          date: entry.entry_date,
+          mood: entry.mood ? ['Great', 'Good', 'Okay', 'Low', 'Struggling'][entry.mood - 1] : null,
+          tags: entry.tags || [],
+          preview: entry.content?.substring(0, 100) || '',
+        }));
+
+        // Filter by mood client-side (if needed)
+        const filtered = moodFilter
+          ? mappedEntries.filter((e: any) => e.mood === moodFilter)
+          : mappedEntries;
+
+        setEntries(filtered);
       }
     } catch (e) {
       console.error('Error fetching journals:', e);

@@ -29,6 +29,7 @@ export async function getContacts(
     .from("crm_contacts")
     .select("*")
     .eq("owner_user_id", userId) // Use Clerk userId directly for tenant isolation
+    .eq("status", "active") // Only show active (non-merged) contacts
     .order("updated_at", { ascending: false });
 
   if (filters?.type) {
@@ -167,6 +168,7 @@ export async function getContactById(userId: string, contactId: string): Promise
     .select("*")
     .eq("id", contactId)
     .eq("owner_user_id", userId) // Enforce tenant isolation
+    .eq("status", "active") // Only return active contacts
     .single();
 
   if (error || !data) return null;

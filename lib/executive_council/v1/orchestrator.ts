@@ -1,7 +1,8 @@
 // Executive Council Mode v1 - Orchestrator
 // lib/executive_council/v1/orchestrator.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { callAIJson } from '@/lib/ai/call';
 import { buildCouncilDecisionContext } from './context';
 import { ensureCouncilMembersForUser } from './members';
@@ -9,7 +10,7 @@ import { COUNCIL_MEMBER_PROMPT, COUNCIL_SYNTHESIZER_PROMPT } from './prompts';
 import { CouncilOpinion, CouncilRoleId, CouncilConsensus } from './types';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -34,21 +35,21 @@ export async function startCouncilSession(
   const ctx = await buildCouncilDecisionContext(userId, now, params);
   const members = await ensureCouncilMembersForUser(userId);
 
-  const { data: snapshot } = await supabaseAdminClient
+  const { data: snapshot } = await supabaseAdmin
     .from('strategic_state_snapshots')
     .select('id')
     .eq('user_id', dbUserId)
     .order('snapshot_time', { ascending: false })
     .limit(1);
 
-  const { data: equilibrium } = await supabaseAdminClient
+  const { data: equilibrium } = await supabaseAdmin
     .from('strategic_equilibria')
     .select('id')
     .eq('user_id', dbUserId)
     .order('created_at', { ascending: false })
     .limit(1);
 
-  const { data: sessionRows, error: sessionError } = await supabaseAdminClient
+  const { data: sessionRows, error: sessionError } = await supabaseAdmin
     .from('council_sessions')
     .insert({
       user_id: dbUserId,
@@ -99,7 +100,7 @@ export async function startCouncilSession(
 
       opinions.push(fullOpinion);
 
-      await supabaseAdminClient
+      await supabaseAdmin
         .from('council_opinions')
         .insert({
           session_id: sessionId,
@@ -143,7 +144,7 @@ export async function startCouncilSession(
 
   const { consensus } = result.data;
 
-  const { data: consensusRows, error: consensusError } = await supabaseAdminClient
+  const { data: consensusRows, error: consensusError } = await supabaseAdmin
     .from('council_consensus')
     .insert({
       session_id: sessionId,
@@ -160,7 +161,7 @@ export async function startCouncilSession(
 
   const consensusId = consensusRows?.[0]?.id as string;
 
-  await supabaseAdminClient
+  await supabaseAdmin
     .from('council_sessions')
     .update({
       status: 'completed',

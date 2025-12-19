@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Search, Plus, MessageSquare } from "lucide-react";
 import { CoachLauncher } from "@/app/components/coaching/CoachLauncher";
+import { RunIntelButton } from "@/components/crm/RunIntelButton";
 
 interface CrmContact {
   id: string;
@@ -162,12 +163,15 @@ export function ContactsTable() {
                       )}
                     </td>
                     <td className="py-3 px-4">
-                      <CoachLauncher
-                        coachKey="sales"
-                        origin="crm.contact_detail"
-                        variant="icon"
-                        initialUserMessage={`Help me with my relationship with ${contact.fullName}.`}
-                      />
+                      <div className="flex items-center gap-2">
+                        <RunIntelButton contactId={contact.id} variant="ghost" size="sm" />
+                        <CoachLauncher
+                          coachKey="sales"
+                          origin="crm.contact_detail"
+                          variant="icon"
+                          initialUserMessage={`Help me with my relationship with ${contact.fullName}.`}
+                        />
+                      </div>
                     </td>
                   </tr>
                 ))}

@@ -1,17 +1,7 @@
 // Identity Engine v2 - Daily momentum scoring
-import { createClient } from "@supabase/supabase-js";
+import "server-only";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import { llmJson } from "../llm/client";
-
-function getSupabase() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  
-  if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error('Missing Supabase environment variables. Please configure NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
-  }
-  
-  return createClient(supabaseUrl, supabaseServiceKey);
-}
 
 interface DailyMomentum {
   alignment_score: number; // 0-1: how aligned actions were with values
@@ -24,7 +14,7 @@ interface DailyMomentum {
 }
 
 export async function calculateDailyMomentum(userId: string, date?: Date): Promise<DailyMomentum | null> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   const targetDate = date || new Date();
   const startOfDay = new Date(targetDate);
   startOfDay.setHours(0, 0, 0, 0);
@@ -129,7 +119,7 @@ Return JSON:
 }
 
 export async function runNightlyIdentityScoring(): Promise<{ usersScored: number }> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   
   // Get users with activity today
   const today = new Date();

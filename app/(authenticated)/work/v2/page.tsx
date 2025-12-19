@@ -10,7 +10,7 @@ import { LoadingState } from "@/components/ui/LoadingState";
 import { Badge } from "@/components/ui/badge";
 import { ButlerPanel } from "@/app/components/butler/ButlerPanel";
 import { generateTimeSlices } from "@/lib/time-slicing/v1/tse";
-import { buildPulseCortexContext } from "@/lib/cortex/context";
+import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 import {
   Briefcase,
   Clock,
@@ -60,7 +60,7 @@ export default function WorkDashboardV2Page() {
   async function loadWorkData() {
     setLoading(true);
     try {
-      const ctx = await buildPulseCortexContext("user_123"); // Would get from auth
+      const ctx = await getWorkCortexContextForUser("user_123"); // Would get from auth
 
       // Generate time slices
       const timeSlices = generateTimeSlices(ctx);

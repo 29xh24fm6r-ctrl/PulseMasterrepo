@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getBehaviorProfile, updateBehaviorProfile } from "@/lib/cortex/sovereign/sovereign-intelligence/profile-store";
 import { runSovereignUpdate } from "@/lib/cortex/sovereign/sovereign-intelligence/sim-engine";
-import { buildPulseCortexContext } from "@/lib/cortex/context";
+import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 
 export async function GET(req: NextRequest) {
   try {
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     const { action } = body;
 
     if (action === "update") {
-      const ctx = await buildPulseCortexContext(userId);
+      const ctx = await getWorkCortexContextForUser(userId);
       const updatedProfile = await runSovereignUpdate(userId, ctx);
       return NextResponse.json(updatedProfile);
     } else if (action === "reset") {

@@ -1,13 +1,14 @@
 // Destiny Engine v2 - Timeline Scoring
 // lib/destiny/scoring.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { callAI } from '@/lib/ai/call';
 import { DestinyTimelineScore } from './types';
 
 export async function refreshTimelineScores(userId: string): Promise<DestinyTimelineScore[]> {
   // Get all active timelines
-  const { data: timelines } = await supabaseAdminClient
+  const { data: timelines } = await supabaseAdmin
     .from('destiny_timelines')
     .select('*')
     .eq('user_id', userId)
@@ -18,7 +19,7 @@ export async function refreshTimelineScores(userId: string): Promise<DestinyTime
   }
 
   // Get Self Mirror snapshot
-  const { data: latestSnapshot } = await supabaseAdminClient
+  const { data: latestSnapshot } = await supabaseAdmin
     .from('self_identity_snapshots')
     .select('*')
     .eq('user_id', userId)
@@ -27,13 +28,13 @@ export async function refreshTimelineScores(userId: string): Promise<DestinyTime
     .maybeSingle();
 
   // Get Self Mirror facets
-  const { data: facets } = await supabaseAdminClient
+  const { data: facets } = await supabaseAdmin
     .from('self_mirror_facets')
     .select('*')
     .eq('user_id', userId);
 
   // Get Civilization domain states
-  const { data: domainStates } = await supabaseAdminClient
+  const { data: domainStates } = await supabaseAdmin
     .from('civilization_domain_state')
     .select('*, civilization_domains(*)')
     .eq('civilization_domains.user_id', userId)
@@ -52,7 +53,7 @@ export async function refreshTimelineScores(userId: string): Promise<DestinyTime
     };
 
     // 2. Get waypoints for context
-    const { data: waypoints } = await supabaseAdminClient
+    const { data: waypoints } = await supabaseAdmin
       .from('destiny_waypoints')
       .select('*')
       .eq('timeline_id', timeline.id)
@@ -130,7 +131,7 @@ Evaluate this timeline and provide:
     const narrativeSummary = narrativeMatch ? narrativeMatch[1].trim() : content.substring(0, 300);
 
     // 5. Save score
-    const { data: score, error } = await supabaseAdminClient
+    const { data: score, error } = await supabaseAdmin
       .from('destiny_timeline_scores')
       .insert({
         timeline_id: timeline.id,

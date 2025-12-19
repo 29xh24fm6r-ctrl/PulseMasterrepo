@@ -1,366 +1,274 @@
-// Achievement Definitions for Philosophy Dojo
+import "server-only";
+import { Client } from "@notionhq/client";
+import { 
+  ALL_ACHIEVEMENTS, 
+  Achievement, 
+  AchievementCondition,
+  getAchievementById,
+  RARITY_COLORS 
+} from "@/lib/philosophy/achievements";
 
-export type AchievementCategory = 
-  | 'streak' 
-  | 'skills' 
-  | 'mastery' 
-  | 'cross_training' 
-  | 'dedication' 
-  | 'special';
+const notion = new Client({ auth: process.env.NOTION_API_KEY });
+const ACHIEVEMENTS_DB = process.env.NOTION_DATABASE_ACHIEVEMENTS || "";
+const SKILL_PROGRESS_DB = process.env.NOTION_DATABASE_SKILL_PROGRESS || "";
+const STREAKS_DB = process.env.NOTION_DATABASE_STREAKS || "";
 
-export type AchievementRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+// In-memory cache
+let cachedAchievements: string[] = [];
+let lastFetch = 0;
 
-export interface Achievement {
-  id: string;
-  name: string;
-  description: string;
-  icon: string;
-  category: AchievementCategory;
-  rarity: AchievementRarity;
-  xpReward: number;
-  condition: AchievementCondition;
-  secret?: boolean; // Hidden until unlocked
+interface ProgressData {
+  streak: number;
+  skillsMastered: number;
+  treesWithMastery: string[];
+  completedTrees: string[];
+  masteredSkillIds: string[];
 }
 
-export interface AchievementCondition {
-  type: 'streak' | 'skills_mastered' | 'tree_complete' | 'trees_started' | 'mentor_sessions' | 'total_xp' | 'specific';
-  value: number;
-  treeId?: string; // For tree-specific achievements
-  skillIds?: string[]; // For specific skill achievements
+export interface CheckAchievementsResult {
+  ok: boolean;
+  newlyUnlocked: Achievement[];
+  error?: string;
 }
 
-export interface UserAchievement {
-  achievementId: string;
-  unlockedAt: string;
-  notified: boolean;
+/**
+ * Check and unlock achievements based on current progress
+ * Extracted from app/api/philosophy/achievements/route.ts
+ */
+export async function checkAndUnlockAchievements(): Promise<CheckAchievementsResult> {
+  try {
+    const unlocked = await getUnlockedAchievements();
+    const progress = await getProgressData();
+    const newlyUnlocked = await checkAndUnlockAchievementsInternal(progress, unlocked);
+    
+    return {
+      ok: true,
+      newlyUnlocked: newlyUnlocked.map(a => ({
+        ...a,
+        colors: RARITY_COLORS[a.rarity],
+      })),
+    };
+  } catch (error: any) {
+    console.error('Achievements check error:', error);
+    return {
+      ok: false,
+      newlyUnlocked: [],
+      error: error.message,
+    };
+  }
 }
 
-// Rarity colors
-export const RARITY_COLORS: Record<AchievementRarity, { bg: string; border: string; text: string }> = {
-  common: { bg: 'bg-zinc-500/20', border: 'border-zinc-500/50', text: 'text-zinc-400' },
-  uncommon: { bg: 'bg-green-500/20', border: 'border-green-500/50', text: 'text-green-400' },
-  rare: { bg: 'bg-blue-500/20', border: 'border-blue-500/50', text: 'text-blue-400' },
-  epic: { bg: 'bg-purple-500/20', border: 'border-purple-500/50', text: 'text-purple-400' },
-  legendary: { bg: 'bg-yellow-500/20', border: 'border-yellow-500/50', text: 'text-yellow-400' },
-};
-
-// ============================================
-// STREAK ACHIEVEMENTS
-// ============================================
-
-const STREAK_ACHIEVEMENTS: Achievement[] = [
-  {
-    id: 'streak_3',
-    name: 'Building Momentum',
-    description: 'Maintain a 3-day training streak',
-    icon: '✨',
-    category: 'streak',
-    rarity: 'common',
-    xpReward: 50,
-    condition: { type: 'streak', value: 3 },
-  },
-  {
-    id: 'streak_7',
-    name: 'Week Warrior',
-    description: 'Maintain a 7-day training streak',
-    icon: '🔥',
-    category: 'streak',
-    rarity: 'uncommon',
-    xpReward: 100,
-    condition: { type: 'streak', value: 7 },
-  },
-  {
-    id: 'streak_14',
-    name: 'Fortnight of Focus',
-    description: 'Maintain a 14-day training streak',
-    icon: '🔥',
-    category: 'streak',
-    rarity: 'rare',
-    xpReward: 200,
-    condition: { type: 'streak', value: 14 },
-  },
-  {
-    id: 'streak_30',
-    name: 'Monthly Master',
-    description: 'Maintain a 30-day training streak',
-    icon: '🔥',
-    category: 'streak',
-    rarity: 'epic',
-    xpReward: 500,
-    condition: { type: 'streak', value: 30 },
-  },
-  {
-    id: 'streak_100',
-    name: 'Century of Discipline',
-    description: 'Maintain a 100-day training streak',
-    icon: '💯',
-    category: 'streak',
-    rarity: 'legendary',
-    xpReward: 2000,
-    condition: { type: 'streak', value: 100 },
-  },
-];
-
-// ============================================
-// SKILL ACHIEVEMENTS
-// ============================================
-
-const SKILL_ACHIEVEMENTS: Achievement[] = [
-  {
-    id: 'first_skill',
-    name: 'First Steps',
-    description: 'Master your first skill',
-    icon: '🌱',
-    category: 'skills',
-    rarity: 'common',
-    xpReward: 25,
-    condition: { type: 'skills_mastered', value: 1 },
-  },
-  {
-    id: 'skills_5',
-    name: 'Apprentice',
-    description: 'Master 5 skills',
-    icon: '📚',
-    category: 'skills',
-    rarity: 'common',
-    xpReward: 75,
-    condition: { type: 'skills_mastered', value: 5 },
-  },
-  {
-    id: 'skills_10',
-    name: 'Student',
-    description: 'Master 10 skills',
-    icon: '🎓',
-    category: 'skills',
-    rarity: 'uncommon',
-    xpReward: 150,
-    condition: { type: 'skills_mastered', value: 10 },
-  },
-  {
-    id: 'skills_20',
-    name: 'Scholar',
-    description: 'Master 20 skills',
-    icon: '📖',
-    category: 'skills',
-    rarity: 'rare',
-    xpReward: 300,
-    condition: { type: 'skills_mastered', value: 20 },
-  },
-  {
-    id: 'skills_42',
-    name: 'Philosopher',
-    description: 'Master all 42 skills',
-    icon: '🏆',
-    category: 'skills',
-    rarity: 'legendary',
-    xpReward: 1000,
-    condition: { type: 'skills_mastered', value: 42 },
-  },
-];
-
-// ============================================
-// MASTERY ACHIEVEMENTS (Complete Trees)
-// ============================================
-
-const MASTERY_ACHIEVEMENTS: Achievement[] = [
-  {
-    id: 'master_stoicism',
-    name: 'Stoic Sage',
-    description: 'Complete the entire Stoicism skill tree',
-    icon: '🏛️',
-    category: 'mastery',
-    rarity: 'epic',
-    xpReward: 500,
-    condition: { type: 'tree_complete', value: 1, treeId: 'stoicism' },
-  },
-  {
-    id: 'master_samurai',
-    name: 'Way of the Sword',
-    description: 'Complete the entire Samurai skill tree',
-    icon: '⚔️',
-    category: 'mastery',
-    rarity: 'epic',
-    xpReward: 500,
-    condition: { type: 'tree_complete', value: 1, treeId: 'samurai' },
-  },
-  {
-    id: 'master_taoism',
-    name: 'One with the Tao',
-    description: 'Complete the entire Taoism skill tree',
-    icon: '☯️',
-    category: 'mastery',
-    rarity: 'epic',
-    xpReward: 500,
-    condition: { type: 'tree_complete', value: 1, treeId: 'taoism' },
-  },
-  {
-    id: 'master_zen',
-    name: 'Awakened Mind',
-    description: 'Complete the entire Zen skill tree',
-    icon: '🧘',
-    category: 'mastery',
-    rarity: 'epic',
-    xpReward: 500,
-    condition: { type: 'tree_complete', value: 1, treeId: 'zen' },
-  },
-  {
-    id: 'master_discipline',
-    name: 'Unbreakable',
-    description: 'Complete the entire Discipline skill tree',
-    icon: '💀',
-    category: 'mastery',
-    rarity: 'epic',
-    xpReward: 500,
-    condition: { type: 'tree_complete', value: 1, treeId: 'discipline' },
-  },
-  {
-    id: 'master_effectiveness',
-    name: 'Highly Effective',
-    description: 'Complete the entire 7 Habits skill tree',
-    icon: '📘',
-    category: 'mastery',
-    rarity: 'epic',
-    xpReward: 500,
-    condition: { type: 'tree_complete', value: 1, treeId: 'effectiveness' },
-  },
-];
-
-// ============================================
-// CROSS-TRAINING ACHIEVEMENTS
-// ============================================
-
-const CROSS_TRAINING_ACHIEVEMENTS: Achievement[] = [
-  {
-    id: 'cross_2',
-    name: 'Open Mind',
-    description: 'Master skills from 2 different philosophy trees',
-    icon: '🌐',
-    category: 'cross_training',
-    rarity: 'uncommon',
-    xpReward: 100,
-    condition: { type: 'trees_started', value: 2 },
-  },
-  {
-    id: 'cross_4',
-    name: 'Eclectic Wisdom',
-    description: 'Master skills from 4 different philosophy trees',
-    icon: '🔮',
-    category: 'cross_training',
-    rarity: 'rare',
-    xpReward: 250,
-    condition: { type: 'trees_started', value: 4 },
-  },
-  {
-    id: 'cross_all',
-    name: 'Universal Mind',
-    description: 'Master skills from all 6 philosophy trees',
-    icon: '🌌',
-    category: 'cross_training',
-    rarity: 'epic',
-    xpReward: 500,
-    condition: { type: 'trees_started', value: 6 },
-  },
-  {
-    id: 'master_all_trees',
-    name: 'Omni-Philosopher',
-    description: 'Complete all 6 philosophy skill trees',
-    icon: '👑',
-    category: 'cross_training',
-    rarity: 'legendary',
-    xpReward: 2000,
-    condition: { type: 'tree_complete', value: 6 },
-  },
-];
-
-// ============================================
-// SPECIAL ACHIEVEMENTS
-// ============================================
-
-const SPECIAL_ACHIEVEMENTS: Achievement[] = [
-  {
-    id: 'inner_citadel',
-    name: 'The Inner Citadel',
-    description: 'Master the final Stoicism skill',
-    icon: '🏰',
-    category: 'special',
-    rarity: 'rare',
-    xpReward: 200,
-    condition: { type: 'specific', value: 1, skillIds: ['inner_citadel'] },
-  },
-  {
-    id: 'way_of_strategy',
-    name: 'Master Strategist',
-    description: 'Master the final Samurai skill',
-    icon: '🗡️',
-    category: 'special',
-    rarity: 'rare',
-    xpReward: 200,
-    condition: { type: 'specific', value: 1, skillIds: ['way_of_strategy'] },
-  },
-  {
-    id: 'satori',
-    name: 'Satori',
-    description: 'Achieve sudden awakening in Zen',
-    icon: '💎',
-    category: 'special',
-    rarity: 'rare',
-    xpReward: 200,
-    condition: { type: 'specific', value: 1, skillIds: ['satori'] },
-  },
-  {
-    id: 'stay_hard',
-    name: 'Stay Hard',
-    description: 'Complete the ultimate Discipline challenge',
-    icon: '💀',
-    category: 'special',
-    rarity: 'rare',
-    xpReward: 200,
-    condition: { type: 'specific', value: 1, skillIds: ['stay_hard'] },
-  },
-  {
-    id: 'early_bird',
-    name: 'Early Bird',
-    description: 'Complete training before 6am',
-    icon: '🌅',
-    category: 'special',
-    rarity: 'uncommon',
-    xpReward: 50,
-    condition: { type: 'specific', value: 1 },
-    secret: true,
-  },
-  {
-    id: 'night_owl',
-    name: 'Night Owl',
-    description: 'Complete training after midnight',
-    icon: '🦉',
-    category: 'special',
-    rarity: 'uncommon',
-    xpReward: 50,
-    condition: { type: 'specific', value: 1 },
-    secret: true,
-  },
-];
-
-// ============================================
-// ALL ACHIEVEMENTS
-// ============================================
-
-export const ALL_ACHIEVEMENTS: Achievement[] = [
-  ...STREAK_ACHIEVEMENTS,
-  ...SKILL_ACHIEVEMENTS,
-  ...MASTERY_ACHIEVEMENTS,
-  ...CROSS_TRAINING_ACHIEVEMENTS,
-  ...SPECIAL_ACHIEVEMENTS,
-];
-
-export function getAchievementById(id: string): Achievement | undefined {
-  return ALL_ACHIEVEMENTS.find(a => a.id === id);
+async function getUnlockedAchievements(): Promise<string[]> {
+  // Use cache if recent
+  if (Date.now() - lastFetch < 30000 && cachedAchievements.length > 0) {
+    return cachedAchievements;
+  }
+  
+  const unlocked: string[] = [];
+  
+  if (ACHIEVEMENTS_DB) {
+    try {
+      const response = await notion.databases.query({
+        database_id: ACHIEVEMENTS_DB.replace(/-/g, ''),
+        page_size: 100,
+      });
+      
+      for (const page of response.results as any[]) {
+        const id = page.properties['Achievement ID']?.title?.[0]?.plain_text;
+        if (id) unlocked.push(id);
+      }
+      
+      cachedAchievements = unlocked;
+      lastFetch = Date.now();
+    } catch (error) {
+      console.error('Failed to fetch achievements from Notion:', error);
+    }
+  }
+  
+  return unlocked;
 }
 
-export function getAchievementsByCategory(category: AchievementCategory): Achievement[] {
-  return ALL_ACHIEVEMENTS.filter(a => a.category === category);
+async function unlockAchievement(achievementId: string): Promise<void> {
+  const achievement = getAchievementById(achievementId);
+  if (!achievement) return;
+  
+  if (ACHIEVEMENTS_DB) {
+    try {
+      // Check if already unlocked
+      const existing = await notion.databases.query({
+        database_id: ACHIEVEMENTS_DB.replace(/-/g, ''),
+        filter: {
+          property: 'Achievement ID',
+          title: { equals: achievementId },
+        },
+        page_size: 1,
+      });
+      
+      if (existing.results.length === 0) {
+        await notion.pages.create({
+          parent: { database_id: ACHIEVEMENTS_DB.replace(/-/g, '') },
+          properties: {
+            'Achievement ID': { title: [{ text: { content: achievementId } }] },
+            'Name': { rich_text: [{ text: { content: achievement.name } }] },
+            'Category': { select: { name: achievement.category } },
+            'Rarity': { select: { name: achievement.rarity } },
+            'XP Reward': { number: achievement.xpReward },
+            'Unlocked At': { date: { start: new Date().toISOString() } },
+          },
+        });
+        
+        console.log(`🏆 Achievement unlocked: ${achievement.name} (${achievement.rarity})`);
+        
+        // Update cache
+        if (!cachedAchievements.includes(achievementId)) {
+          cachedAchievements.push(achievementId);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to save achievement to Notion:', error);
+    }
+  } else {
+    // Memory fallback
+    if (!cachedAchievements.includes(achievementId)) {
+      cachedAchievements.push(achievementId);
+    }
+  }
 }
 
-export function getVisibleAchievements(unlockedIds: string[]): Achievement[] {
-  return ALL_ACHIEVEMENTS.filter(a => !a.secret || unlockedIds.includes(a.id));
+async function getProgressData(): Promise<ProgressData> {
+  const progress: ProgressData = {
+    streak: 0,
+    skillsMastered: 0,
+    treesWithMastery: [],
+    completedTrees: [],
+    masteredSkillIds: [],
+  };
+  
+  // Get streak
+  if (STREAKS_DB) {
+    try {
+      const response = await notion.databases.query({
+        database_id: STREAKS_DB.replace(/-/g, ''),
+        filter: { property: 'Date', date: { past_month: {} } },
+        sorts: [{ property: 'Date', direction: 'descending' }],
+      });
+      
+      const dates = (response.results as any[])
+        .map(p => p.properties['Date']?.date?.start)
+        .filter(Boolean)
+        .sort()
+        .reverse();
+      
+      // Calculate streak
+      const today = new Date().toISOString().split('T')[0];
+      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+      
+      if (dates.includes(today) || dates.includes(yesterday)) {
+        let checkDate = dates.includes(today) ? today : yesterday;
+        for (const date of dates) {
+          if (date === checkDate) {
+            progress.streak++;
+            const prev = new Date(checkDate);
+            prev.setDate(prev.getDate() - 1);
+            checkDate = prev.toISOString().split('T')[0];
+          } else if (date < checkDate) {
+            break;
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch streak:', error);
+    }
+  }
+  
+  // Get skill progress
+  if (SKILL_PROGRESS_DB) {
+    try {
+      const response = await notion.databases.query({
+        database_id: SKILL_PROGRESS_DB.replace(/-/g, ''),
+        filter: { property: 'State', select: { equals: 'mastered' } },
+        page_size: 100,
+      });
+      
+      const treeSkillCount: Record<string, number> = {};
+      const treeTotalSkills: Record<string, number> = {
+        stoicism: 7, samurai: 7, taoism: 7, zen: 7, discipline: 7, effectiveness: 7,
+      };
+      
+      for (const page of response.results as any[]) {
+        const skillId = page.properties['Skill ID']?.title?.[0]?.plain_text;
+        const treeId = page.properties['Tree ID']?.select?.name;
+        
+        if (skillId && treeId) {
+          progress.masteredSkillIds.push(skillId);
+          progress.skillsMastered++;
+          
+          if (!progress.treesWithMastery.includes(treeId)) {
+            progress.treesWithMastery.push(treeId);
+          }
+          
+          treeSkillCount[treeId] = (treeSkillCount[treeId] || 0) + 1;
+        }
+      }
+      
+      // Check completed trees
+      for (const [treeId, count] of Object.entries(treeSkillCount)) {
+        if (count >= (treeTotalSkills[treeId] || 7)) {
+          progress.completedTrees.push(treeId);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch skill progress:', error);
+    }
+  }
+  
+  return progress;
+}
+
+async function checkAndUnlockAchievementsInternal(
+  progress: ProgressData, 
+  alreadyUnlocked: string[]
+): Promise<Achievement[]> {
+  const newlyUnlocked: Achievement[] = [];
+  
+  for (const achievement of ALL_ACHIEVEMENTS) {
+    if (alreadyUnlocked.includes(achievement.id)) continue;
+    
+    const met = checkCondition(achievement.condition, progress);
+    
+    if (met) {
+      await unlockAchievement(achievement.id);
+      newlyUnlocked.push(achievement);
+    }
+  }
+  
+  return newlyUnlocked;
+}
+
+function checkCondition(condition: AchievementCondition, progress: ProgressData): boolean {
+  switch (condition.type) {
+    case 'streak':
+      return progress.streak >= condition.value;
+      
+    case 'skills_mastered':
+      return progress.skillsMastered >= condition.value;
+      
+    case 'tree_complete':
+      if (condition.treeId) {
+        return progress.completedTrees.includes(condition.treeId);
+      }
+      return progress.completedTrees.length >= condition.value;
+      
+    case 'trees_started':
+      return progress.treesWithMastery.length >= condition.value;
+      
+    case 'specific':
+      if (condition.skillIds) {
+        return condition.skillIds.every(id => progress.masteredSkillIds.includes(id));
+      }
+      return false;
+      
+    default:
+      return false;
+  }
 }

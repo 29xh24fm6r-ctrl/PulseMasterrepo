@@ -1,39 +1,40 @@
+// app/api/tasks/pull/route.ts
+// Legacy endpoint - redirects to canonical /api/tasks
+// Kept for backward compatibility with existing widgets
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
-import { createClient } from "@supabase/supabase-js";
+import { requireClerkUserId } from "@/lib/auth/requireUser";
+import { supabaseAdmin } from "@/lib/supabase/admin";
+import { resolvePulseUserUuidFromClerk } from "@/lib/auth/resolvePulseUserUuid";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
-    }
+    const clerkUserId = await requireClerkUserId();
+    const pulseUserUuid = await resolvePulseUserUuidFromClerk(clerkUserId);
 
-    const { data: tasks, error } = await supabase
+    const { data: tasks, error } = await supabaseAdmin
       .from("tasks")
       .select("*")
-      .eq("user_id", userId)
-      .order("due_date", { ascending: true, nullsFirst: false });
+      .eq("user_id", pulseUserUuid)
+      .order("due_date", { ascending: true, nullsLast: true })
+      .order("created_at", { ascending: false });
 
     if (error) throw error;
 
+    // Map to legacy format for backward compatibility
     return NextResponse.json({
       ok: true,
-      tasks: tasks.map(t => ({
+      tasks: (tasks || []).map((t: any) => ({
         id: t.id,
-        name: t.name,
-        description: t.description,
-        status: t.status === 'done' ? 'Done' : t.status === 'in_progress' ? 'In Progress' : 'Todo',
-        priority: t.priority,
+        name: t.title, // Map title to name
+        description: t.notes,
+        status: t.status === 'done' ? 'Done' : t.status === 'open' ? 'Todo' : t.status,
+        priority: t.priority === 1 ? 'High' : t.priority === 3 ? 'Low' : 'Medium',
         dueDate: t.due_date,
-        project: t.project,
-        xp: t.xp,
-        completedAt: t.completed_at,
+        project: null,
+        xp: null,
+        completedAt: t.status === 'done' ? t.updated_at : null,
       })),
     });
   } catch (err: any) {

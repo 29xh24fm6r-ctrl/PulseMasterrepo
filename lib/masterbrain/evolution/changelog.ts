@@ -1,7 +1,8 @@
 // Master Brain Evolution Engine v1 - Changelog Engine
 // lib/masterbrain/evolution/changelog.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { ChangelogEntry } from './types';
 import { getModuleByKey } from '../registry';
 
@@ -21,7 +22,7 @@ export async function logChangelogEntry(params: {
     moduleId = module?.id ?? null;
   }
 
-  const { data: entry, error } = await supabaseAdminClient
+  const { data: entry, error } = await supabaseAdmin
     .from('system_changelog')
     .insert({
       title,

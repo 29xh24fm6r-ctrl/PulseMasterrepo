@@ -2,7 +2,7 @@
 // lib/quantum-tasks/interpreter.ts
 
 import { callAIJson } from "@/lib/ai/call";
-import { buildPulseCortexContext } from "@/lib/cortex/context";
+import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 import { TaskInterpretation, MicroStep } from "./types";
 import { v4 as uuidv4 } from "uuid";
 
@@ -15,7 +15,7 @@ export async function interpretTask(
   context?: any
 ): Promise<TaskInterpretation> {
   // Build Cortex context if not provided
-  const ctx = context || await buildPulseCortexContext(userId);
+  const ctx = context || await getWorkCortexContextForUser(userId);
 
   // Use AI to interpret the task
   const systemPrompt = `You are a quantum task interpreter. Analyze the user's task input and extract:

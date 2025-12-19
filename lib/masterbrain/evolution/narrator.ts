@@ -1,7 +1,8 @@
 // Master Brain Evolution Engine v1 - Upgrade Narrator
 // lib/masterbrain/evolution/narrator.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { callAI } from '@/lib/ai/call';
 import { getTopUpgradeSuggestions } from './suggestions';
 
@@ -10,7 +11,7 @@ export async function getUpgradeBriefing(): Promise<string> {
   const topSuggestions = await getTopUpgradeSuggestions(5);
 
   // Get active experiments
-  const { data: activeExperiments } = await supabaseAdminClient
+  const { data: activeExperiments } = await supabaseAdmin
     .from('system_experiments')
     .select('*')
     .in('status', ['planned', 'running'])
@@ -18,7 +19,7 @@ export async function getUpgradeBriefing(): Promise<string> {
     .limit(5);
 
   // Get recent changelog
-  const { data: recentChangelog } = await supabaseAdminClient
+  const { data: recentChangelog } = await supabaseAdmin
     .from('system_changelog')
     .select('*, system_modules(*)')
     .order('created_at', { ascending: false })

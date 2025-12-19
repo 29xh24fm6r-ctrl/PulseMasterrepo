@@ -1,7 +1,8 @@
 // Master Brain Evolution Engine v1 - Experiment Engine
 // lib/masterbrain/evolution/experiments.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { callAIJson } from '@/lib/ai/call';
 import { Experiment, ExperimentRun, ExperimentOutcome } from './types';
 
@@ -14,7 +15,7 @@ export async function createExperimentForIdeas(params: {
   const { name, ideaIds, hypothesis, createdBy } = params;
 
   // Get ideas
-  const { data: ideas } = await supabaseAdminClient
+  const { data: ideas } = await supabaseAdmin
     .from('system_improvement_ideas')
     .select('*, system_modules(*)')
     .in('id', ideaIds);
@@ -57,7 +58,7 @@ export async function createExperimentForIdeas(params: {
   }
 
   // Create experiment
-  const { data: experiment, error } = await supabaseAdminClient
+  const { data: experiment, error } = await supabaseAdmin
     .from('system_experiments')
     .insert({
       name,
@@ -74,7 +75,7 @@ export async function createExperimentForIdeas(params: {
   if (error) throw error;
 
   // Update ideas status
-  await supabaseAdminClient
+  await supabaseAdmin
     .from('system_improvement_ideas')
     .update({ status: 'in_experiment', updated_at: new Date().toISOString() })
     .in('id', ideaIds);
@@ -83,7 +84,7 @@ export async function createExperimentForIdeas(params: {
 }
 
 export async function summarizeExperimentOutcome(experimentId: string): Promise<ExperimentRun | null> {
-  const { data: experiment } = await supabaseAdminClient
+  const { data: experiment } = await supabaseAdmin
     .from('system_experiments')
     .select('*')
     .eq('id', experimentId)
@@ -92,7 +93,7 @@ export async function summarizeExperimentOutcome(experimentId: string): Promise<
   if (!experiment) return null;
 
   // Get experiment runs
-  const { data: runs } = await supabaseAdminClient
+  const { data: runs } = await supabaseAdmin
     .from('system_experiment_runs')
     .select('*')
     .eq('experiment_id', experimentId)
@@ -131,7 +132,7 @@ export async function summarizeExperimentOutcome(experimentId: string): Promise<
   const { result_summary, outcome } = result.data;
 
   // Update run
-  const { data: updatedRun } = await supabaseAdminClient
+  const { data: updatedRun } = await supabaseAdmin
     .from('system_experiment_runs')
     .update({
       result_summary,

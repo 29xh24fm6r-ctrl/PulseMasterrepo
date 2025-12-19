@@ -1,10 +1,11 @@
 // Mythic Dojo v1 - Achievements System
 // lib/mythic_dojo/v1/achievements.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -20,7 +21,7 @@ export async function evaluateMythicAchievements(
 ) {
   const dbUserId = await resolveUserId(userId);
 
-  const { data: existing } = await supabaseAdminClient
+  const { data: existing } = await supabaseAdmin
     .from('mythic_achievements')
     .select('*')
     .eq('user_id', dbUserId)
@@ -99,7 +100,7 @@ export async function evaluateMythicAchievements(
 
   if (!toInsert.length) return [];
 
-  const { data, error } = await supabaseAdminClient
+  const { data, error } = await supabaseAdmin
     .from('mythic_achievements')
     .insert(toInsert)
     .select('*');

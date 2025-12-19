@@ -3,10 +3,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { supabaseAdminClient } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -25,13 +25,13 @@ export async function GET(req: NextRequest) {
     const dbUserId = await resolveUserId(userId);
 
     const [equilibriumRes, recsRes, conflictsRes] = await Promise.all([
-      supabaseAdminClient
+      supabaseAdmin
         .from('strategic_equilibria')
         .select('*')
         .eq('user_id', dbUserId)
         .order('created_at', { ascending: false })
         .limit(1),
-      supabaseAdminClient
+      supabaseAdmin
         .from('strategy_recommendations')
         .select('*')
         .eq('user_id', dbUserId)
@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
         .order('priority', { ascending: false })
         .order('created_at', { ascending: false })
         .limit(5),
-      supabaseAdminClient
+      supabaseAdmin
         .from('strategic_conflicts')
         .select('*')
         .eq('user_id', dbUserId)

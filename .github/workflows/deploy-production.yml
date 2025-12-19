@@ -1,0 +1,60 @@
+name: Deploy Production
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: deploy (production)
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install
+        run: npm ci
+
+      # Extra belt + suspenders: ensure guard/sentinel passed before deploy
+      - name: Guard + Typecheck + Lint
+        run: |
+          npm run guard:no-internal-http
+          npm run typecheck
+          npm run lint || echo "Lint warnings allowed"
+
+      # Vercel Deploy Hook (recommended simplest)
+      - name: Trigger Production Deploy (Deploy Hook)
+        if: ${{ secrets.PROD_DEPLOY_HOOK_URL != '' }}
+        run: |
+          echo "🚀 Triggering production deployment via Vercel deploy hook..."
+          curl -fsS -X POST "${{ secrets.PROD_DEPLOY_HOOK_URL }}"
+          echo "✅ Deploy hook triggered successfully"
+
+      # Fallback: Vercel CLI (if deploy hook not configured)
+      - name: Deploy to Vercel (CLI)
+        if: ${{ secrets.PROD_DEPLOY_HOOK_URL == '' }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          echo "🚀 Deploying to Vercel via CLI..."
+          npx vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+          npx vercel build --prod --token="$VERCEL_TOKEN"
+          npx vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+          echo "✅ Deployment completed"
+

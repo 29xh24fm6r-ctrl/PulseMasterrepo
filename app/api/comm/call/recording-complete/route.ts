@@ -40,15 +40,13 @@ export async function POST(request: Request) {
 
 async function triggerTranscription(sessionId: string, recordingUrl: string) {
   try {
-    const baseUrl = process.env.APP_BASE_URL || "http://localhost:3000";
-    
     console.log(`🎤 Triggering transcription for ${sessionId}`);
     
-    fetch(`${baseUrl}/api/comm/call/transcribe`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sessionId, recordingUrl }),
-    }).catch(err => console.error("Transcription request failed:", err));
+    // ✅ Use shared function instead of HTTP call
+    const { transcribeCall } = await import("@/lib/comm/transcribe");
+    await transcribeCall(sessionId, recordingUrl).catch(err => 
+      console.error("Transcription request failed:", err)
+    );
     
   } catch (error) {
     console.error("Failed to trigger transcription:", error);

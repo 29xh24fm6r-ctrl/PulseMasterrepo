@@ -1,10 +1,11 @@
 // Memory Coach Agent v3
 // lib/agi/agents/memoryCoachAgent.ts
 
+import "server-only";
 import { Agent, makeAgentResult } from '../agents';
 import { AgentContext, AGIAction } from '../types';
-import { findSimilarEmotionEpisodes, findPastEventsWithTag } from '@/lib/thirdbrain/graph/query';
-import { supabaseAdmin } from '@/lib/supabase';
+import { findSimilarEmotionEpisodes } from '@/lib/thirdbrain/graph/query';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 
 async function resolveUserId(clerkId: string): Promise<string> {
   const { data: userRow } = await supabaseAdmin

@@ -4,11 +4,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { remixCreativeAsset } from '@/lib/creative/remix';
-import { supabaseAdminClient } from '@/lib/supabase/admin';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { CreativeAssetKind } from '@/lib/creative/types';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)

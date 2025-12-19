@@ -285,10 +285,14 @@ export default function EmailIntelligencePage() {
       updateStatus("creating");
 
       try {
-        const res = await fetch("/api/second-brain/create-from-email", {
+        const res = await fetch("/api/contacts", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: contact.name, email: contact.email, company: contact.company }),
+          body: JSON.stringify({
+            name: contact.name,
+            email: contact.email,
+            company: contact.company,
+          }),
         });
         const data = await res.json();
         updateStatus(data.ok ? "created" : "error");

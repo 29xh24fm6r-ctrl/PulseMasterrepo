@@ -53,11 +53,22 @@ export function HabitStreakWidget() {
       }
 
       // Fetch from API
-      const res = await fetch("/api/habits/pull");
-      const result = await res.json();
+      const { getJson } = await import("@/lib/http/getJson");
+      const { ok, data } = await getJson("/api/habits?active=true");
 
-      if (result.ok && result.habits) {
-        const processedData = processHabits(result.habits);
+      if (ok && data.items) {
+        // Map Supabase format to widget format
+        const mappedHabits = (data.items || []).map((h: any) => ({
+          id: h.id,
+          name: h.name,
+          icon: "✓",
+          streak: 0, // TODO: Calculate from habit_logs
+          completedToday: false, // TODO: Check habit_logs for today
+          completedThisWeek: 0, // TODO: Calculate from habit_logs
+          targetPerWeek: h.frequency === 'daily' ? 7 : h.target,
+        }));
+        
+        const processedData = processHabits(mappedHabits);
         setData(processedData);
         
         // Cache the result
@@ -134,10 +145,11 @@ export function HabitStreakWidget() {
 
     // Call API
     try {
-      await fetch("/api/habits/log", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ habitId, completed: true }),
+      const { postJson } = await import("@/lib/http/postJson");
+      const today = new Date().toISOString().split('T')[0];
+      await postJson(`/api/habits/${habitId}/log`, {
+        occurred_on: today,
+        count: 1,
       });
     } catch (err) {
       console.error("Failed to log habit:", err);

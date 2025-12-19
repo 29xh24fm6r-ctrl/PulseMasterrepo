@@ -2,7 +2,7 @@
 // lib/twin/simulation.ts
 
 import { TwinModel } from "./engine";
-import { buildPulseCortexContext } from "@/lib/cortex/context";
+import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 import { generateFutureSelfPrediction } from "@/lib/future-self/model";
 import { callAIJson } from "@/lib/ai/call";
 
@@ -33,7 +33,7 @@ export async function runTwinSimulation(
   }
 
   // Load Cortex context
-  const ctx = await buildPulseCortexContext(input.userId);
+  const ctx = await getWorkCortexContextForUser(input.userId);
 
   // Load Future Self prediction
   const futureSelf = await generateFutureSelfPrediction(input.userId, 90);

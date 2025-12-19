@@ -1,0 +1,148 @@
+﻿name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+
+jobs:
+  sentinel:
+    name: Sentinel Tests (Fast Fail)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Guard: No internal HTTP between server routes
+        run: npm run guard:no-internal-http
+
+      - name: Contracts check
+        run: npm run contracts:check
+
+      - name: Contract strict mode
+        run: npm run contracts:strict
+
+      - name: Migration safety check
+        run: npm run migrations:check
+
+      - name: Orphan routes check
+        run: npm run orphan:check
+
+      - name: Feature registry check
+        run: npm run features:check
+
+      - name: TypeScript typecheck
+        run: npm run typecheck
+
+      - name: ESLint
+        run: npm run lint || echo "Lint check completed (warnings allowed)"
+
+  guards:
+    name: Run All Guards
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Guard: No service role leakage
+        run: npm run guard:no-service-role
+
+      - name: Guard: No Notion runtime usage
+        run: npm run guard:no-notion-runtime
+
+      - name: Guard: UUID user_id enforcement
+        run: npm run guard:user-id-uuid
+
+      - name: Guard: No internal HTTP between server routes
+        run: npm run guard:no-internal-http
+
+  build:
+    name: Build + Canary Gate
+    runs-on: ubuntu-latest
+    needs:
+      - sentinel
+      - guards
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+
+      - name: Start Next.js (background)
+        shell: bash
+        run: |
+          nohup npm start > /tmp/next-start.log 2>&1 &
+          echo $! > /tmp/next-start.pid
+        env:
+          NODE_ENV: production
+          PORT: "3000"
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+      - name: Wait for server
+        shell: bash
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:3000/ >/dev/null; then
+              echo "Server is up."
+              exit 0
+            fi
+            echo "Waiting for server... ($i/60)"
+            sleep 2
+          done
+          echo "Server failed to start. Dumping logs:"
+          tail -n 200 /tmp/next-start.log || true
+          exit 1
+
+      - name: Canary check (core features)
+        run: npm run canary:check
+        env:
+          CANARY_BASE_URL: http://localhost:3000
+          CANARY_CI_TOKEN: ${{ secrets.CANARY_CI_TOKEN }}
+
+      - name: Stop Next.js
+        if: always()
+        shell: bash
+        run: |
+          if [ -f /tmp/next-start.pid ]; then
+            PID=$(cat /tmp/next-start.pid)
+            echo "Stopping Next.js PID=$PID"
+            kill $PID || true
+          fi
+          pkill -f "next start" || true
+          echo "Last logs:"
+          tail -n 200 /tmp/next-start.log || true

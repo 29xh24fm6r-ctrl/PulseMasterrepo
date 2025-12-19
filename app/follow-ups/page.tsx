@@ -95,11 +95,26 @@ export default function FollowUpsPage() {
       const data = await res.json();
 
       if (data.ok) {
-        setFollowUps(data.followUps || []);
+        // Normalize shape to match UI expectations
+        const normalized = (data.followUps || []).map((f: any) => ({
+          id: f.id,
+          name: f.personName ?? f.person_name ?? f.contact_name ?? "Unknown",
+          type: f.type ?? "follow_up",
+          status: f.status ?? "pending",
+          priority: f.priority ?? "medium",
+          channel: f.channel ?? "email",
+          context: f.notes ?? "",
+          messageDraft: f.messageDraft ?? "",
+          triggerDate: f.triggerDate ?? null,
+          dueDate: f.dueDate ?? f.due_date ?? null,
+          personId: f.personId ?? null,
+        }));
+        
+        setFollowUps(normalized);
         setStats(data.stats || {});
         setOverdue(data.overdue || []);
         setDueToday(data.dueToday || []);
-        pushLog(`✅ Loaded ${data.followUps?.length || 0} follow-ups`);
+        pushLog(`✅ Loaded ${normalized.length} follow-ups`);
       } else {
         pushLog(`❌ ${data.error || "Failed to load"}`);
       }

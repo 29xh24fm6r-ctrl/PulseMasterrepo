@@ -171,15 +171,12 @@ async function updateSkillProgress(treeId: string, skillId: string, state: 'in_p
 // ACHIEVEMENT CHECK (via internal API call)
 // ============================================
 
-async function checkAchievements(baseUrl: string): Promise<any[]> {
+async function checkAchievements(_baseUrl: string): Promise<any[]> {
   try {
-    const res = await fetch(`${baseUrl}/api/philosophy/achievements`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'check' }),
-    });
-    const data = await res.json();
-    return data.newlyUnlocked || [];
+    // ✅ Use shared function instead of HTTP call
+    const { checkAndUnlockAchievements } = await import("@/lib/philosophy/achievements");
+    const result = await checkAndUnlockAchievements();
+    return result.ok ? result.newlyUnlocked : [];
   } catch (error) {
     console.error('Achievement check failed:', error);
     return [];

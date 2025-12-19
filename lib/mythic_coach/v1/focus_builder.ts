@@ -1,12 +1,13 @@
 // Mythic Coach v1 - Focus Builder
 // lib/mythic_coach/v1/focus_builder.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { callAIJson } from '@/lib/ai/call';
 import { MYTHIC_FOCUS_PROMPT } from './prompts';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -19,21 +20,21 @@ export async function buildMythicTrainingFocus(userId: string, now: Date) {
   const dbUserId = await resolveUserId(userId);
 
   const [canonSnapshotRes, archetypeSnapshotRes, strategicSnapshotRes] = await Promise.all([
-    supabaseAdminClient
+    supabaseAdmin
       .from('life_canon_snapshots')
       .select('*')
       .eq('user_id', dbUserId)
       .order('snapshot_time', { ascending: false })
       .limit(1)
       .maybeSingle(),
-    supabaseAdminClient
+    supabaseAdmin
       .from('archetype_snapshots')
       .select('*')
       .eq('user_id', dbUserId)
       .order('snapshot_time', { ascending: false })
       .limit(1)
       .maybeSingle(),
-    supabaseAdminClient
+    supabaseAdmin
       .from('strategic_state_snapshots')
       .select('*')
       .eq('user_id', dbUserId)
@@ -77,7 +78,7 @@ export async function buildMythicTrainingFocus(userId: string, now: Date) {
 
   const { primaryTargets, secondaryTargets, rationale } = result.data;
 
-  const { data, error } = await supabaseAdminClient
+  const { data, error } = await supabaseAdmin
     .from('mythic_training_focus')
     .insert({
       user_id: dbUserId,

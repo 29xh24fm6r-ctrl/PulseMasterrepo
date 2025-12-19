@@ -2,6 +2,7 @@
 // This endpoint tests tenant isolation across critical tables
 // app/api/_debug/tenant-safety/route.ts
 
+import { NextResponse } from "next/server";
 import { requireClerkUserId } from "@/lib/auth/requireUser";
 import { supabaseServer } from "@/lib/supabase/server";
 import { jsonOk, jsonError } from "@/lib/api/routeErrors";
@@ -58,11 +59,17 @@ export async function GET() {
           };
         }
       } catch (err: any) {
-        results[table] = { 
-          ok: false, 
-          error: err.message || "Unknown error" 
-        };
+        const status = typeof err?.status === "number" ? err.status : 500;
+      
+        console.error("AUTOPILOT SCAN ERROR:", err);
+        console.error("AUTOPILOT SCAN ERROR MESSAGE:", err?.message);
+      
+        return NextResponse.json(
+          { ok: false, error: err?.message || "Failed to trigger scan" },
+          { status }
+        );
       }
+      
     }
 
     // Also test that we CANNOT access other users' data

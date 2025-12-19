@@ -1,17 +1,7 @@
 // Memory Compression - Weekly/Monthly rollups
-import { createClient } from "@supabase/supabase-js";
+import "server-only";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import { llmJson } from "../llm/client";
-
-function getSupabase() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  
-  if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error('Missing Supabase environment variables. Please configure NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
-  }
-  
-  return createClient(supabaseUrl, supabaseServiceKey);
-}
 
 interface PeriodSummary {
   summary: string;
@@ -26,7 +16,7 @@ interface PeriodSummary {
 }
 
 export async function generateWeeklySummary(userId: string, weekStart?: Date): Promise<PeriodSummary | null> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   const start = weekStart || getLastWeekStart();
   const end = new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000);
 
@@ -99,7 +89,7 @@ Return JSON:
 }
 
 export async function generateMonthlySummary(userId: string, monthStart?: Date): Promise<PeriodSummary | null> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   const start = monthStart || getLastMonthStart();
   const end = new Date(start.getFullYear(), start.getMonth() + 1, 1);
 
@@ -188,7 +178,7 @@ function getLastMonthStart(): Date {
 }
 
 export async function runWeeklySummaries(): Promise<{ generated: number }> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   const weekStart = getLastWeekStart();
   
   const { data: users } = await supabase
@@ -208,7 +198,7 @@ export async function runWeeklySummaries(): Promise<{ generated: number }> {
 }
 
 export async function runMonthlySummaries(): Promise<{ generated: number }> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   const monthStart = getLastMonthStart();
   
   const { data: users } = await supabase

@@ -3,10 +3,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { supabaseAdminClient } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -28,7 +28,7 @@ export async function GET(
     const dbUserId = await resolveUserId(userId);
     const chapterId = params.id;
 
-    const { data: chapter, error } = await supabaseAdminClient
+    const { data: chapter, error } = await supabaseAdmin
       .from('life_chapters')
       .select('*')
       .eq('id', chapterId)
@@ -41,7 +41,7 @@ export async function GET(
     }
 
     // Get events for this chapter
-    const { data: events } = await supabaseAdminClient
+    const { data: events } = await supabaseAdmin
       .from('canon_events')
       .select('*')
       .eq('attached_chapter', chapterId)

@@ -1,7 +1,7 @@
 // Pulse Simulation Engine v3 - Enhanced with Causal & Choice Modeling
 // lib/simulation/v3/engine.ts
 
-import { buildPulseCortexContext } from "@/lib/cortex/context";
+import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 import { runAutonomy } from "@/lib/cortex/autonomy/v3";
 import { logTrace } from "@/lib/cortex/trace/trace";
 import {
@@ -43,7 +43,7 @@ export async function runLifeSimulation(
   );
 
   // Build Cortex context
-  const baseContext = await buildPulseCortexContext(input.userId);
+  const baseContext = await getWorkCortexContextForUser(input.userId);
 
   // Detect causal relationships if enabled
   let causalInsights;

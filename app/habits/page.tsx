@@ -29,10 +29,22 @@ export default function HabitsPage() {
   async function loadHabits() {
     try {
       setLoading(true);
-      const res = await fetch("/api/notion/habits");
-      if (!res.ok) throw new Error("Failed to load habits");
-      const data = await res.json();
-      setHabits(data.habits ?? []);
+      const { getJson } = await import("@/lib/http/getJson");
+      const { ok, data } = await getJson("/api/habits?active=true");
+      if (!ok) throw new Error(data?.error || "Failed to load habits");
+      // Map Supabase habit format to UI format
+      // Note: Streak calculation and completedToday check would require fetching habit_logs
+      // For now, we'll set defaults - these can be enhanced with additional endpoint
+      const mappedHabits = (data.items || []).map((h: any) => ({
+        id: h.id,
+        name: h.name,
+        icon: "✓", // Default icon
+        streak: 0, // TODO: Calculate from habit_logs
+        lastCompleted: null, // TODO: Fetch from habit_logs
+        frequency: h.frequency,
+        completedToday: false, // TODO: Check habit_logs for today
+      }));
+      setHabits(mappedHabits);
     } catch (err) {
       console.error("Failed to load habits:", err);
     } finally {
@@ -46,18 +58,16 @@ export default function HabitsPage() {
 
     setLogging(habitId);
     try {
-      const res = await fetch("/api/habits/log", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          habitId,
-          date: new Date().toISOString().split('T')[0]
-        }),
+      const { postJson } = await import("@/lib/http/postJson");
+      const today = new Date().toISOString().split('T')[0];
+      const { ok, data } = await postJson(`/api/habits/${habitId}/log`, {
+        occurred_on: today,
+        count: 1,
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        const newStreak = data.newStreak || (habit.streak + 1);
+      if (ok) {
+        // Calculate new streak (simplified - would need to query logs for accurate streak)
+        const newStreak = (habit.streak || 0) + 1;
 
         // Update local state
         setHabits(prev => prev.map(h =>

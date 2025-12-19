@@ -96,13 +96,12 @@ async function getAvailableSkills(): Promise<{ tree: SkillTree; skill: Skill }[]
   const available: { tree: SkillTree; skill: Skill }[] = [];
   
   try {
-    // Fetch progress for all trees
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-    const res = await fetch(`${baseUrl}/api/philosophy/skills?all=true`, { cache: 'no-store' });
-    const data = await res.json();
+    // ✅ Use shared function instead of HTTP call
+    const { getAllSkillsWithProgress } = await import("@/lib/philosophy/skills");
+    const treesWithProgress = await getAllSkillsWithProgress();
     
-    if (data.ok && data.trees) {
-      for (const { tree, progress } of data.trees) {
+    if (treesWithProgress && treesWithProgress.length > 0) {
+      for (const { tree, progress } of treesWithProgress) {
         const masteredIds = Object.entries(progress)
           .filter(([_, p]: [string, any]) => p.state === 'mastered')
           .map(([id, _]) => id);

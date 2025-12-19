@@ -1,12 +1,13 @@
 // Archetype Engine v2 - Snapshot Builder
 // lib/archetypes/v2/snapshots.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { callAIJson } from '@/lib/ai/call';
 import { ARCHETYPE_ANALYZER_PROMPT } from './prompts';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -22,14 +23,14 @@ export async function runArchetypeSnapshotForUser(userId: string, now: Date) {
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 86400000).toISOString();
 
   const [canonSnapshotRes, eventsRes] = await Promise.all([
-    supabaseAdminClient
+    supabaseAdmin
       .from('life_canon_snapshots')
       .select('*')
       .eq('user_id', dbUserId)
       .order('snapshot_time', { ascending: false })
       .limit(1)
       .maybeSingle(),
-    supabaseAdminClient
+    supabaseAdmin
       .from('canon_events')
       .select('*')
       .eq('user_id', dbUserId)
@@ -71,7 +72,7 @@ export async function runArchetypeSnapshotForUser(userId: string, now: Date) {
   const { currentMix, rising, fading, suppressed, narrativeSummary } = result.data;
 
   // Insert snapshot
-  const { error: snapshotError } = await supabaseAdminClient
+  const { error: snapshotError } = await supabaseAdmin
     .from('archetype_snapshots')
     .insert({
       user_id: dbUserId,
@@ -85,7 +86,7 @@ export async function runArchetypeSnapshotForUser(userId: string, now: Date) {
   if (snapshotError) throw snapshotError;
 
   // Update user_archetype_profiles
-  const { error: profileError } = await supabaseAdminClient
+  const { error: profileError } = await supabaseAdmin
     .from('user_archetype_profiles')
     .upsert(
       {

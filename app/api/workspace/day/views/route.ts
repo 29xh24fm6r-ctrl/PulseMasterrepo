@@ -3,12 +3,12 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { supabaseAdminClient } from '@/lib/supabase/admin';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { getCurrentWorkspaceFocus } from '@/lib/workspace/focus';
 import { getCurrentDestinyAnchor } from '@/lib/destiny/anchor';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    let query = supabaseAdminClient
+    let query = supabaseAdmin
       .from('daily_timeline_views')
       .select('*')
       .eq('user_id', userId)

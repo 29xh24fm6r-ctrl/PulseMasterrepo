@@ -1,7 +1,8 @@
 // Third Brain Graph v4 - Civilization Engine
 // lib/thirdbrain/civilization/engine.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { CivilizationDomain, CivilizationDomainState, KnowledgeNode } from '../graph/types';
 
 const DEFAULT_DOMAINS = [
@@ -17,7 +18,7 @@ const DEFAULT_DOMAINS = [
 
 export async function ensureDefaultDomainsSeeded(userId: string): Promise<void> {
   for (const domain of DEFAULT_DOMAINS) {
-    await supabaseAdminClient
+    await supabaseAdmin
       .from('civilization_domains')
       .upsert(
         {
@@ -34,7 +35,7 @@ export async function ensureDefaultDomainsSeeded(userId: string): Promise<void> 
 
 export async function mapNodeToDomains(userId: string, nodeId: string): Promise<void> {
   // Get the node
-  const { data: node } = await supabaseAdminClient
+  const { data: node } = await supabaseAdmin
     .from('knowledge_nodes')
     .select('*')
     .eq('id', nodeId)
@@ -44,7 +45,7 @@ export async function mapNodeToDomains(userId: string, nodeId: string): Promise<
   if (!node) return;
 
   // Get all active domains
-  const { data: domains } = await supabaseAdminClient
+  const { data: domains } = await supabaseAdmin
     .from('civilization_domains')
     .select('*')
     .eq('user_id', userId)
@@ -100,7 +101,7 @@ export async function mapNodeToDomains(userId: string, nodeId: string): Promise<
 
   // Upsert mappings
   for (const mapping of mappings) {
-    await supabaseAdminClient
+    await supabaseAdmin
       .from('civilization_domain_mappings')
       .upsert(
         {
@@ -122,7 +123,7 @@ export async function computeDomainStates(userId: string, snapshotDate?: Date): 
   await ensureDefaultDomainsSeeded(userId);
 
   // Get all active domains
-  const { data: domains } = await supabaseAdminClient
+  const { data: domains } = await supabaseAdmin
     .from('civilization_domains')
     .select('*')
     .eq('user_id', userId)
@@ -137,7 +138,7 @@ export async function computeDomainStates(userId: string, snapshotDate?: Date): 
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
   const thirtyDaysAgoStr = thirtyDaysAgo.toISOString();
 
-  const { data: recentEvents } = await supabaseAdminClient
+  const { data: recentEvents } = await supabaseAdmin
     .from('memory_events')
     .select('*, knowledge_nodes(*)')
     .eq('user_id', userId)
@@ -145,7 +146,7 @@ export async function computeDomainStates(userId: string, snapshotDate?: Date): 
     .lte('occurred_at', date.toISOString());
 
   // Get domain mappings
-  const { data: mappings } = await supabaseAdminClient
+  const { data: mappings } = await supabaseAdmin
     .from('civilization_domain_mappings')
     .select('*, civilization_domains(*)')
     .eq('user_id', userId);
@@ -162,7 +163,7 @@ export async function computeDomainStates(userId: string, snapshotDate?: Date): 
   }
 
   // Get conflict edges
-  const { data: conflictEdges } = await supabaseAdminClient
+  const { data: conflictEdges } = await supabaseAdmin
     .from('knowledge_edges')
     .select('from_node_id, to_node_id')
     .eq('user_id', userId)
@@ -230,7 +231,7 @@ export async function computeDomainStates(userId: string, snapshotDate?: Date): 
     }
 
     // Upsert state
-    const { data: state } = await supabaseAdminClient
+    const { data: state } = await supabaseAdmin
       .from('civilization_domain_state')
       .upsert(
         {

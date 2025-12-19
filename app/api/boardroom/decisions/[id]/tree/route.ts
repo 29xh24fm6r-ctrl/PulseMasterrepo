@@ -4,10 +4,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { createDecisionTreeForDecision } from '@/lib/boardroom/theater_v2/builder';
-import { supabaseAdminClient } from '@/lib/supabase/admin';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -29,7 +29,7 @@ export async function GET(
     const userId = await resolveUserId(clerkId);
 
     // Get tree for decision
-    const { data: tree, error: treeError } = await supabaseAdminClient
+    const { data: tree, error: treeError } = await supabaseAdmin
       .from('decision_trees')
       .select('*')
       .eq('decision_id', params.id)
@@ -43,7 +43,7 @@ export async function GET(
     }
 
     // Get nodes
-    const { data: nodes, error: nodesError } = await supabaseAdminClient
+    const { data: nodes, error: nodesError } = await supabaseAdmin
       .from('decision_tree_nodes')
       .select('*')
       .eq('tree_id', tree.id)
@@ -52,7 +52,7 @@ export async function GET(
     if (nodesError) throw nodesError;
 
     // Get edges
-    const { data: edges, error: edgesError } = await supabaseAdminClient
+    const { data: edges, error: edgesError } = await supabaseAdmin
       .from('decision_tree_edges')
       .select('*')
       .eq('tree_id', tree.id);
@@ -60,7 +60,7 @@ export async function GET(
     if (edgesError) throw edgesError;
 
     // Get latest simulations
-    const { data: simulations, error: simError } = await supabaseAdminClient
+    const { data: simulations, error: simError } = await supabaseAdmin
       .from('branch_simulation_runs')
       .select('*')
       .eq('tree_id', tree.id)
@@ -70,7 +70,7 @@ export async function GET(
     if (simError) throw simError;
 
     // Get latest comparison
-    const { data: comparison, error: compError } = await supabaseAdminClient
+    const { data: comparison, error: compError } = await supabaseAdmin
       .from('branch_comparisons')
       .select('*')
       .eq('tree_id', tree.id)

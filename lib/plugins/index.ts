@@ -1,17 +1,7 @@
 // Plugin API Library
-import { createClient } from "@supabase/supabase-js";
+import "server-only";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import crypto from "crypto";
-
-function getSupabase() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  
-  if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error('Missing Supabase environment variables. Please configure NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
-  }
-  
-  return createClient(supabaseUrl, supabaseServiceKey);
-}
 
 export interface Plugin {
   id: string;
@@ -48,19 +38,19 @@ export interface APIKey {
 }
 
 export async function getAvailablePlugins(): Promise<Plugin[]> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   const { data } = await supabase.from("plugins").select("*").eq("status", "active").eq("is_public", true).order("downloads", { ascending: false });
   return data || [];
 }
 
 export async function getPluginBySlug(slug: string): Promise<Plugin | null> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   const { data } = await supabase.from("plugins").select("*").eq("slug", slug).single();
   return data;
 }
 
 export async function installPlugin(userId: string, pluginSlug: string, config?: Record<string, any>): Promise<UserPlugin> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   const plugin = await getPluginBySlug(pluginSlug);
   if (!plugin) throw new Error("Plugin not found: " + pluginSlug);
 
@@ -81,20 +71,20 @@ export async function installPlugin(userId: string, pluginSlug: string, config?:
 }
 
 export async function uninstallPlugin(userId: string, pluginSlug: string): Promise<void> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   const plugin = await getPluginBySlug(pluginSlug);
   if (!plugin) return;
   await supabase.from("user_plugins").update({ status: "uninstalled", updated_at: new Date().toISOString() }).eq("user_id", userId).eq("plugin_id", plugin.id);
 }
 
 export async function getUserPlugins(userId: string): Promise<(UserPlugin & { plugin: Plugin })[]> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   const { data } = await supabase.from("user_plugins").select("*, plugin:plugins(*)").eq("user_id", userId).neq("status", "uninstalled");
   return data || [];
 }
 
 export async function updatePluginConfig(userId: string, pluginSlug: string, config: Record<string, any>): Promise<UserPlugin> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   const plugin = await getPluginBySlug(pluginSlug);
   if (!plugin) throw new Error("Plugin not found: " + pluginSlug);
   const { data, error } = await supabase.from("user_plugins").update({ config, updated_at: new Date().toISOString() }).eq("user_id", userId).eq("plugin_id", plugin.id).select().single();
@@ -103,7 +93,7 @@ export async function updatePluginConfig(userId: string, pluginSlug: string, con
 }
 
 export async function createAPIKey(userId: string, name: string, scopes: string[] = ["read"], expiresInDays?: number): Promise<{ key: string; apiKey: APIKey }> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   const rawKey = "pulse_" + crypto.randomBytes(32).toString("hex");
   const keyHash = crypto.createHash("sha256").update(rawKey).digest("hex");
   const keyPrefix = rawKey.substring(0, 12);
@@ -115,7 +105,7 @@ export async function createAPIKey(userId: string, name: string, scopes: string[
 }
 
 export async function validateAPIKey(key: string): Promise<{ userId: string; scopes: string[] } | null> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   const keyHash = crypto.createHash("sha256").update(key).digest("hex");
   const keyPrefix = key.substring(0, 12);
   const { data } = await supabase.from("plugin_api_keys").select("user_id, scopes, expires_at, is_active").eq("key_hash", keyHash).eq("key_prefix", keyPrefix).single();
@@ -125,18 +115,18 @@ export async function validateAPIKey(key: string): Promise<{ userId: string; sco
 }
 
 export async function revokeAPIKey(userId: string, keyId: string): Promise<void> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   await supabase.from("plugin_api_keys").update({ is_active: false }).eq("id", keyId).eq("user_id", userId);
 }
 
 export async function getUserAPIKeys(userId: string): Promise<APIKey[]> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   const { data } = await supabase.from("plugin_api_keys").select("id, name, key_prefix, scopes, is_active, last_used_at, expires_at, created_at").eq("user_id", userId).eq("is_active", true).order("created_at", { ascending: false });
   return data || [];
 }
 
 export async function createAutomation(userId: string, automation: { name: string; description?: string; triggerPluginSlug?: string; triggerEvent: string; triggerConditions?: Record<string, any>; actionPluginSlug?: string; actionType: string; actionConfig: Record<string, any> }): Promise<any> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   let triggerPluginId = null, actionPluginId = null;
   if (automation.triggerPluginSlug) { const p = await getPluginBySlug(automation.triggerPluginSlug); triggerPluginId = p?.id; }
   if (automation.actionPluginSlug) { const p = await getPluginBySlug(automation.actionPluginSlug); actionPluginId = p?.id; }
@@ -157,7 +147,7 @@ export async function createAutomation(userId: string, automation: { name: strin
 }
 
 export async function getUserAutomations(userId: string): Promise<any[]> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   const { data } = await supabase.from("plugin_automations").select("*").eq("user_id", userId).eq("is_active", true).order("created_at", { ascending: false });
   return data || [];
 }

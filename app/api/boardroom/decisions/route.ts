@@ -3,10 +3,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { supabaseAdminClient } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     const dbUserId = await resolveUserId(userId);
 
     // Create decision
-    const { data: decision, error: decisionError } = await supabaseAdminClient
+    const { data: decision, error: decisionError } = await supabaseAdmin
       .from('decisions')
       .insert({
         user_id: dbUserId,
@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
       is_default: idx === 0,
     }));
 
-    const { data: createdOptions, error: optionsError } = await supabaseAdminClient
+    const { data: createdOptions, error: optionsError } = await supabaseAdmin
       .from('decision_options')
       .insert(optionRows)
       .select('*');

@@ -1,8 +1,9 @@
 // Voice Route: Memory
 // lib/voice/routes/memory.ts
 
+import "server-only";
 import { findSimilarEmotionEpisodes } from '@/lib/thirdbrain/graph/query';
-import { supabaseAdmin } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 
 async function resolveUserId(clerkId: string): Promise<string> {
   const { data: userRow } = await supabaseAdmin

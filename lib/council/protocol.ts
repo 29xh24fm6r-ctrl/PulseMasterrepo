@@ -95,15 +95,15 @@ ${userModel ? JSON.stringify(userModel, null, 2) : "No additional context"}`;
     } catch (err) {
       // Optional
     }
-  }
+}
 
-Provide a structured analysis in JSON format:
+/* Provide a structured analysis in JSON format:
 {
   "analysis": "Your narrative analysis of the situation from your coach's perspective",
   "key_concerns": ["concern 1", "concern 2", "..."],
   "recommended_steps": ["step 1", "step 2", "..."],
   "risks": ["risk 1", "risk 2", "..."]
-}`;
+} */
 
   try {
     const response = await llmComplete(systemPrompt, {

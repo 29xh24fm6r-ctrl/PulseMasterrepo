@@ -1,41 +1,39 @@
+// app/api/habits/pull/route.ts
+// Legacy endpoint - kept for backward compatibility with existing widgets
+// Maps to canonical /api/habits schema
 import { NextResponse } from "next/server";
-import { 
-  notion, 
-  NotionDatabases, 
-  readTitle, 
-  readNumber,
-  extractPageMeta 
-} from "@/app/lib/notion";
+import { requireClerkUserId } from "@/lib/auth/requireUser";
+import { supabaseAdmin } from "@/lib/supabase/admin";
+import { resolvePulseUserUuidFromClerk } from "@/lib/auth/resolvePulseUserUuid";
+
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    // Check if database is configured
-    if (!NotionDatabases.habits) {
-      return NextResponse.json({
-        ok: true,
-        habits: [],
-        message: "Habits database not configured",
-      });
-    }
+    const clerkUserId = await requireClerkUserId();
+    const pulseUserUuid = await resolvePulseUserUuidFromClerk(clerkUserId);
 
-    const response = await notion.databases.query({
-      database_id: NotionDatabases.habits,
-    });
+    const { data: habits, error } = await supabaseAdmin
+      .from("habits")
+      .select("*")
+      .eq("user_id", pulseUserUuid)
+      .eq("is_active", true)
+      .order("created_at", { ascending: false });
 
-    const habits = (response.results || []).map((page: any) => {
-      const props = page.properties || {};
-      const meta = extractPageMeta(page);
+    if (error) throw error;
 
-      return {
-        id: meta.id,
-        name: readTitle(props, "Name", "Habit", "Title"),
-        xp: readNumber(props, "XP"),
-      };
-    });
-
+    // Map to legacy format for backward compatibility
     return NextResponse.json({
       ok: true,
-      habits,
+      habits: (habits || []).map((h: any) => ({
+        id: h.id,
+        name: h.name,
+        icon: "✓", // Default icon
+        streak: 0, // TODO: Calculate from habit_logs
+        lastCompleted: null, // TODO: Fetch from habit_logs
+        frequency: h.frequency,
+        completedToday: false, // TODO: Check habit_logs for today
+      })),
     });
   } catch (err: any) {
     console.error("Habits pull error:", err?.message ?? err);

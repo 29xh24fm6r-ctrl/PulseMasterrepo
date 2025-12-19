@@ -217,25 +217,15 @@ export interface LogInterventionInput {
 // CORE FUNCTIONS
 // ============================================
 
-import { createClient } from "@supabase/supabase-js";
-
-function getSupabase() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  
-  if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error('Missing Supabase environment variables. Please configure NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
-  }
-  
-  return createClient(supabaseUrl, supabaseServiceKey);
-}
+import "server-only";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 
 // Get current emotion state
 // userId can be either Clerk ID or database UUID
 export async function getCurrentEmotionState(
   userId: string
 ): Promise<EmotionState | null> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
 
   // Try to resolve database ID if userId is a Clerk ID
   let dbUserId = userId;
@@ -269,7 +259,7 @@ export async function getRecentEmotionStates(
   userId: string,
   hours: number = 24
 ): Promise<EmotionState[]> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   const since = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
 
   const { data } = await supabase
@@ -287,7 +277,7 @@ export async function recordCheckin(
   userId: string,
   input: RecordCheckinInput
 ): Promise<EmotionCheckin> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
 
   const { data, error } = await supabase
     .from("emo_checkins")
@@ -347,7 +337,7 @@ export async function getEmotionTrend(
   userId: string,
   period: "day" | "week" | "month" = "week"
 ): Promise<EmotionTrend> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
 
   const daysMap = { day: 1, week: 7, month: 30 };
   const days = daysMap[period];
@@ -422,7 +412,7 @@ export async function detectAndStoreEmotion(
   userId: string,
   input: DetectEmotionInput
 ): Promise<EmotionState> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
 
   // Simple detection (would use LLM in production)
   const analysis: EmotionAnalysis = {
@@ -464,7 +454,7 @@ export async function logIntervention(
   userId: string,
   input: LogInterventionInput
 ): Promise<EmotionIntervention> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
 
   const { data: existing } = await supabase
     .from("emo_interventions")
@@ -515,7 +505,7 @@ export async function getEffectiveInterventions(
   userId: string,
   emotion?: EmotionType
 ): Promise<EmotionIntervention[]> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
 
   let query = supabase
     .from("emo_interventions")

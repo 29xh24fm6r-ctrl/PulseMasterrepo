@@ -1,52 +1,34 @@
-// CRM Overview API
-// app/api/crm/overview/route.ts
-
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { getContacts } from "@/lib/crm/contacts";
-import { getDeals } from "@/lib/crm/deals";
-import { getRelationshipRadar } from "@/lib/crm/radar";
-import { getCrmAlerts } from "@/lib/crm/alerts";
+import { getCrmOverview } from "@/lib/crm/overview";
 
-export async function GET(request: NextRequest) {
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+export async function GET() {
   try {
     const { userId } = await auth();
     if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { ok: false, module: "crm", summary: "Unauthorized", cards: [] },
+        { status: 401 }
+      );
     }
 
-    const [contacts, deals, radar, alerts] = await Promise.all([
-      getContacts(userId, { limit: 10 }),
-      getDeals(userId),
-      getRelationshipRadar(userId, 5),
-      getCrmAlerts(userId, { limit: 5, dismissed: false }),
-    ]);
-
-    const openDeals = deals.filter((d) => !["won", "lost"].includes(d.stage));
-    const wonDeals = deals.filter((d) => d.stage === "won");
-    const atRiskDeals = openDeals.filter((d) => d.health && d.health.risk_level >= 4);
-
-    const vipContacts = contacts.filter((c) => c.tags.includes("vip"));
-    const atRiskRelationships = radar.filter((r) => r.healthScore < 50);
-
-    return NextResponse.json({
-      summary: {
-        totalContacts: contacts.length,
-        vipContacts: vipContacts.length,
-        atRiskRelationships: atRiskRelationships.length,
-        openDeals: openDeals.length,
-        wonDeals: wonDeals.length,
-        atRiskDeals: atRiskDeals.length,
+    const data = await getCrmOverview(userId);
+    return NextResponse.json(data, {
+      status: 200,
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0",
       },
-      radar: radar.slice(0, 5),
-      alerts: alerts.slice(0, 5),
     });
-  } catch (err: any) {
-    console.error("Failed to fetch CRM overview:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return NextResponse.json(
+      { ok: false, module: "crm", summary: "Failed to load CRM.", cards: [], meta: { message } },
+      { status: 500 }
+    );
   }
 }
-
-
-
-

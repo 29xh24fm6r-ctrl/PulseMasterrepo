@@ -2,7 +2,7 @@
 // lib/zero-friction/cognitive-profile.ts
 
 import { supabaseAdmin } from "@/lib/supabase";
-import { buildPulseCortexContext } from "@/lib/cortex/context";
+import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 import { getTwinModel } from "@/lib/twin/engine";
 import { callAIJson } from "@/lib/ai/call";
 
@@ -37,7 +37,7 @@ export async function inferCognitiveProfile(userId: string): Promise<CognitivePr
     .limit(100);
 
   // Get Cortex context
-  const ctx = await buildPulseCortexContext(userId);
+  const ctx = await getWorkCortexContextForUser(userId);
 
   // Get Twin model
   const twin = await getTwinModel(userId);

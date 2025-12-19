@@ -17,6 +17,7 @@ import { ContactsTable } from "@/app/components/crm/ContactsTable";
 import { DealsBoard } from "@/app/components/crm/DealsBoard";
 import { RelationshipRadarPanel } from "@/app/components/crm/RelationshipRadarPanel";
 import { CrmAlertsPanel } from "@/app/components/crm/CrmAlertsPanel";
+import { NeedsResponsePanel } from "@/components/crm/NeedsResponsePanel";
 
 export default function RelationshipsPage() {
   const [activeTab, setActiveTab] = useState("contacts");
@@ -34,11 +35,12 @@ export default function RelationshipsPage() {
         <div className="flex items-center gap-2 mb-3">
           <Users className="h-5 w-5 text-zinc-500" />
         </div>
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-3 mb-6">
           <AppCard variant="metric" title="Contacts" value="—" subtitle="Total contacts" />
           <AppCard variant="metric" title="Open Deals" value="—" subtitle="Active pipeline" />
           <AppCard variant="metric" title="At Risk" value="—" subtitle="Needs attention" trend="down" />
         </div>
+        <NeedsResponsePanel limit={10} />
       </PageSection>
 
       {/* Section 2: Details */}

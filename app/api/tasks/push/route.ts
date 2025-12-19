@@ -1,57 +1,64 @@
+// app/api/tasks/push/route.ts
+// Legacy endpoint - kept for backward compatibility with existing widgets
+// Maps legacy format to canonical /api/tasks schema
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
-import { createClient } from "@supabase/supabase-js";
+import { requireClerkUserId } from "@/lib/auth/requireUser";
+import { supabaseAdmin } from "@/lib/supabase/admin";
+import { resolvePulseUserUuidFromClerk } from "@/lib/auth/resolvePulseUserUuid";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
-    }
-
+    const clerkUserId = await requireClerkUserId();
+    const pulseUserUuid = await resolvePulseUserUuidFromClerk(clerkUserId);
     const body = await req.json();
     const { id, name, description, status, priority, dueDate, project, xp } = body;
 
-    const dbStatus = status === 'Done' ? 'done' : status === 'In Progress' ? 'in_progress' : 'todo';
+    // Map legacy status to canonical status
+    const dbStatus = status === 'Done' ? 'done' : status === 'In Progress' ? 'in_progress' : 'open';
+    const dbPriority = priority === 'High' ? 1 : priority === 'Low' ? 3 : 2;
 
     if (id) {
-      const { data, error } = await supabase
+      // Update existing task
+      const updatePayload: any = {
+        title: name || undefined, // Map name to title
+        notes: description || undefined, // Map description to notes
+        status: dbStatus,
+        priority: dbPriority,
+        due_date: dueDate || undefined,
+      };
+
+      // Remove undefined fields
+      Object.keys(updatePayload).forEach(key => {
+        if (updatePayload[key] === undefined) delete updatePayload[key];
+      });
+
+      const { data, error } = await supabaseAdmin
         .from("tasks")
-        .update({
-          name,
-          description,
-          status: dbStatus,
-          priority: priority?.toLowerCase(),
-          due_date: dueDate,
-          project,
-          xp,
-          completed_at: dbStatus === 'done' ? new Date().toISOString() : null,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updatePayload)
         .eq("id", id)
-        .eq("user_id", userId)
+        .eq("user_id", pulseUserUuid)
         .select()
         .single();
 
       if (error) throw error;
       return NextResponse.json({ ok: true, task: data });
     } else {
-      const { data, error } = await supabase
+      // Create new task
+      if (!name) {
+        return NextResponse.json({ ok: false, error: "Name is required" }, { status: 400 });
+      }
+
+      const { data, error } = await supabaseAdmin
         .from("tasks")
         .insert({
-          user_id: userId,
-          name,
-          description,
+          user_id: pulseUserUuid,
+          title: name, // Map name to title
+          notes: description || null, // Map description to notes
           status: dbStatus,
-          priority: priority?.toLowerCase() || 'medium',
-          due_date: dueDate,
-          project,
-          xp: xp || 10,
+          priority: dbPriority,
+          due_date: dueDate || null,
         })
         .select()
         .single();

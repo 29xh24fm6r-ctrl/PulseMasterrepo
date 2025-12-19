@@ -3,10 +3,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { supabaseAdminClient } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -42,36 +42,36 @@ export async function GET(
       missionsRes,
       achievementsRes,
     ] = await Promise.all([
-      supabaseAdminClient
+      supabaseAdmin
         .from('archetype_definitions')
         .select('*')
         .eq('id', archetypeId)
         .maybeSingle(),
-      supabaseAdminClient
+      supabaseAdmin
         .from('mythic_belt_progress')
         .select('*')
         .eq('user_id', dbUserId)
         .eq('archetype_id', archetypeId)
         .maybeSingle(),
-      supabaseAdminClient
+      supabaseAdmin
         .from('mythic_belt_levels')
         .select('*')
         .eq('archetype_id', archetypeId)
         .order('belt_rank', { ascending: true }),
-      supabaseAdminClient
+      supabaseAdmin
         .from('mythic_training_plans')
         .select('*')
         .eq('user_id', dbUserId)
         .eq('archetype_id', archetypeId)
         .order('created_at', { ascending: false }),
-      supabaseAdminClient
+      supabaseAdmin
         .from('mythic_training_missions')
         .select('*')
         .eq('user_id', dbUserId)
         .eq('archetype_id', archetypeId)
         .or(`due_date.gte.${thirtyDaysAgo},due_date.lte.${nextWeekStr}`)
         .order('due_date', { ascending: true }),
-      supabaseAdminClient
+      supabaseAdmin
         .from('mythic_achievements')
         .select('*')
         .eq('user_id', dbUserId)

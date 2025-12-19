@@ -3,10 +3,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { supabaseAdminClient } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
     const dbUserId = await resolveUserId(userId);
 
     // Get latest snapshot
-    const { data: snapshot } = await supabaseAdminClient
+    const { data: snapshot } = await supabaseAdmin
       .from('life_canon_snapshots')
       .select('*')
       .eq('user_id', dbUserId)

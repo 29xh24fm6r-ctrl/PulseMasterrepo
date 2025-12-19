@@ -1,7 +1,8 @@
 // Destiny Engine v2 - Anchor Manager
 // lib/destiny/anchor.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { DestinyTimeline, DestinyAnchorChoice, AnchorStrength } from './types';
 
 export async function setDestinyAnchor(params: {
@@ -13,7 +14,7 @@ export async function setDestinyAnchor(params: {
   const { userId, timelineId, strength = 'soft', notes } = params;
 
   // Verify timeline exists and belongs to user
-  const { data: timeline } = await supabaseAdminClient
+  const { data: timeline } = await supabaseAdmin
     .from('destiny_timelines')
     .select('*')
     .eq('id', timelineId)
@@ -25,7 +26,7 @@ export async function setDestinyAnchor(params: {
   }
 
   // Insert anchor choice
-  await supabaseAdminClient
+  await supabaseAdmin
     .from('destiny_anchor_choices')
     .insert({
       user_id: userId,
@@ -37,7 +38,7 @@ export async function setDestinyAnchor(params: {
 
 export async function getCurrentDestinyAnchor(userId: string): Promise<DestinyTimeline | null> {
   // Get latest anchor choice
-  const { data: anchor } = await supabaseAdminClient
+  const { data: anchor } = await supabaseAdmin
     .from('destiny_anchor_choices')
     .select('*, destiny_timelines(*)')
     .eq('user_id', userId)

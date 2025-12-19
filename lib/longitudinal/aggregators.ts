@@ -1,16 +1,6 @@
 // Longitudinal - Daily metrics aggregation
-import { createClient } from "@supabase/supabase-js";
-
-function getSupabase() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  
-  if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error('Missing Supabase environment variables. Please configure NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
-  }
-  
-  return createClient(supabaseUrl, supabaseServiceKey);
-}
+import "server-only";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 
 interface DailyMetrics {
   tasks_completed: number;
@@ -28,7 +18,7 @@ interface DailyMetrics {
 }
 
 export async function aggregateDailyMetrics(userId: string, date?: Date): Promise<DailyMetrics | null> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   const targetDate = date || new Date();
   const startOfDay = new Date(targetDate);
   startOfDay.setHours(0, 0, 0, 0);
@@ -136,7 +126,7 @@ export async function aggregateDailyMetrics(userId: string, date?: Date): Promis
 }
 
 export async function runNightlyMetricsAggregation(): Promise<{ usersProcessed: number }> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 

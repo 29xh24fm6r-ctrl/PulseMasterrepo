@@ -1,117 +1,116 @@
-// Deals API - List and Create
 // app/api/deals/route.ts
-
+// Supabase-only deals endpoint (migrated from Notion)
+// Sprint 3B: Uses canonical resolveSupabaseUser()
+// Updated: Returns shape expected by UI dashboards
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { resolveSupabaseUser } from "@/lib/auth/resolveSupabaseUser";
+import { supabaseAdmin } from "@/lib/supabase/admin";
+import { log } from "@/lib/obs/logger";
+import { getRequestMeta } from "@/lib/obs/request-context";
+import { withApiAnalytics } from "@/lib/analytics/api";
 
+export const dynamic = "force-dynamic";
+
+// GET - List all deals for user
 export async function GET(req: NextRequest) {
-  try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  return withApiAnalytics(req, async () => {
+    const meta = getRequestMeta();
+    const t0 = Date.now();
+    log.info("route.start", { ...meta, route: "GET /api/deals" });
 
-    // Get user's database ID
-    const { data: userRow } = await supabaseAdmin
-      .from("users")
-      .select("id")
-      .eq("clerk_id", userId)
-      .single();
+    try {
+    const { supabaseUserId } = await resolveSupabaseUser();
 
-    const dbUserId = userRow?.id || userId;
-
-    const searchParams = req.nextUrl.searchParams;
-    const status = searchParams.get("status");
-    const stage = searchParams.get("stage");
+    const { searchParams } = new URL(req.url);
+    const stage = searchParams.get("stage"); // optional filter
 
     let query = supabaseAdmin
       .from("deals")
       .select("*")
-      .eq("user_id", dbUserId)
-      .order("updated_at", { ascending: false });
+      .eq("user_id", supabaseUserId)
+      .order("close_date", { ascending: true, nullsLast: true })
+      .order("created_at", { ascending: false });
 
-    if (status) {
-      query = query.eq("status", status);
-    }
     if (stage) {
       query = query.eq("stage", stage);
     }
 
-    const { data: deals } = await query;
+    const { data: deals, error } = await query;
 
-    return NextResponse.json(deals || []);
-  } catch (err: any) {
-    console.error("[Deals] Error:", err);
-    return NextResponse.json(
-      { error: err.message || "Failed to get deals" },
-      { status: 500 }
-    );
-  }
+    if (error) throw error;
+
+    // Return shape expected by UI dashboards
+    const normalized = (deals || []).map((d: any) => ({
+      id: d.id,
+      name: d.name ?? d.title ?? "Untitled Deal",
+      stage: d.stage ?? d.status ?? "open",
+      amount: d.amount ?? d.value ?? 0,
+      probability: d.probability ?? 50,
+      contact_name: d.contact_name ?? d.person_name ?? null,
+      last_activity: d.last_activity ?? d.updated_at ?? null,
+      next_action: d.next_action ?? null,
+    }));
+
+      log.info("route.ok", { ...meta, route: "GET /api/deals", ms: Date.now() - t0, count: normalized.length });
+      
+      // Support both shapes: { items: [...] } for existing code, { deals: [...] } for new code
+      const { searchParams } = new URL(req.url);
+      const format = searchParams.get("format");
+      if (format === "legacy") {
+        return NextResponse.json({ items: normalized });
+      }
+      return NextResponse.json({ deals: normalized });
+    } catch (err: any) {
+      log.error("route.err", { ...meta, route: "GET /api/deals", ms: Date.now() - t0, error: err?.message || String(err) });
+      return NextResponse.json({ error: err.message }, { status: 500 });
+    }
+  });
 }
 
+// POST - Create new deal
 export async function POST(req: NextRequest) {
-  try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  return withApiAnalytics(req, async () => {
+    const meta = getRequestMeta();
+    const t0 = Date.now();
+    log.info("route.start", { ...meta, route: "POST /api/deals" });
 
-    // Get user's database ID
-    const { data: userRow } = await supabaseAdmin
-      .from("users")
-      .select("id")
-      .eq("clerk_id", userId)
-      .single();
-
-    const dbUserId = userRow?.id || userId;
-
+    try {
+    const { supabaseUserId } = await resolveSupabaseUser();
     const body = await req.json();
-    const { name, description, value, status, stage, priority, due_date, participants } = body;
 
-    if (!name) {
-      return NextResponse.json({ error: "name is required" }, { status: 400 });
+    // Ignore user_id if provided (server sets it)
+    if (body.user_id) {
+      delete body.user_id;
     }
 
-    // Create deal
-    const { data: deal } = await supabaseAdmin
+    const { name, company, amount, stage, close_date, notes } = body;
+
+    if (!name || !name.trim()) {
+      log.warn("route.validation_failed", { ...meta, route: "POST /api/deals", ms: Date.now() - t0, error: "Name is required" });
+      return NextResponse.json({ error: "Name is required" }, { status: 400 });
+    }
+
+    const { data: deal, error } = await supabaseAdmin
       .from("deals")
       .insert({
-        user_id: dbUserId,
-        name,
-        description: description || null,
-        value: value || null,
-        status: status || "active",
-        stage: stage || null,
-        priority: priority || "medium",
-        due_date: due_date || null,
-        updated_at: new Date().toISOString(),
+        user_id: supabaseUserId,
+        name: name.trim(),
+        company: company?.trim() || null,
+        amount: amount ? parseFloat(amount) : null,
+        stage: stage || "prospect",
+        close_date: close_date || null,
+        notes: notes?.trim() || null,
       })
-      .select("id")
+      .select("*")
       .single();
 
-    if (!deal) {
-      return NextResponse.json({ error: "Failed to create deal" }, { status: 500 });
-    }
+    if (error) throw error;
 
-    // Add participants if provided
-    if (participants && Array.isArray(participants)) {
-      for (const participant of participants) {
-        await supabaseAdmin.from("deal_participants").insert({
-          deal_id: deal.id,
-          contact_id: participant.contact_id || null,
-          role: participant.role || null,
-          importance: participant.importance || 0.5,
-        });
-      }
+      log.info("route.ok", { ...meta, route: "POST /api/deals", ms: Date.now() - t0, dealId: deal?.id });
+      return NextResponse.json({ item: deal }, { status: 200 });
+    } catch (err: any) {
+      log.error("route.err", { ...meta, route: "POST /api/deals", ms: Date.now() - t0, error: err?.message || String(err) });
+      return NextResponse.json({ error: err.message || "Failed to create deal" }, { status: 500 });
     }
-
-    return NextResponse.json({ id: deal.id, success: true });
-  } catch (err: any) {
-    console.error("[Deals] Error:", err);
-    return NextResponse.json(
-      { error: err.message || "Failed to create deal" },
-      { status: 500 }
-    );
-  }
+  });
 }

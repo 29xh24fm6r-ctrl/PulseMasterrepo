@@ -1,7 +1,8 @@
 // Mythic Intelligence Layer v1 - Voice/TTS Module
 // lib/mythic/voice.ts
 
-import { supabaseAdminClient } from '../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 
 // Placeholder for TTS integration
 // In production, this would integrate with your TTS service (ElevenLabs, OpenAI TTS, etc.)
@@ -22,7 +23,7 @@ export async function synthesizeMythicSessionAudio(params: {
   const audioUrl = `https://storage.example.com/mythic_sessions/${params.sessionId}.mp3`;
   
   // Update session with audio URL
-  await supabaseAdminClient
+  await supabaseAdmin
     .from('mythic_sessions')
     .update({ audio_url: audioUrl })
     .eq('id', params.sessionId);

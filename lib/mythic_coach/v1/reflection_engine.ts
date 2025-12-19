@@ -1,12 +1,13 @@
 // Mythic Coach v1 - Reflection Engine
 // lib/mythic_coach/v1/reflection_engine.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { callAIJson } from '@/lib/ai/call';
 import { MYTHIC_REFLECTION_PROMPT } from './prompts';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -26,20 +27,20 @@ export async function runMythicReflectionForWeek(
   const endStr = periodEnd.toISOString().slice(0, 10);
 
   const [missionsRes, eventsRes, snapshotRes] = await Promise.all([
-    supabaseAdminClient
+    supabaseAdmin
       .from('mythic_training_missions')
       .select('*')
       .eq('user_id', dbUserId)
       .eq('archetype_id', archetypeId)
       .gte('due_date', startStr)
       .lte('due_date', endStr),
-    supabaseAdminClient
+    supabaseAdmin
       .from('canon_events')
       .select('*')
       .eq('user_id', dbUserId)
       .gte('created_at', startStr)
       .lte('created_at', endStr),
-    supabaseAdminClient
+    supabaseAdmin
       .from('archetype_snapshots')
       .select('*')
       .eq('user_id', dbUserId)
@@ -79,7 +80,7 @@ export async function runMythicReflectionForWeek(
 
   const { coachRating, wins, challenges, adjustments } = result.data;
 
-  const { error } = await supabaseAdminClient
+  const { error } = await supabaseAdmin
     .from('mythic_training_reflections')
     .insert({
       user_id: dbUserId,

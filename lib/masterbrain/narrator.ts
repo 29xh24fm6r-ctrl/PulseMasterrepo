@@ -1,12 +1,13 @@
 // Master Brain Registry + Diagnostics v1 - System Narrator
 // lib/masterbrain/narrator.ts
 
-import { supabaseAdminClient } from '../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { callAI } from '@/lib/ai/call';
 import { listSystemModules } from './registry';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -19,7 +20,7 @@ export async function summarizeDiagnosticsForUser(userId: string): Promise<strin
   const dbUserId = await resolveUserId(userId);
 
   // Get latest diagnostics run
-  const { data: latestRun } = await supabaseAdminClient
+  const { data: latestRun } = await supabaseAdmin
     .from('system_diagnostics_runs')
     .select('*')
     .order('created_at', { ascending: false })
@@ -31,7 +32,7 @@ export async function summarizeDiagnosticsForUser(userId: string): Promise<strin
   }
 
   // Get findings
-  const { data: findings } = await supabaseAdminClient
+  const { data: findings } = await supabaseAdmin
     .from('system_diagnostics_findings')
     .select('*, system_modules(*)')
     .eq('run_id', latestRun.id)
@@ -40,7 +41,7 @@ export async function summarizeDiagnosticsForUser(userId: string): Promise<strin
 
   // Get module health
   const modules = await listSystemModules();
-  const { data: moduleHealth } = await supabaseAdminClient
+  const { data: moduleHealth } = await supabaseAdmin
     .from('system_module_health')
     .select('*, system_modules(*)')
     .in(
@@ -54,7 +55,7 @@ export async function summarizeDiagnosticsForUser(userId: string): Promise<strin
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
   const sevenDaysAgoStr = sevenDaysAgo.toISOString().slice(0, 10);
 
-  const { data: recentMetrics } = await supabaseAdminClient
+  const { data: recentMetrics } = await supabaseAdmin
     .from('system_module_metrics')
     .select('*, system_modules(*)')
     .gte('date', sevenDaysAgoStr)

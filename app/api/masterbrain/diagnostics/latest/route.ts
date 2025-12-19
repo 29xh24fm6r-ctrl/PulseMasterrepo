@@ -3,7 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { supabaseAdminClient } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 
 export async function GET(req: NextRequest) {
   try {
@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { data: latestRun } = await supabaseAdminClient
+    const { data: latestRun } = await supabaseAdmin
       .from('system_diagnostics_runs')
       .select('*')
       .order('created_at', { ascending: false })
@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ run: null, findings: [] });
     }
 
-    const { data: findings } = await supabaseAdminClient
+    const { data: findings } = await supabaseAdmin
       .from('system_diagnostics_findings')
       .select('*, system_modules(*)')
       .eq('run_id', latestRun.id)

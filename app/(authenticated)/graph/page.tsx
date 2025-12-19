@@ -4,11 +4,11 @@
 "use client";
 
 import { useState } from "react";
-import { GraphSummaryCard } from "@/components/graph/GraphSummaryCard";
-import { NodeExplorer } from "@/components/graph/NodeExplorer";
-import { NodeDetailPanel } from "@/components/graph/NodeDetailPanel";
-import { NeighborhoodGraph } from "@/components/graph/NeighborhoodGraph";
-import { GraphInsightsCard } from "@/components/graph/GraphInsightsCard";
+import { GraphSummaryCard } from "@/app/components/graph/GraphSummaryCard";
+import { NodeExplorer } from "@/app/components/graph/NodeExplorer";
+import { NodeDetailPanel } from "@/app/components/graph/NodeDetailPanel";
+import { NeighborhoodGraph } from "@/app/components/graph/NeighborhoodGraph";
+import { GraphInsightsCard } from "@/app/components/graph/GraphInsightsCard";
 
 export default function GraphPage() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | undefined>();

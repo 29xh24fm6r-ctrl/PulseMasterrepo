@@ -24,6 +24,7 @@ import {
   Target,
 } from "lucide-react";
 import Link from "next/link";
+import DealJobPanels from "@/components/deals/DealJobPanels";
 
 interface DealCockpitData {
   context: {
@@ -576,6 +577,9 @@ export default function DealCockpitPage() {
             </div>
           </div>
         </div>
+
+        {/* System Health & Job Timeline */}
+        <DealJobPanels dealId={dealId} />
       </div>
     </div>
   );

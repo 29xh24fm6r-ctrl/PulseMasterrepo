@@ -1,14 +1,15 @@
 // Life Canon v1 - Chapter Builder
 // lib/life_canon/v1/chapter_builder.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { callAIJson } from '@/lib/ai/call';
 import { CHAPTER_BUILDER_PROMPT } from './narrative_prompts';
 import { buildLifeCanonContext } from './context';
 import { LifeChapter } from './types';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -55,7 +56,7 @@ export async function buildCurrentChapterForUser(userId: string, now: Date) {
   const { chapter, prediction } = result.data;
 
   // Get the highest chapter order
-  const { data: existingChapters } = await supabaseAdminClient
+  const { data: existingChapters } = await supabaseAdmin
     .from('life_chapters')
     .select('chapter_order')
     .eq('user_id', dbUserId)
@@ -67,7 +68,7 @@ export async function buildCurrentChapterForUser(userId: string, now: Date) {
     : 1;
 
   // Check if there's an active chapter (no end_time)
-  const { data: activeChapter } = await supabaseAdminClient
+  const { data: activeChapter } = await supabaseAdmin
     .from('life_chapters')
     .select('*')
     .eq('user_id', dbUserId)
@@ -80,7 +81,7 @@ export async function buildCurrentChapterForUser(userId: string, now: Date) {
 
   if (activeChapter) {
     // Update existing active chapter
-    const { data: updated, error } = await supabaseAdminClient
+    const { data: updated, error } = await supabaseAdmin
       .from('life_chapters')
       .update({
         updated_at: now.toISOString(),
@@ -103,7 +104,7 @@ export async function buildCurrentChapterForUser(userId: string, now: Date) {
     chapterId = updated?.[0]?.id as string;
   } else {
     // Create new chapter
-    const { data: created, error } = await supabaseAdminClient
+    const { data: created, error } = await supabaseAdmin
       .from('life_chapters')
       .insert({
         user_id: dbUserId,

@@ -1,7 +1,7 @@
 // Pulse Strategy Board Builder
 // lib/strategy-board/builder.ts
 
-import { buildPulseCortexContext } from "@/lib/cortex/context";
+import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 import { runAutonomy } from "@/lib/cortex/autonomy/v3";
 import { scanIdentity, buildIdentityArcPlan } from "@/lib/identity/v3";
 import { buildRelationshipPlan } from "@/lib/domains/relationships/v2/relationship-plan-builder";
@@ -40,7 +40,7 @@ export async function buildStrategyBoard(userId: string): Promise<StrategyBoardD
   );
 
   // Build Cortex context
-  const ctx = await buildPulseCortexContext(userId);
+  const ctx = await getWorkCortexContextForUser(userId);
 
   // Get identity profile and arc
   const identityProfile = await scanIdentity(userId, ctx);

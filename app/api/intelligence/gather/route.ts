@@ -27,13 +27,10 @@ function getText(props: any, field: string): string {
 
 async function searchWeb(query: string): Promise<any> {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/web-search`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query }),
-    });
-    if (!response.ok) return null;
-    return await response.json();
+    // ✅ Use shared function instead of HTTP call
+    const { searchWeb: searchWebFunction } = await import("@/lib/intelligence/web-search");
+    const result = await searchWebFunction(query);
+    return result.ok ? result : null;
   } catch (err) {
     console.error('Web search error:', err);
     return null;

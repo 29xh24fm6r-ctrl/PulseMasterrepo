@@ -1,8 +1,9 @@
 // Executive Function Cortex: Action Generator
 // Analyzes context and generates recommended actions
 
+import "server-only";
 import OpenAI from "openai";
-import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import { CognitiveMesh } from "../cognitive-mesh";
 import {
   GeneratedAction,
@@ -15,21 +16,6 @@ import {
 } from "./types";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
-function getSupabase() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  
-  if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error('Missing Supabase environment variables. Please configure NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
-  }
-  
-  return createClient(supabaseUrl, supabaseServiceKey);
-}
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
 
 // ============================================
 // ACTION GENERATION PROMPT
@@ -71,7 +57,7 @@ async function gatherContext(
   userId: string,
   input: GenerateActionsInput
 ): Promise<string> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   const parts: string[] = [];
   const now = new Date();
 
@@ -268,7 +254,7 @@ export async function storeGeneratedActions(
   userId: string,
   actions: GeneratedAction[]
 ): Promise<string[]> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   const ids: string[] = [];
 
   for (const action of actions) {
@@ -319,7 +305,7 @@ export async function getSuggestedActions(
     actionTypes?: ActionType[];
   } = {}
 ): Promise<GeneratedAction[]> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
 
   let query = supabase
     .from("efc_generated_actions")
@@ -355,7 +341,7 @@ export async function updateActionStatus(
   actionId: string,
   status: "accepted" | "rejected" | "completed" | "deferred"
 ): Promise<void> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   const updates: any = { status };
 
   if (status === "accepted") {

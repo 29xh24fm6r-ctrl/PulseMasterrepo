@@ -4,10 +4,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getMythicCoachVoiceForSession } from '@/lib/mythic_coach/voice/strategy';
-import { supabaseAdminClient } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -27,14 +27,14 @@ export async function GET(req: NextRequest) {
 
     const [voiceResult, archetypesRes, emotionRes] = await Promise.all([
       getMythicCoachVoiceForSession(userId),
-      supabaseAdminClient
+      supabaseAdmin
         .from('archetype_snapshots')
         .select('*')
         .eq('user_id', dbUserId)
         .order('snapshot_time', { ascending: false })
         .limit(1)
         .maybeSingle(),
-      supabaseAdminClient
+      supabaseAdmin
         .from('emotion_state_daily')
         .select('*')
         .eq('user_id', dbUserId)

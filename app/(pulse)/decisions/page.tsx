@@ -1,16 +1,14 @@
-"use client";
+import { auth } from "@clerk/nextjs/server";
+import { getDecisionsOverview } from "@/lib/decisions/overview";
+import DecisionsOverview from "@/components/decisions/decisions-overview";
 
-/**
- * Decisions Surface - Resolution Engine
- * app/(pulse)/decisions/page.tsx
- */
+export default async function DecisionsPage() {
+  const { userId } = await auth();
+  if (!userId) {
+    return <div className="p-8 text-red-400">Unauthorized</div>;
+  }
 
-export default function DecisionsPage() {
-  return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold text-white mb-6">Decisions - Resolution Engine</h1>
-      <div className="text-gray-400">Coming soon...</div>
-    </div>
-  );
+  const data = await getDecisionsOverview(userId);
+  return <DecisionsOverview data={data} />;
 }
 

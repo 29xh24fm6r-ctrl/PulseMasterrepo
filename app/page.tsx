@@ -1,7 +1,5 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import { RevolutionaryDashboard } from "@/app/components/dashboard/RevolutionaryDashboard";
-
-export default function Home() {
-  return <RevolutionaryDashboard />;
+export default function Root() {
+  redirect("/home");
 }

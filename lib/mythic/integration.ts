@@ -1,10 +1,11 @@
 // Mythic Intelligence Layer v1 - Integration Hooks
 // lib/mythic/integration.ts
 
-import { supabaseAdminClient } from '../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -17,7 +18,7 @@ export async function syncMythicToIdentity(userId: string): Promise<void> {
   const dbUserId = await resolveUserId(userId);
 
   // Get mythic profile
-  const { data: profile } = await supabaseAdminClient
+  const { data: profile } = await supabaseAdmin
     .from('user_mythic_profile')
     .select('*, life_chapters(*)')
     .eq('user_id', dbUserId)
@@ -27,7 +28,7 @@ export async function syncMythicToIdentity(userId: string): Promise<void> {
 
   // Get archetype names
   const archetypeIds = profile.dominant_life_archetypes?.map((a: any) => a.archetype_id) ?? [];
-  const { data: archetypes } = await supabaseAdminClient
+  const { data: archetypes } = await supabaseAdmin
     .from('mythic_archetypes')
     .select('id, name, slug')
     .in('id', archetypeIds);
@@ -36,7 +37,7 @@ export async function syncMythicToIdentity(userId: string): Promise<void> {
   const mythicRoles = archetypeNames.join('-');
 
   // Update identity snapshot with mythic data
-  const { data: latestIdentity } = await supabaseAdminClient
+  const { data: latestIdentity } = await supabaseAdmin
     .from('identity_snapshots')
     .select('*')
     .eq('user_id', dbUserId)
@@ -45,7 +46,7 @@ export async function syncMythicToIdentity(userId: string): Promise<void> {
     .maybeSingle();
 
   if (latestIdentity) {
-    await supabaseAdminClient
+    await supabaseAdmin
       .from('identity_snapshots')
       .update({
         mythic_roles: mythicRoles,
@@ -61,7 +62,7 @@ export async function syncMythicToDestiny(userId: string): Promise<void> {
   const dbUserId = await resolveUserId(userId);
 
   // Get current chapter and profile
-  const { data: profile } = await supabaseAdminClient
+  const { data: profile } = await supabaseAdmin
     .from('user_mythic_profile')
     .select('*, life_chapters(*)')
     .eq('user_id', dbUserId)
@@ -72,7 +73,7 @@ export async function syncMythicToDestiny(userId: string): Promise<void> {
   const currentChapter = profile.life_chapters?.[0];
 
   // Update destiny arc with mythic context
-  const { data: destinyArc } = await supabaseAdminClient
+  const { data: destinyArc } = await supabaseAdmin
     .from('destiny_arcs')
     .select('*')
     .eq('user_id', dbUserId)
@@ -82,7 +83,7 @@ export async function syncMythicToDestiny(userId: string): Promise<void> {
     .maybeSingle();
 
   if (destinyArc && currentChapter) {
-    await supabaseAdminClient
+    await supabaseAdmin
       .from('destiny_arcs')
       .update({
         mythic_chapter_id: currentChapter.id,
@@ -98,7 +99,7 @@ export async function applyDealArchetypeToCoaches(dealId: string, userId: string
   const dbUserId = await resolveUserId(userId);
 
   // Get latest deal archetype run
-  const { data: run } = await supabaseAdminClient
+  const { data: run } = await supabaseAdmin
     .from('deal_archetype_runs')
     .select('*, mythic_archetypes(*)')
     .eq('user_id', dbUserId)
@@ -110,7 +111,7 @@ export async function applyDealArchetypeToCoaches(dealId: string, userId: string
   if (!run) return;
 
   // Update deal with archetype context
-  await supabaseAdminClient
+  await supabaseAdmin
     .from('deals')
     .update({
       mythic_archetype_id: run.archetype_id,

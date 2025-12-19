@@ -1,7 +1,8 @@
 // Creative Cortex v2 - Project Manager
 // lib/creative/projects.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { CreativeProject, CreativeProjectKind } from './types';
 
 export async function createCreativeProject(params: {
@@ -14,7 +15,7 @@ export async function createCreativeProject(params: {
 }): Promise<CreativeProject> {
   const { userId, title, description, kind, relatedNodeId, tags } = params;
 
-  const { data, error } = await supabaseAdminClient
+  const { data, error } = await supabaseAdmin
     .from('creative_projects')
     .insert({
       user_id: userId,
@@ -32,7 +33,7 @@ export async function createCreativeProject(params: {
 }
 
 export async function listCreativeProjects(userId: string): Promise<CreativeProject[]> {
-  const { data, error } = await supabaseAdminClient
+  const { data, error } = await supabaseAdmin
     .from('creative_projects')
     .select('*')
     .eq('user_id', userId)
@@ -43,7 +44,7 @@ export async function listCreativeProjects(userId: string): Promise<CreativeProj
 }
 
 export async function getCreativeProject(userId: string, projectId: string): Promise<CreativeProject | null> {
-  const { data, error } = await supabaseAdminClient
+  const { data, error } = await supabaseAdmin
     .from('creative_projects')
     .select('*')
     .eq('id', projectId)

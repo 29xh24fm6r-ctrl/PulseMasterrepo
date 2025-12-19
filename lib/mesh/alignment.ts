@@ -3,7 +3,7 @@
 
 import { supabaseAdmin } from "@/lib/supabase";
 import { getTwinModel } from "@/lib/twin/engine";
-import { buildPulseCortexContext } from "@/lib/cortex/context";
+import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 import { callAIJson } from "@/lib/ai/call";
 
 export interface UserCollectiveAlignment {
@@ -42,7 +42,7 @@ export async function computeUserCollectiveAlignment(
   }
 
   // Get Cortex context
-  const ctx = await buildPulseCortexContext(userId);
+  const ctx = await getWorkCortexContextForUser(userId);
 
   // Compute alignment for each pattern
   const systemPrompt = `You are computing how well a user aligns with collective patterns.

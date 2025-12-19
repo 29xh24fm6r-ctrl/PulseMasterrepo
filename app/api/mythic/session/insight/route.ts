@@ -3,11 +3,11 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { supabaseAdminClient } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { syncMythicToIdentity } from '@/lib/mythic/integration';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     const dbUserId = await resolveUserId(userId);
 
     // Get existing session
-    const { data: session, error: sessionError } = await supabaseAdminClient
+    const { data: session, error: sessionError } = await supabaseAdmin
       .from('mythic_sessions')
       .select('*')
       .eq('id', sessionId)
@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
       created_at: new Date().toISOString(),
     });
 
-    const { error: updateError } = await supabaseAdminClient
+    const { error: updateError } = await supabaseAdmin
       .from('mythic_sessions')
       .update({ insights })
       .eq('id', sessionId);

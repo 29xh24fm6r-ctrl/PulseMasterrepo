@@ -2,7 +2,7 @@
 // lib/zero-friction/guardian-mode.ts
 
 import { supabaseAdmin } from "@/lib/supabase";
-import { buildPulseCortexContext } from "@/lib/cortex/context";
+import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 import { getCognitiveProfile } from "./cognitive-profile";
 
 export interface GuardianState {
@@ -27,7 +27,7 @@ export async function checkGuardianMode(userId: string): Promise<GuardianState> 
   const dbUserId = userRow?.id || userId;
 
   // Get current state
-  const ctx = await buildPulseCortexContext(userId);
+  const ctx = await getWorkCortexContextForUser(userId);
   const profile = await getCognitiveProfile(userId);
 
   // Get recent interaction events

@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 import { AppCard } from "@/components/ui/AppCard";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { Badge } from "@/components/ui/badge";
-import { buildPulseCortexContext } from "@/lib/cortex/context";
+import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 import { buildSocialGraph, detectOpportunities, detectRisks } from "@/lib/relationships/social-graph";
 import { Users, AlertTriangle, Target, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -61,7 +61,7 @@ export default function RelationshipsDashboardV2Page() {
   async function loadRelationshipData() {
     setLoading(true);
     try {
-      const ctx = await buildPulseCortexContext("user_123"); // Would get from auth
+      const ctx = await getWorkCortexContextForUser("user_123"); // Would get from auth
       const graph = await buildSocialGraph("user_123", ctx);
       const opportunities = detectOpportunities(graph);
       const risks = detectRisks(graph);

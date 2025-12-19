@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { createExperimentForIdeas } from '@/lib/masterbrain/evolution/experiments';
-import { supabaseAdminClient } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 
 export async function GET(req: NextRequest) {
   try {
@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
     const searchParams = req.nextUrl.searchParams;
     const status = searchParams.get('status');
 
-    let query = supabaseAdminClient
+    let query = supabaseAdmin
       .from('system_experiments')
       .select('*')
       .order('created_at', { ascending: false });

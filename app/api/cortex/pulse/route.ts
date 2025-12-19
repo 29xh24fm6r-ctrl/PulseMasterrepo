@@ -3,7 +3,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { buildPulseCortexContext } from "@/lib/cortex/context";
+import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 import { runAutonomy } from "@/lib/cortex/autonomy/v3";
 import { logTrace } from "@/lib/cortex/trace/trace";
 
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
       domain: "global",
     });
 
-    const context = await buildPulseCortexContext(userId);
+    const context = await getWorkCortexContextForUser(userId);
 
     await logTrace(
       userId,

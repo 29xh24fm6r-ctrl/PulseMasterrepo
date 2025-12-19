@@ -4,10 +4,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { runBranchSimulations } from '@/lib/simulation/multitimeline';
-import { supabaseAdminClient } from '@/lib/supabase/admin';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -29,7 +29,7 @@ export async function POST(
     const userId = await resolveUserId(clerkId);
 
     // Verify tree belongs to user
-    const { data: tree } = await supabaseAdminClient
+    const { data: tree } = await supabaseAdmin
       .from('decision_trees')
       .select('*')
       .eq('id', params.treeId)

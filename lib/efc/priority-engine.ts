@@ -1,7 +1,8 @@
 // Executive Function Cortex: Priority Engine
 // Ranks actions by urgency, importance, energy match, and context
 
-import { createClient } from "@supabase/supabase-js";
+import "server-only";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import {
   GeneratedAction,
   PrioritizedAction,
@@ -12,17 +13,6 @@ import {
   TimeBlock,
   PrioritizeInput,
 } from "./types";
-
-function getSupabase() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  
-  if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error('Missing Supabase environment variables. Please configure NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
-  }
-  
-  return createClient(supabaseUrl, supabaseServiceKey);
-}
 
 // ============================================
 // SCORING WEIGHTS
@@ -193,7 +183,7 @@ export async function updateStoredPriorities(
   energy_state?: EnergyState,
   focus_areas?: string[]
 ): Promise<number> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
 
   // Get all suggested actions
   const { data: actions } = await supabase
@@ -235,7 +225,7 @@ export async function getTopPriorities(
     focus_areas?: string[];
   } = {}
 ): Promise<PrioritizedAction[]> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
 
   const { data: actions } = await supabase
     .from("efc_generated_actions")

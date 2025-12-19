@@ -1,7 +1,9 @@
 // Third Brain v3: AI Extraction Engine
 // Uses GPT to extract entities, relationships, and fragments from raw events
 
+import "server-only";
 import OpenAI from "openai";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import {
   FragmentType,
   EntityType,
@@ -298,11 +300,7 @@ export async function processUnprocessedEvents(
   userId: string,
   limit: number = 50
 ): Promise<{ processed: number; errors: number }> {
-  const { createClient } = await import("@supabase/supabase-js");
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const supabase = supabaseAdmin;
 
   const { data: events } = await supabase
     .from("tb_raw_events")

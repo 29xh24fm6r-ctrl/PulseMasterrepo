@@ -3,7 +3,7 @@
 
 import { supabaseAdmin } from "@/lib/supabase";
 import { getTwinModel } from "@/lib/twin/engine";
-import { buildPulseCortexContext } from "@/lib/cortex/context";
+import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 import { generateFutureSelfPrediction } from "@/lib/future-self/model";
 import { callAIJson } from "@/lib/ai/call";
 
@@ -66,7 +66,7 @@ export async function runParallelLifeSimulation(
   }
 
   // 2. Load neural reality physiology patterns
-  const ctx = await buildPulseCortexContext(input.userId);
+  const ctx = await getWorkCortexContextForUser(input.userId);
 
   // 3. Load societal archetype norms
   // (Would fetch from societal layer)

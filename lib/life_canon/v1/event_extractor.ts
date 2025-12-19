@@ -1,14 +1,15 @@
 // Life Canon v1 - Event Extractor
 // lib/life_canon/v1/event_extractor.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { callAIJson } from '@/lib/ai/call';
 import { EVENT_EXTRACTOR_PROMPT } from './narrative_prompts';
 import { buildLifeCanonContext } from './context';
 import { CanonEvent } from './types';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -46,7 +47,7 @@ export async function extractCanonEventsForUser(userId: string, now: Date) {
   const events = result.data.events ?? [];
 
   // Get active chapter
-  const { data: activeChapter } = await supabaseAdminClient
+  const { data: activeChapter } = await supabaseAdmin
     .from('life_chapters')
     .select('id')
     .eq('user_id', dbUserId)
@@ -60,7 +61,7 @@ export async function extractCanonEventsForUser(userId: string, now: Date) {
   for (const event of events) {
     // Check if similar event already exists (by title in last 7 days)
     const sevenDaysAgo = new Date(now.getTime() - 7 * 86400000).toISOString();
-    const { data: existing } = await supabaseAdminClient
+    const { data: existing } = await supabaseAdmin
       .from('canon_events')
       .select('id')
       .eq('user_id', dbUserId)
@@ -74,7 +75,7 @@ export async function extractCanonEventsForUser(userId: string, now: Date) {
       continue;
     }
 
-    const { data: inserted, error } = await supabaseAdminClient
+    const { data: inserted, error } = await supabaseAdmin
       .from('canon_events')
       .insert({
         user_id: dbUserId,

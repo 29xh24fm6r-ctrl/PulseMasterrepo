@@ -1,7 +1,8 @@
 // Global Sense of Self Mirror v1 - Snapshot Engine
 // lib/selfmirror/snapshots.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { callAI } from '@/lib/ai/call';
 import { SelfIdentitySnapshot, SnapshotSource } from './types';
 import { ingestSignalsFromSystems } from './signals';
@@ -14,7 +15,7 @@ export async function buildSelfIdentitySnapshot(
   await ingestSignalsFromSystems(userId);
 
   // 2. Load Identity Engine data
-  const { data: identityProfile } = await supabaseAdminClient
+  const { data: identityProfile } = await supabaseAdmin
     .from('identity_profiles')
     .select('*')
     .eq('user_id', userId)
@@ -28,7 +29,7 @@ export async function buildSelfIdentitySnapshot(
   const vulnerabilities = identityProfile?.vulnerabilities ?? [];
 
   // 3. Load Mythic data
-  const { data: mythicProfile } = await supabaseAdminClient
+  const { data: mythicProfile } = await supabaseAdmin
     .from('user_mythic_profile')
     .select('*')
     .eq('user_id', userId)
@@ -37,7 +38,7 @@ export async function buildSelfIdentitySnapshot(
   const archetypes = mythicProfile?.dominant_archetypes ?? [];
 
   // 4. Load latest Civilization domain state
-  const { data: domainStates } = await supabaseAdminClient
+  const { data: domainStates } = await supabaseAdmin
     .from('civilization_domain_state')
     .select('*, civilization_domains(*)')
     .eq('civilization_domains.user_id', userId)
@@ -63,7 +64,7 @@ export async function buildSelfIdentitySnapshot(
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
   const thirtyDaysAgoStr = thirtyDaysAgo.toISOString();
 
-  const { data: signals } = await supabaseAdminClient
+  const { data: signals } = await supabaseAdmin
     .from('self_perception_signals')
     .select('*')
     .eq('user_id', userId)
@@ -116,7 +117,7 @@ Write a compassionate, insightful summary that captures who they are and how the
   const selfStory = storyResult.success && storyResult.content ? storyResult.content : null;
 
   // 7. Save snapshot
-  const { data: snapshot, error } = await supabaseAdminClient
+  const { data: snapshot, error } = await supabaseAdmin
     .from('self_identity_snapshots')
     .insert({
       user_id: userId,

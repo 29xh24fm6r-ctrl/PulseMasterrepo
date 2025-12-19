@@ -6,7 +6,6 @@
 import { useState, useEffect } from "react";
 import { MessageSquare, Phone, Mail, AlertCircle, CheckCircle2, ArrowRight, Mic, BookOpen, X } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
 
 interface CommsOverviewData {
   attentionScore: {

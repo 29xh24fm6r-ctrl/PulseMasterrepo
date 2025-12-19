@@ -1,11 +1,12 @@
 // Executive Council Mode v1 - Context Builder
 // lib/executive_council/v1/context.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { CouncilDecisionContext } from './types';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -40,60 +41,60 @@ export async function buildCouncilDecisionContext(
     financialState,
     destinySnapshot,
   ] = await Promise.all([
-    supabaseAdminClient
+    supabaseAdmin
       .from('strategic_state_snapshots')
       .select('*')
       .eq('user_id', dbUserId)
       .order('snapshot_time', { ascending: false })
       .limit(1),
-    supabaseAdminClient
+    supabaseAdmin
       .from('strategic_equilibria')
       .select('*')
       .eq('user_id', dbUserId)
       .order('created_at', { ascending: false })
       .limit(1),
-    supabaseAdminClient
+    supabaseAdmin
       .from('narrative_snapshots')
       .select('*')
       .eq('user_id', dbUserId)
       .order('created_at', { ascending: false })
       .limit(1),
-    supabaseAdminClient
+    supabaseAdmin
       .from('self_mirror_snapshots')
       .select('*')
       .eq('user_id', dbUserId)
       .order('created_at', { ascending: false })
       .limit(1),
-    supabaseAdminClient
+    supabaseAdmin
       .from('emotion_state_daily')
       .select('*')
       .eq('user_id', dbUserId)
       .eq('date', day)
       .maybeSingle(),
-    supabaseAdminClient
+    supabaseAdmin
       .from('somatic_state_daily')
       .select('*')
       .eq('user_id', dbUserId)
       .eq('date', day)
       .maybeSingle(),
-    supabaseAdminClient
+    supabaseAdmin
       .from('relational_state_snapshots')
       .select('*')
       .eq('user_id', dbUserId)
       .order('snapshot_time', { ascending: false })
       .limit(20),
-    supabaseAdminClient
+    supabaseAdmin
       .from('cultural_profiles')
       .select('*')
       .eq('user_id', dbUserId),
-    supabaseAdminClient
-      .from('financial_state_snapshots')  -- assuming or create later
+    supabaseAdmin
+      .from("financial_state_snapshots") // assuming or create later
       .select('*')
       .eq('user_id', dbUserId)
       .order('snapshot_time', { ascending: false })
       .limit(1)
       .maybeSingle(),
-    supabaseAdminClient
+    supabaseAdmin
       .from('destiny_arcs')
       .select('*')
       .eq('user_id', dbUserId)

@@ -1,7 +1,8 @@
 // Decision Theater v2 - Branch Comparison Engine
 // lib/boardroom/theater_v2/compare.ts
 
-import { supabaseAdminClient } from '../../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { callAIJson } from '@/lib/ai/call';
 import { BranchComparison } from './types';
 
@@ -14,7 +15,7 @@ export async function compareBranches(params: {
   // 1. Load relevant runs
   let runs;
   if (runIds && runIds.length > 0) {
-    const { data } = await supabaseAdminClient
+    const { data } = await supabaseAdmin
       .from('branch_simulation_runs')
       .select('*')
       .in('id', runIds)
@@ -23,7 +24,7 @@ export async function compareBranches(params: {
     runs = data ?? [];
   } else {
     // Get most recent runs for tree
-    const { data } = await supabaseAdminClient
+    const { data } = await supabaseAdmin
       .from('branch_simulation_runs')
       .select('*')
       .eq('tree_id', treeId)
@@ -45,7 +46,7 @@ export async function compareBranches(params: {
     }
   }
 
-  const { data: nodes } = await supabaseAdminClient
+  const { data: nodes } = await supabaseAdmin
     .from('decision_tree_nodes')
     .select('id, label')
     .in('id', Array.from(allNodeIds));
@@ -102,7 +103,7 @@ Provide:
   const { summary, recommendation, key_differences } = result.data;
 
   // 5. Save comparison
-  const { data: comparison, error } = await supabaseAdminClient
+  const { data: comparison, error } = await supabaseAdmin
     .from('branch_comparisons')
     .insert({
       tree_id: treeId,

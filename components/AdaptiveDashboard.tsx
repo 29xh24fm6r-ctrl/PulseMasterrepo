@@ -556,7 +556,7 @@ function ProspectingWidget() {
           <div className="text-xs text-zinc-500">Goal</div>
         </div>
       </div>
-      <Link href="/contacts" className="text-xs text-cyan-400 hover:text-cyan-300 mt-2 inline-block">
+      <Link href="/people" className="text-xs text-cyan-400 hover:text-cyan-300 mt-2 inline-block">
         Start prospecting →
       </Link>
     </WidgetCard>

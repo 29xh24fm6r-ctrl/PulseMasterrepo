@@ -1,7 +1,8 @@
 // Global Sense of Self Mirror v1 - Signal Aggregator
 // lib/selfmirror/signals.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { SelfPerceptionSignal, SignalCategory, SignalDirection, SignalSource } from './types';
 
 export async function recordSelfPerceptionSignal(params: {
@@ -15,7 +16,7 @@ export async function recordSelfPerceptionSignal(params: {
 }): Promise<void> {
   const { userId, source, category, direction, description, weight = 1.0, occurredAt } = params;
 
-  await supabaseAdminClient
+  await supabaseAdmin
     .from('self_perception_signals')
     .insert({
       user_id: userId,
@@ -34,7 +35,7 @@ export async function ingestSignalsFromSystems(userId: string): Promise<void> {
   const thirtyDaysAgoStr = thirtyDaysAgo.toISOString();
 
   // 1. Tasks: followthrough signals
-  const { data: tasks } = await supabaseAdminClient
+  const { data: tasks } = await supabaseAdmin
     .from('tasks')
     .select('id, due_date, completed_at, status')
     .eq('user_id', userId)
@@ -71,7 +72,7 @@ export async function ingestSignalsFromSystems(userId: string): Promise<void> {
   }
 
   // 2. Calendar: overload signals
-  const { data: calendarEvents } = await supabaseAdminClient
+  const { data: calendarEvents } = await supabaseAdmin
     .from('calendar_events')
     .select('id, start_time, end_time')
     .eq('user_id', userId)
@@ -101,7 +102,7 @@ export async function ingestSignalsFromSystems(userId: string): Promise<void> {
   }
 
   // 3. Emotion OS: replenishment signals
-  const { data: emotionStates } = await supabaseAdminClient
+  const { data: emotionStates } = await supabaseAdmin
     .from('emotion_state_daily')
     .select('date, stress_score, resilience_score')
     .eq('user_id', userId)
@@ -124,7 +125,7 @@ export async function ingestSignalsFromSystems(userId: string): Promise<void> {
   }
 
   // 4. Civilization domains: balance signals
-  const { data: domainStates } = await supabaseAdminClient
+  const { data: domainStates } = await supabaseAdmin
     .from('civilization_domain_state')
     .select('*, civilization_domains(*)')
     .eq('civilization_domains.user_id', userId)

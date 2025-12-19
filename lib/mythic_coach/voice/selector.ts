@@ -1,7 +1,8 @@
 // Mythic Coach Voice Persona v1 - Voice Selector
 // lib/mythic_coach/voice/selector.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 
 export interface MythicVoiceContext {
   userId: string;
@@ -12,7 +13,7 @@ export interface MythicVoiceContext {
 }
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -28,7 +29,7 @@ export async function selectMythicVoiceProfile(
   const dbUserId = await resolveUserId(userId);
 
   // 1) User-specific mapping for this archetype+mode
-  const { data: userMappings } = await supabaseAdminClient
+  const { data: userMappings } = await supabaseAdmin
     .from('mythic_voice_mappings')
     .select('*')
     .eq('user_id', dbUserId)
@@ -46,7 +47,7 @@ export async function selectMythicVoiceProfile(
   }
 
   // 2) System-level default mappings
-  const { data: systemMappings } = await supabaseAdminClient
+  const { data: systemMappings } = await supabaseAdmin
     .from('mythic_voice_mappings')
     .select('*')
     .is('user_id', null);

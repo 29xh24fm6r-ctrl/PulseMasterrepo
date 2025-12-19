@@ -1,14 +1,14 @@
 // Coach Context Builder (Cortex-Driven)
 // lib/coaching/cortex/context.ts
 
-import { buildPulseCortexContext } from "@/lib/cortex/context";
+import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 import { CoachContext } from "./types";
 
 /**
  * Build coach context from Cortex
  */
 export async function buildCoachContext(userId: string): Promise<CoachContext> {
-  const cortex = await buildPulseCortexContext(userId);
+  const cortex = await getWorkCortexContextForUser(userId);
 
   return {
     cortex,

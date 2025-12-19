@@ -2,8 +2,22 @@
 // lib/relationships/social-graph/graph-builder.ts
 
 import { supabaseAdmin } from "@/lib/supabase";
-import { PulseCortexContext } from "@/lib/cortex/types";
 import { SocialGraph, SocialGraphNode, SocialGraphEdge, SocialNodeCategory } from "./types";
+
+// Local type alias to match usage pattern
+export type PulseCortexContext = {
+  domains?: {
+    relationships?: {
+      keyPeople?: Array<{
+        id: string;
+        name: string;
+        relationshipScore: number;
+        daysSinceInteraction: number;
+        lastInteractionAt?: string;
+      }>;
+    };
+  };
+};
 
 /**
  * Build complete social graph
@@ -47,7 +61,7 @@ async function buildGraphNodes(
   const nodes: SocialGraphNode[] = [];
 
   // Get relationships from domain context
-  const relationships = ctx.domains.relationships?.keyPeople || [];
+  const relationships = ctx.domains?.relationships?.keyPeople || [];
 
   for (const person of relationships) {
     // Determine category (simplified - would need more data)
@@ -242,6 +256,3 @@ function detectClusters(
 
   return clusters;
 }
-
-
-

@@ -1,11 +1,12 @@
 // Mythic Coach Voice Persona v1 - Voice Strategy
 // lib/mythic_coach/voice/strategy.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { selectMythicVoiceProfile, MythicVoiceContext } from './selector';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -18,14 +19,14 @@ export async function getMythicCoachVoiceForSession(userId: string) {
   const dbUserId = await resolveUserId(userId);
 
   const [archetypesRes, emotionRes] = await Promise.all([
-    supabaseAdminClient
+    supabaseAdmin
       .from('archetype_snapshots')
       .select('*')
       .eq('user_id', dbUserId)
       .order('snapshot_time', { ascending: false })
       .limit(1)
       .maybeSingle(),
-    supabaseAdminClient
+    supabaseAdmin
       .from('emotion_state_daily')
       .select('*')
       .eq('user_id', dbUserId)

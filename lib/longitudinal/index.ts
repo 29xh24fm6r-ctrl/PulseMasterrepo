@@ -1,17 +1,7 @@
 // Longitudinal Modeling Library
-import { createClient } from "@supabase/supabase-js";
+import "server-only";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import { LLM } from "../llm/client";
-
-function getSupabase() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  
-  if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error('Missing Supabase environment variables. Please configure NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
-  }
-  
-  return createClient(supabaseUrl, supabaseServiceKey);
-}
 
 export interface Snapshot {
   id: string;
@@ -73,7 +63,7 @@ export interface Trajectory {
 }
 
 export async function createSnapshot(userId: string, type: "weekly" | "monthly" | "quarterly" | "yearly"): Promise<Snapshot> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   const now = new Date();
   let periodStart: Date;
 
@@ -101,7 +91,7 @@ export async function createSnapshot(userId: string, type: "weekly" | "monthly" 
 }
 
 async function gatherMetrics(userId: string, start: Date, end: Date): Promise<Record<string, any>> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   const { data: emotions } = await supabase.from("emo_states").select("detected_emotion, intensity, valence").eq("user_id", userId).gte("occurred_at", start.toISOString()).lte("occurred_at", end.toISOString());
   const { data: tasks } = await supabase.from("tasks").select("status").eq("user_id", userId).gte("created_at", start.toISOString()).lte("created_at", end.toISOString());
 
@@ -130,7 +120,7 @@ async function generateNarrative(metrics: Record<string, any>, type: string): Pr
 }
 
 export async function getSnapshots(userId: string, type?: "weekly" | "monthly" | "quarterly" | "yearly"): Promise<Snapshot[]> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   let query = supabase.from("long_snapshots").select("*").eq("user_id", userId).order("period_start", { ascending: false });
   if (type) query = query.eq("snapshot_type", type);
   const { data } = await query.limit(50);
@@ -138,14 +128,14 @@ export async function getSnapshots(userId: string, type?: "weekly" | "monthly" |
 }
 
 export async function detectTrends(userId: string): Promise<Trend[]> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   const { data: snapshots } = await supabase.from("long_snapshots").select("*").eq("user_id", userId).order("period_start", { ascending: true }).limit(12);
   if (!snapshots || snapshots.length < 3) return [];
   return [];
 }
 
 export async function startChapter(userId: string, title: string, focus?: string, themes?: string[]): Promise<Chapter> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   await supabase.from("long_chapters").update({ status: "completed", end_date: new Date().toISOString().split("T")[0] }).eq("user_id", userId).eq("status", "active");
   const { data, error } = await supabase.from("long_chapters").insert({ user_id: userId, chapter_title: title, start_date: new Date().toISOString().split("T")[0], primary_focus: focus, themes: themes || [] }).select().single();
   if (error) throw error;
@@ -153,13 +143,13 @@ export async function startChapter(userId: string, title: string, focus?: string
 }
 
 export async function getCurrentChapter(userId: string): Promise<Chapter | null> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   const { data } = await supabase.from("long_chapters").select("*").eq("user_id", userId).eq("status", "active").single();
   return data;
 }
 
 export async function recordMilestone(userId: string, milestone: { type: string; title: string; description?: string; date?: Date; significance?: number }): Promise<Milestone> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   const chapter = await getCurrentChapter(userId);
   const { data, error } = await supabase.from("long_milestones").insert({
     user_id: userId,
@@ -175,7 +165,7 @@ export async function recordMilestone(userId: string, milestone: { type: string;
 }
 
 export async function updateTrajectory(userId: string, attribute: string, level: number, note?: string): Promise<Trajectory> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   const { data: existing } = await supabase.from("long_trajectories").select("*").eq("user_id", userId).eq("attribute_name", attribute).single();
   const newPoint = { date: new Date().toISOString().split("T")[0], level, note };
 

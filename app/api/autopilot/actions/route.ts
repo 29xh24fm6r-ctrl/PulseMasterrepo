@@ -1,34 +1,22 @@
-// Autopilot Actions API
 // app/api/autopilot/actions/route.ts
-
+// Sprint 4: Get automation actions for command center
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { resolveSupabaseUser } from "@/lib/auth/resolveSupabaseUser";
+import { supabaseAdmin } from "@/lib/supabase/admin";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    // Get user's database ID
-    const { data: userRow } = await supabaseAdmin
-      .from("users")
-      .select("id")
-      .eq("clerk_id", userId)
-      .single();
-
-    const dbUserId = userRow?.id || userId;
-
-    const searchParams = req.nextUrl.searchParams;
-    const status = searchParams.get("status");
+    const { supabaseUserId } = await resolveSupabaseUser();
+    const { searchParams } = new URL(req.url);
     const limit = parseInt(searchParams.get("limit") || "50", 10);
+    const status = searchParams.get("status");
 
     let query = supabaseAdmin
-      .from("autopilot_actions")
+      .from("automation_actions")
       .select("*")
-      .eq("user_id", dbUserId)
+      .eq("user_id", supabaseUserId)
       .order("created_at", { ascending: false })
       .limit(limit);
 
@@ -36,18 +24,12 @@ export async function GET(req: NextRequest) {
       query = query.eq("status", status);
     }
 
-    const { data: actions } = await query;
+    const { data: actions, error } = await query;
 
-    return NextResponse.json(actions || []);
+    if (error) throw error;
+
+    return NextResponse.json({ ok: true, items: actions || [] });
   } catch (err: any) {
-    console.error("[Autopilot] Error:", err);
-    return NextResponse.json(
-      { error: err.message || "Failed to get actions" },
-      { status: 500 }
-    );
+    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
   }
 }
-
-
-
-

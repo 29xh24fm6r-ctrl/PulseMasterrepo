@@ -1,15 +1,9 @@
 // Identity Engine v2 Core Library
 // Deep self-understanding: values, strengths, growth areas, life narrative
 
-import { createClient } from "@supabase/supabase-js";
+import "server-only";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import { llmJson, llmComplete } from "@/lib/llm/client";
-
-function getSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
 
 // ============================================
 // TYPES
@@ -88,7 +82,7 @@ export async function addValue(
     source?: string;
   }
 ): Promise<Value> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
 
   const { data, error } = await supabase
     .from("id_values")
@@ -108,7 +102,7 @@ export async function addValue(
 }
 
 export async function getValues(userId: string): Promise<Value[]> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
 
   const { data } = await supabase
     .from("id_values")
@@ -121,7 +115,7 @@ export async function getValues(userId: string): Promise<Value[]> {
 }
 
 export async function inferValuesFromBehavior(userId: string): Promise<Value[]> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
 
   // Get recent fragments and patterns
   const { data: fragments } = await supabase
@@ -192,7 +186,7 @@ export async function addStrength(
     source?: string;
   }
 ): Promise<Strength> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
 
   const { data, error } = await supabase
     .from("id_strengths")
@@ -213,7 +207,7 @@ export async function addStrength(
 }
 
 export async function getStrengths(userId: string): Promise<Strength[]> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
 
   const { data } = await supabase
     .from("id_strengths")
@@ -228,7 +222,7 @@ export async function reinforceStrength(
   userId: string,
   strengthId: string
 ): Promise<void> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
 
   const { data: current } = await supabase
     .from("id_strengths")
@@ -264,7 +258,7 @@ export async function addGrowthArea(
     strategies?: string[];
   }
 ): Promise<GrowthArea> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
 
   const { data, error } = await supabase
     .from("id_growth_areas")
@@ -285,7 +279,7 @@ export async function addGrowthArea(
 }
 
 export async function getGrowthAreas(userId: string): Promise<GrowthArea[]> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
 
   const { data } = await supabase
     .from("id_growth_areas")
@@ -310,7 +304,7 @@ export async function addRole(
     aspirations?: string;
   }
 ): Promise<Role> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
 
   const { data, error } = await supabase
     .from("id_roles")
@@ -329,7 +323,7 @@ export async function addRole(
 }
 
 export async function getRoles(userId: string): Promise<Role[]> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
 
   const { data } = await supabase
     .from("id_roles")
@@ -353,7 +347,7 @@ export async function addAspiration(
     time_horizon?: string;
   }
 ): Promise<Aspiration> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
 
   const { data, error } = await supabase
     .from("id_aspirations")
@@ -372,7 +366,7 @@ export async function addAspiration(
 }
 
 export async function getAspirations(userId: string): Promise<Aspiration[]> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
 
   const { data } = await supabase
     .from("id_aspirations")
@@ -399,7 +393,7 @@ export async function addNarrativeChapter(
     emotional_tone?: string;
   }
 ): Promise<any> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
 
   // Get next chapter order
   const { data: existing } = await supabase
@@ -431,7 +425,7 @@ export async function addNarrativeChapter(
 }
 
 export async function getNarrative(userId: string): Promise<any[]> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
 
   const { data } = await supabase
     .from("id_narrative_chapters")
@@ -455,7 +449,7 @@ export async function getIdentityProfile(userId: string): Promise<IdentityProfil
     getAspirations(userId),
   ]);
 
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   const { data: beliefs } = await supabase
     .from("id_beliefs")
     .select("*")
@@ -514,7 +508,7 @@ export async function createIdentitySnapshot(
     reflections?: string;
   }
 ): Promise<any> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
 
   const values = await getValues(userId);
   const roles = await getRoles(userId);

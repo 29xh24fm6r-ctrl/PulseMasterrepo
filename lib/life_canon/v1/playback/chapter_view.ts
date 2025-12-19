@@ -1,10 +1,11 @@
 // Life Canon Playback v1 - Chapter View Helpers
 // lib/life_canon/v1/playback/chapter_view.ts
 
-import { supabaseAdminClient } from '../../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -17,19 +18,19 @@ export async function getChapterWithContext(userId: string, chapterId: string) {
   const dbUserId = await resolveUserId(userId);
 
   const [chapterRes, eventsRes, transformsRes] = await Promise.all([
-    supabaseAdminClient
+    supabaseAdmin
       .from('life_chapters')
       .select('*')
       .eq('user_id', dbUserId)
       .eq('id', chapterId)
       .maybeSingle(),
-    supabaseAdminClient
+    supabaseAdmin
       .from('canon_events')
       .select('*')
       .eq('user_id', dbUserId)
       .eq('attached_chapter', chapterId)
       .order('created_at', { ascending: true }),
-    supabaseAdminClient
+    supabaseAdmin
       .from('identity_transforms')
       .select('*')
       .eq('user_id', dbUserId)

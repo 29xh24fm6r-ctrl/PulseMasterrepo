@@ -9,6 +9,8 @@ import { useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { CommandBar } from "@/components/command/CommandBar";
+import { FloatingActions } from "@/components/shell/FloatingActions";
+import { LayoutTrace } from "@/app/components/dev/LayoutTrace";
 import {
   Home,
   Briefcase,
@@ -40,6 +42,7 @@ export default function PulseLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex">
+      <LayoutTrace name="PULSE_SHELL_LAYOUT" />
       {/* Left Navigation */}
       <aside
         className={`${
@@ -100,39 +103,49 @@ export default function PulseLayout({ children }: { children: React.ReactNode })
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top Bar */}
-        <header className="bg-slate-800/30 backdrop-blur-xl border-b border-purple-500/20 px-6 py-3 flex items-center justify-between">
-          <div className="flex-1 max-w-2xl">
-            <CommandBar onOpen={() => setCommandOpen(true)} />
-          </div>
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2 text-sm text-gray-400">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-              <span>Pulse Active</span>
+        {/* Top Bar - Sacred + Readable */}
+        <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/90 backdrop-blur-xl">
+          <div className="px-4 py-2 lg:px-6">
+            <div className="flex items-center gap-3">
+              {/* Left: Command */}
+              <div className="flex-1 min-w-0 max-w-3xl">
+                <CommandBar onOpen={() => setCommandOpen(true)} />
+              </div>
+
+              {/* Right: Status */}
+              <div className="flex items-center gap-3">
+                <div className="hidden sm:flex items-center gap-2 text-xs text-gray-200">
+                  <span className="inline-block w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                  <span>Pulse Active</span>
+                </div>
+              </div>
             </div>
           </div>
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto px-6 py-6">
           {children}
         </main>
+
+        {/* Command Palette Modal */}
+        {commandOpen && (
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-start justify-center pt-20"
+            onClick={() => setCommandOpen(false)}
+          >
+            <div
+              className="bg-slate-800 rounded-2xl border border-purple-500/30 w-full max-w-2xl mx-4 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <CommandBar onOpen={() => {}} expanded={true} onClose={() => setCommandOpen(false)} />
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Command Palette Modal */}
-      {commandOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-start justify-center pt-20"
-          onClick={() => setCommandOpen(false)}
-        >
-          <div
-            className="bg-slate-800 rounded-2xl border border-purple-500/30 w-full max-w-2xl mx-4 shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <CommandBar onOpen={() => {}} expanded={true} onClose={() => setCommandOpen(false)} />
-          </div>
-        </div>
-      )}
+      {/* Global Floating Action Buttons - Single Owner (outside content wrapper for clean layering) */}
+      <FloatingActions />
     </div>
   );
 }

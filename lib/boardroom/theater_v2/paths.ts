@@ -1,7 +1,8 @@
 // Decision Theater v2 - Path Extraction
 // lib/boardroom/theater_v2/paths.ts
 
-import { supabaseAdminClient } from '../../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { TreePath } from './types';
 
 export async function getTreePaths(params: {
@@ -12,7 +13,7 @@ export async function getTreePaths(params: {
   const { treeId, maxDepth = 10, maxPaths = 50 } = params;
 
   // Get all nodes
-  const { data: nodes } = await supabaseAdminClient
+  const { data: nodes } = await supabaseAdmin
     .from('decision_tree_nodes')
     .select('*')
     .eq('tree_id', treeId)
@@ -23,7 +24,7 @@ export async function getTreePaths(params: {
   }
 
   // Get all edges
-  const { data: edges } = await supabaseAdminClient
+  const { data: edges } = await supabaseAdmin
     .from('decision_tree_edges')
     .select('*')
     .eq('tree_id', treeId);

@@ -27,15 +27,24 @@ export default function HomeSacred() {
     fetch("/api/surfaces/home")
       .then((r) => r.json())
       .then((payload) => {
-        setData(payload);
-        // Show flash if present (only once)
-        if (payload.flash && !sessionStorage.getItem("flash_shown_today")) {
-          setShowFlash(true);
-          sessionStorage.setItem("flash_shown_today", "true");
-          setTimeout(() => setShowFlash(false), 5000);
+        // Validate payload structure
+        if (payload && payload.state && payload.state.sentence) {
+          setData(payload);
+          // Show flash if present (only once)
+          if (payload.flash && !sessionStorage.getItem("flash_shown_today")) {
+            setShowFlash(true);
+            sessionStorage.setItem("flash_shown_today", "true");
+            setTimeout(() => setShowFlash(false), 5000);
+          }
+        } else {
+          console.error("[HomeSacred] Invalid payload structure:", payload);
+          setData(null);
         }
       })
-      .catch(() => setData(null));
+      .catch((err) => {
+        console.error("[HomeSacred] Fetch error:", err);
+        setData(null);
+      });
   }, [isLoaded, userId]);
 
   if (!isLoaded) return null;
@@ -43,7 +52,7 @@ export default function HomeSacred() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950 text-white">
       <div className="max-w-7xl mx-auto p-6 space-y-6">
-        {data ? (
+        {data && data.state ? (
           <>
             {/* Flash Moment */}
             {showFlash && data.flash && (
@@ -57,7 +66,7 @@ export default function HomeSacred() {
             {/* Mythic Arc Card */}
             <MythicArcCard onContinue={() => setOpenMythic(true)} />
 
-            <PulseStateBanner sentence={data.state.sentence} chips={data.state.chips} />
+            <PulseStateBanner sentence={data.state.sentence} chips={data.state.chips || []} />
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
               <div className="lg:col-span-7">

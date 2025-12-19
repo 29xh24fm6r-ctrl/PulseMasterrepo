@@ -48,7 +48,7 @@ export default function CreateModal({ isOpen, onClose, type }: CreateModalProps)
     },
     contact: {
       title: '👤 Add Contact',
-      endpoint: '/api/second-brain/create',
+      endpoint: '/api/contacts',
     },
     deal: {
       title: '💰 Create Deal',
@@ -107,11 +107,9 @@ export default function CreateModal({ isOpen, onClose, type }: CreateModalProps)
         payload = {
           firstName: firstName.trim(),
           lastName: lastName.trim(),
-          company: contactCompany.trim(),
-          email: contactEmail.trim(),
-          phone: contactPhone.trim(),
-          useAI: true,
-          autoResearch: true
+          company: contactCompany.trim() || undefined,
+          email: contactEmail.trim() || undefined,
+          phone: contactPhone.trim() || undefined,
         };
       } else if (type === 'deal') {
         payload = {
@@ -128,23 +126,43 @@ export default function CreateModal({ isOpen, onClose, type }: CreateModalProps)
         };
       }
 
-      const response = await fetch(config.endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
+      // Use postJson helper for consistent error handling
+      if (type === 'contact') {
+        const { postJson } = await import('@/lib/http/postJson');
+        const { ok, data } = await postJson('/api/contacts', payload);
+        
+        if (!ok) {
+          const msg = data?.error || 'Failed to create contact';
+          setError(msg);
+          return;
+        }
+        
         setSuccess(true);
-        setAiData(data[type] || data.task || data.contact || data.deal);
+        setAiData(data.contact || data);
         setTimeout(() => {
           onClose();
           resetForm();
         }, 2500);
       } else {
-        setError(data.error || 'Failed to create');
+        // Other types (task, deal) use their existing endpoints
+        const response = await fetch(config.endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await response.json();
+
+        if (data.ok || data.success) {
+          setSuccess(true);
+          setAiData(data[type] || data.task || data.contact || data.deal || data);
+          setTimeout(() => {
+            onClose();
+            resetForm();
+          }, 2500);
+        } else {
+          setError(data.error || 'Failed to create');
+        }
       }
     } catch (err: any) {
       setError(err.message || 'Something went wrong');

@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Mic, X } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
 // Compact Pulse Face
 function PulseFace({ size = 120, speaking = false, listening = false }: { size?: number; speaking?: boolean; listening?: boolean }) {
@@ -40,8 +40,26 @@ function PulseFace({ size = 120, speaking = false, listening = false }: { size?:
 }
 
 export default function GlobalVoiceButton() {
+  // DEPRECATED: This component is deprecated. Use Pulse shell FloatingActions instead.
+  // Keeping for backward compatibility but should not be mounted globally.
+  if (process.env.NODE_ENV !== "production") {
+    console.warn("[GlobalVoiceButton] DEPRECATED: GlobalVoiceButton is deprecated. Use Pulse shell FloatingActions instead. This component should not be mounted globally.");
+  }
+
   const router = useRouter();
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+
+  // Hard-disable: always return null
+  return null;
+
+  // Legacy code preserved but unreachable:
+  const pulseRoutes = ['/home', '/workspace', '/people', '/time', '/brain', '/decisions', '/loops', '/coaches', '/crm', '/productivity'];
+  const isInPulseShell = pulseRoutes.some(route => pathname?.startsWith(route));
+
+  if (isInPulseShell) {
+    return null;
+  }
   const [connectionState, setConnectionState] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [userSpeaking, setUserSpeaking] = useState(false);

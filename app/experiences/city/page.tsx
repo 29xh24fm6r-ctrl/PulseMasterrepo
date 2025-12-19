@@ -4,7 +4,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { buildPulseCortexContext } from "@/lib/cortex/context";
+import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 import { generateCity, CityState } from "@/lib/city/city-generator";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { motion } from "framer-motion";
@@ -25,7 +25,7 @@ export default function PulseCityPage() {
     try {
       // Get userId from auth
       const userId = "user_123"; // Would get from auth
-      const ctx = await buildPulseCortexContext(userId);
+      const ctx = await getWorkCortexContextForUser(userId);
       const city = generateCity(ctx);
       setCityState(city);
     } catch (err) {

@@ -3,10 +3,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { supabaseAdminClient } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -29,24 +29,24 @@ export async function GET(
     const sessionId = params.id;
 
     const [sessionRes, consensusRes, opinionsRes, membersRes] = await Promise.all([
-      supabaseAdminClient
+      supabaseAdmin
         .from('council_sessions')
         .select('*')
         .eq('id', sessionId)
         .eq('user_id', dbUserId)
         .maybeSingle(),
-      supabaseAdminClient
+      supabaseAdmin
         .from('council_consensus')
         .select('*')
         .eq('session_id', sessionId)
         .eq('user_id', dbUserId)
         .maybeSingle(),
-      supabaseAdminClient
+      supabaseAdmin
         .from('council_opinions')
         .select('*')
         .eq('session_id', sessionId)
         .eq('user_id', dbUserId),
-      supabaseAdminClient
+      supabaseAdmin
         .from('council_members')
         .select('*')
         .eq('user_id', dbUserId),

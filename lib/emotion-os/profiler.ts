@@ -1,17 +1,7 @@
 // Emotion OS - Nightly profile aggregation
-import { createClient } from "@supabase/supabase-js";
+import "server-only";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import { llmJson } from "../llm/client";
-
-function getSupabase() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  
-  if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error('Missing Supabase environment variables. Please configure NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
-  }
-  
-  return createClient(supabaseUrl, supabaseServiceKey);
-}
 
 interface EmotionProfile {
   dominant_emotions: string[];
@@ -24,7 +14,7 @@ interface EmotionProfile {
 }
 
 export async function buildEmotionProfile(userId: string): Promise<EmotionProfile | null> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   
   // Get last 7 days of emotion states
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
@@ -131,7 +121,7 @@ export async function buildEmotionProfile(userId: string): Promise<EmotionProfil
 }
 
 export async function runNightlyProfiler(): Promise<{ profilesUpdated: number }> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   
   // Get users with emotion states in last 7 days
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();

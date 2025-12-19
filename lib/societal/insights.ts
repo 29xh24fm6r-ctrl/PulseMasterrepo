@@ -3,7 +3,7 @@
 
 import { getUserCohort } from "./cohorts";
 import { getTwinModel } from "@/lib/twin/engine";
-import { buildPulseCortexContext } from "@/lib/cortex/context";
+import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 import { callAIJson } from "@/lib/ai/call";
 
 export interface SocietalInsight {
@@ -31,7 +31,7 @@ export async function buildSocietalInsightsForUser(
   }
 
   // Get Cortex context
-  const ctx = await buildPulseCortexContext(userId);
+  const ctx = await getWorkCortexContextForUser(userId);
 
   // Generate insights
   const systemPrompt = `You are generating societal insights comparing a user to their cohort archetype.

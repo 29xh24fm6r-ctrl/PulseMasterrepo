@@ -1,16 +1,14 @@
-"use client";
+import { auth } from "@clerk/nextjs/server";
+import { getLoopsOverview } from "@/lib/loops/overview";
+import LoopsOverview from "@/components/loops/loops-overview";
 
-/**
- * Loops Surface - Stress Removal
- * app/(pulse)/loops/page.tsx
- */
+export default async function LoopsPage() {
+  const { userId } = await auth();
+  if (!userId) {
+    return <div className="p-8 text-red-400">Unauthorized</div>;
+  }
 
-export default function LoopsPage() {
-  return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold text-white mb-6">Loops - Stress Removal</h1>
-      <div className="text-gray-400">Coming soon...</div>
-    </div>
-  );
+  const data = await getLoopsOverview(userId);
+  return <LoopsOverview data={data} />;
 }
 

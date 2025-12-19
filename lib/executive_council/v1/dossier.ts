@@ -1,10 +1,11 @@
 // Executive Council Mode v1 - Dossier Management
 // lib/executive_council/v1/dossier.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -26,13 +27,13 @@ export async function createCouncilDecisionDossier(
 
   // fetch session + consensus for context
   const [sessionRes, consensusRes] = await Promise.all([
-    supabaseAdminClient
+    supabaseAdmin
       .from('council_sessions')
       .select('*')
       .eq('id', params.sessionId)
       .eq('user_id', dbUserId)
       .maybeSingle(),
-    supabaseAdminClient
+    supabaseAdmin
       .from('council_consensus')
       .select('*')
       .eq('session_id', params.sessionId)
@@ -43,7 +44,7 @@ export async function createCouncilDecisionDossier(
   const session = sessionRes.data ?? null;
   const consensus = consensusRes.data ?? null;
 
-  const { data, error } = await supabaseAdminClient
+  const { data, error } = await supabaseAdmin
     .from('council_decision_dossiers')
     .insert({
       user_id: dbUserId,
@@ -66,7 +67,7 @@ export async function createCouncilDecisionDossier(
 export async function getCouncilDossiersForUser(userId: string, limit: number = 20) {
   const dbUserId = await resolveUserId(userId);
 
-  const { data, error } = await supabaseAdminClient
+  const { data, error } = await supabaseAdmin
     .from('council_decision_dossiers')
     .select('*')
     .eq('user_id', dbUserId)

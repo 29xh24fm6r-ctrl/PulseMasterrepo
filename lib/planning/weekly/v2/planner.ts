@@ -1,7 +1,7 @@
 // Autonomous Weekly Planning Engine v2
 // lib/planning/weekly/v2/planner.ts
 
-import { buildPulseCortexContext } from "@/lib/cortex/context";
+import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 import { scanIdentity, buildIdentityArcPlan } from "@/lib/identity/v3";
 import { runLifeSimulation } from "@/lib/simulation/v3/engine";
 import { generateTimeSlices } from "@/lib/time-slicing/v1/tse";
@@ -28,7 +28,7 @@ export async function generateWeeklyPlan(userId: string): Promise<WeeklyPlan> {
   );
 
   // 1. Build Cortex Context
-  const ctx = await buildPulseCortexContext(userId);
+  const ctx = await getWorkCortexContextForUser(userId);
 
   // 2. Pull Identity Arc
   const identityProfile = await scanIdentity(userId, ctx);

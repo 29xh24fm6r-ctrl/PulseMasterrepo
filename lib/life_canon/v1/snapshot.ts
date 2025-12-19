@@ -1,7 +1,8 @@
 // Life Canon v1 - Snapshot Generator
 // lib/life_canon/v1/snapshot.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { callAIJson } from '@/lib/ai/call';
 import { NARRATIVE_SNAPSHOT_PROMPT } from './narrative_prompts';
 import { buildCurrentChapterForUser } from './chapter_builder';
@@ -9,7 +10,7 @@ import { extractCanonEventsForUser } from './event_extractor';
 import { detectIdentityShiftsForUser } from './identity_shift_detector';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -28,7 +29,7 @@ export async function createLifeCanonSnapshotForUser(userId: string, now: Date) 
   const eventIds = await extractCanonEventsForUser(userId, now);
 
   // Get recent events
-  const { data: recentEvents } = await supabaseAdminClient
+  const { data: recentEvents } = await supabaseAdmin
     .from('canon_events')
     .select('*')
     .eq('user_id', dbUserId)
@@ -59,7 +60,7 @@ export async function createLifeCanonSnapshotForUser(userId: string, now: Date) 
       : null;
 
   // Save snapshot
-  const { data: snapshot, error } = await supabaseAdminClient
+  const { data: snapshot, error } = await supabaseAdmin
     .from('life_canon_snapshots')
     .insert({
       user_id: dbUserId,

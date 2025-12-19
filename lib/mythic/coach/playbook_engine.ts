@@ -1,7 +1,8 @@
 // Mythic Coach Engine v1 - Playbook Engine
 // lib/mythic/coach/playbook_engine.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { MythicContext, MythicPlaybook } from './types';
 
 export async function selectPlaybooks(params: {
@@ -33,7 +34,7 @@ export async function selectPlaybooks(params: {
   }
 
   // Query playbooks
-  let query = supabaseAdminClient
+  let query = supabaseAdmin
     .from('mythic_playbooks')
     .select('*')
     .eq('context', situation);
@@ -51,7 +52,7 @@ export async function selectPlaybooks(params: {
 
   if (!playbooks || playbooks.length === 0) {
     // Fallback: get any playbooks for this context
-    const { data: fallback } = await supabaseAdminClient
+    const { data: fallback } = await supabaseAdmin
       .from('mythic_playbooks')
       .select('*')
       .eq('context', situation)

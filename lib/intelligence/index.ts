@@ -200,6 +200,7 @@ export async function runIntelForEntity(
 
 /**
  * Generate search queries for an entity
+ * Includes site-specific queries for LinkedIn, TikTok, Facebook, etc.
  */
 function generateQueries(
   entityType: "person" | "organization",
@@ -209,15 +210,41 @@ function generateQueries(
   const queries: string[] = [];
 
   if (entityType === "person") {
+    const company = details.company_name || details.organization?.name || "";
+    
+    // Core identity queries
     queries.push(name);
+    if (company) {
+      queries.push(`${name} ${company}`);
+      queries.push(`${name} ${company} LinkedIn`);
+    }
+    
+    // Site-specific queries (high priority for finding profiles)
+    queries.push(`${name} site:linkedin.com/in`);
+    if (company) {
+      queries.push(`${name} ${company} site:linkedin.com`);
+    }
+    queries.push(`${name} LinkedIn`);
+    
+    queries.push(`${name} TikTok`);
+    queries.push(`${name} site:tiktok.com`);
+    
+    queries.push(`${name} Facebook`);
+    queries.push(`${name} site:facebook.com`);
+    
+    // Email and professional queries
     if (details.primary_email) {
       queries.push(`${name} ${details.primary_email}`);
     }
-    if (details.company_name) {
-      queries.push(`${name} ${details.company_name}`);
+    if (company) {
+      queries.push(`${name} ${company} email`);
+      queries.push(`${company} leadership team ${name}`);
     }
-    if (details.organization?.name) {
-      queries.push(`${name} ${details.organization.name}`);
+    queries.push(`${name} ${company || ""} email`.trim());
+    
+    // News and content
+    if (company) {
+      queries.push(`${company} news`);
     }
   } else {
     // organization
@@ -229,7 +256,7 @@ function generateQueries(
     queries.push(`${name} about`);
   }
 
-  return queries.slice(0, 5); // Limit to 5 queries
+  return queries.slice(0, 10); // Limit to 10 queries (was 5, increased for better coverage)
 }
 
 /**

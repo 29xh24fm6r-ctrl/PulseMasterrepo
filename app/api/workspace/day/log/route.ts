@@ -3,10 +3,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { supabaseAdminClient } from '@/lib/supabase/admin';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
     const searchParams = req.nextUrl.searchParams;
     const dateParam = searchParams.get('date') || new Date().toISOString().slice(0, 10);
 
-    const { data: dayLog, error } = await supabaseAdminClient
+    const { data: dayLog, error } = await supabaseAdmin
       .from('workspace_day_log')
       .select('*')
       .eq('user_id', userId)

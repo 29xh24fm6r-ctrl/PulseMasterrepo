@@ -1,16 +1,17 @@
-"use client";
+import { auth } from "@clerk/nextjs/server";
+import { getPeopleOverview } from "@/lib/people/overview";
+import PeopleOverview from "@/components/people/people-overview";
 
-/**
- * People Surface - Human Graph
- * app/(pulse)/people/page.tsx
- */
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
-export default function PeoplePage() {
-  return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold text-white mb-6">People - Human Graph</h1>
-      <div className="text-gray-400">Coming soon...</div>
-    </div>
-  );
+export default async function PeoplePage() {
+  const { userId } = await auth();
+  if (!userId) {
+    return <div className="p-8 text-red-400">Unauthorized</div>;
+  }
+
+  const data = await getPeopleOverview(userId);
+  return <PeopleOverview data={data} />;
 }
 

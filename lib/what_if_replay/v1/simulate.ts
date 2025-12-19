@@ -1,14 +1,15 @@
 // What-If Replay Mode v1 - Simulation Engine
 // lib/what_if_replay/v1/simulate.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { callAIJson } from '@/lib/ai/call';
 import { WhatIfMode, WhatIfScenarioInput } from './types';
 import { buildWhatIfSimulationContext } from './context';
 import { WHAT_IF_TIMELINE_PROMPT, WHAT_IF_NARRATIVE_PROMPT } from './prompts';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -23,7 +24,7 @@ export async function createWhatIfScenario(
 ): Promise<string> {
   const dbUserId = await resolveUserId(userId);
 
-  const { data, error } = await supabaseAdminClient
+  const { data, error } = await supabaseAdmin
     .from('what_if_scenarios')
     .insert({
       user_id: dbUserId,
@@ -56,7 +57,7 @@ export async function runWhatIfSimulation(
   const dbUserId = await resolveUserId(userId);
 
   // Load scenario
-  const { data: scenarioRow, error: scenarioError } = await supabaseAdminClient
+  const { data: scenarioRow, error: scenarioError } = await supabaseAdmin
     .from('what_if_scenarios')
     .select('*')
     .eq('id', params.scenarioId)
@@ -96,7 +97,7 @@ export async function runWhatIfSimulation(
 
   const { baseline, alternate, deltas } = result.data;
 
-  const { data: runRows, error: runError } = await supabaseAdminClient
+  const { data: runRows, error: runError } = await supabaseAdmin
     .from('what_if_runs')
     .insert({
       scenario_id: scenarioRow.id,
@@ -144,7 +145,7 @@ export async function runWhatIfSimulation(
     highlightDifferences,
   } = narrativeResult.data;
 
-  const { error: outcomeError } = await supabaseAdminClient
+  const { error: outcomeError } = await supabaseAdmin
     .from('what_if_outcomes')
     .insert({
       run_id: runId,

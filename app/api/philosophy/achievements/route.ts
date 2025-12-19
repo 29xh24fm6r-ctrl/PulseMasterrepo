@@ -89,16 +89,17 @@ export async function POST(request: NextRequest) {
     const { action, achievementId } = body;
     
     if (action === 'check') {
-      const unlocked = await getUnlockedAchievements();
-      const progress = await getProgressData();
-      const newlyUnlocked = await checkAndUnlockAchievements(progress, unlocked);
+      // ✅ Use shared function instead of inline logic
+      const { checkAndUnlockAchievements } = await import("@/lib/philosophy/achievements");
+      const result = await checkAndUnlockAchievements();
+      
+      if (!result.ok) {
+        return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
+      }
       
       return NextResponse.json({
         ok: true,
-        newlyUnlocked: newlyUnlocked.map(a => ({
-          ...a,
-          colors: RARITY_COLORS[a.rarity],
-        })),
+        newlyUnlocked: result.newlyUnlocked,
       });
     }
     

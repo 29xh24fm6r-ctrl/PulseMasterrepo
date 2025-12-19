@@ -1,12 +1,13 @@
 // Boardroom Brain v1 - Strategic Mind Core
 // lib/boardroom/strategic_mind.ts
 
-import { supabaseAdminClient } from '../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { callAIJson } from '@/lib/ai/call';
 import { StrategicPlaybook, StrategicPlan } from './types';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -22,7 +23,7 @@ export async function suggestStrategicPlaybooks(params: {
   const dbUserId = await resolveUserId(params.userId);
 
   // Get objective and domain
-  const { data: objective, error: objError } = await supabaseAdminClient
+  const { data: objective, error: objError } = await supabaseAdmin
     .from('strategic_objectives')
     .select('*, strategic_domains(*)')
     .eq('id', params.objectiveId)
@@ -34,14 +35,14 @@ export async function suggestStrategicPlaybooks(params: {
 
   // Get relevant metrics (finance, deals, time)
   const [financeRes, dealsRes] = await Promise.all([
-    supabaseAdminClient
+    supabaseAdmin
       .from('financial_state_snapshots')
       .select('*')
       .eq('user_id', dbUserId)
       .order('snapshot_time', { ascending: false })
       .limit(1)
       .maybeSingle(),
-    supabaseAdminClient
+    supabaseAdmin
       .from('deals')
       .select('*')
       .eq('user_id', dbUserId)
@@ -53,7 +54,7 @@ export async function suggestStrategicPlaybooks(params: {
   const deals = dealsRes.data ?? [];
 
   // Get all playbooks
-  const { data: allPlaybooks } = await supabaseAdminClient
+  const { data: allPlaybooks } = await supabaseAdmin
     .from('strategic_playbooks')
     .select('*');
 
@@ -101,13 +102,13 @@ export async function generateStrategicPlanDraft(params: {
 
   // Get objective and playbook
   const [objectiveRes, playbookRes] = await Promise.all([
-    supabaseAdminClient
+    supabaseAdmin
       .from('strategic_objectives')
       .select('*, strategic_domains(*)')
       .eq('id', params.objectiveId)
       .eq('user_id', dbUserId)
       .maybeSingle(),
-    supabaseAdminClient
+    supabaseAdmin
       .from('strategic_playbooks')
       .select('*')
       .eq('id', params.selectedPlaybookId)
@@ -122,7 +123,7 @@ export async function generateStrategicPlanDraft(params: {
 
   // Get context
   const [financeRes] = await Promise.all([
-    supabaseAdminClient
+    supabaseAdmin
       .from('financial_state_snapshots')
       .select('*')
       .eq('user_id', dbUserId)
@@ -161,7 +162,7 @@ Return JSON with:
   const { name, summary, assumptions, risk_register } = result.data;
 
   // Create plan
-  const { data: plan, error } = await supabaseAdminClient
+  const { data: plan, error } = await supabaseAdmin
     .from('strategic_plans')
     .insert({
       user_id: dbUserId,

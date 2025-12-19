@@ -3,7 +3,7 @@
 
 import { supabaseAdmin } from "@/lib/supabase";
 import { getTwinModel } from "@/lib/twin/engine";
-import { buildPulseCortexContext } from "@/lib/cortex/context";
+import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 import { generateFutureSelfMessage } from "@/lib/twin/future-self";
 import { callAIJson } from "@/lib/ai/call";
 
@@ -55,7 +55,7 @@ export async function companionIntervene(
   }
 
   // Load Cortex context
-  const ctx = await buildPulseCortexContext(userId);
+  const ctx = await getWorkCortexContextForUser(userId);
 
   // Get Future Self message
   const futureSelf = await generateFutureSelfMessage({

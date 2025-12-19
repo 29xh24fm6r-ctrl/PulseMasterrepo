@@ -2,8 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getActiveVoiceForUser, getUserVoiceSettings } from "@/lib/voice/settings";
 
-const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY || "sk_10d4b0147feefd3c85906bfc7c21311677851479a0256561";
-const DEFAULT_VOICE_ID = process.env.ELEVENLABS_VOICE_ID || "EiNlNiXeDU1pqqOPrYMO";
+const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
+const DEFAULT_VOICE_ID = process.env.ELEVENLABS_VOICE_ID;
+
+if (!ELEVENLABS_API_KEY) {
+  throw new Error("Missing ELEVENLABS_API_KEY environment variable");
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,7 +19,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Get user's voice settings if authenticated
-    let activeVoiceId = overrideVoiceId || DEFAULT_VOICE_ID;
+    let activeVoiceId = overrideVoiceId || DEFAULT_VOICE_ID || "EiNlNiXeDU1pqqOPrYMO";
     let speakingRate = 1.0;
 
     try {

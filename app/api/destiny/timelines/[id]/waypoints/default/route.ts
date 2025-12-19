@@ -4,10 +4,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { generateDefaultWaypointsForTimeline } from '@/lib/destiny/builder';
-import { supabaseAdminClient } from '@/lib/supabase/admin';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -29,7 +29,7 @@ export async function POST(
     const userId = await resolveUserId(clerkId);
 
     // Verify timeline belongs to user
-    const { data: timeline } = await supabaseAdminClient
+    const { data: timeline } = await supabaseAdmin
       .from('destiny_timelines')
       .select('*')
       .eq('id', params.id)

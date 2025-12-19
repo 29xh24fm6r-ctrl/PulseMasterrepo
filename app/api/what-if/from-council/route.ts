@@ -4,10 +4,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { createWhatIfScenario, runWhatIfSimulation } from '@/lib/what_if_replay/v1/simulate';
-import { supabaseAdminClient } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     const dbUserId = await resolveUserId(userId);
 
     // Load council session
-    const { data: session, error: sessionError } = await supabaseAdminClient
+    const { data: session, error: sessionError } = await supabaseAdmin
       .from('council_sessions')
       .select('*')
       .eq('id', sessionId)
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Get consensus for default base assumption
-    const { data: consensus } = await supabaseAdminClient
+    const { data: consensus } = await supabaseAdmin
       .from('council_consensus')
       .select('*')
       .eq('session_id', sessionId)

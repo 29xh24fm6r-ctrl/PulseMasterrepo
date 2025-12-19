@@ -1,7 +1,8 @@
 // Creative Cortex v2 - Remix Module
 // lib/creative/remix.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { callAI } from '@/lib/ai/call';
 import { CreativeAsset, CreativeAssetKind } from './types';
 import { getDefaultStyleProfile } from './style';
@@ -15,7 +16,7 @@ export async function remixCreativeAsset(params: {
   const { userId, assetId, targetKind, styleProfileId } = params;
 
   // 1. Get original asset
-  const { data: originalAsset } = await supabaseAdminClient
+  const { data: originalAsset } = await supabaseAdmin
     .from('creative_assets')
     .select('*')
     .eq('id', assetId)
@@ -28,7 +29,7 @@ export async function remixCreativeAsset(params: {
 
   // 2. Get style profile
   const styleProfile = styleProfileId
-    ? await supabaseAdminClient
+    ? await supabaseAdmin
         .from('creative_style_profiles')
         .select('*')
         .eq('id', styleProfileId)
@@ -71,7 +72,7 @@ export async function remixCreativeAsset(params: {
   }
 
   // 5. Create new asset
-  const { data: remixedAsset, error } = await supabaseAdminClient
+  const { data: remixedAsset, error } = await supabaseAdmin
     .from('creative_assets')
     .insert({
       user_id: userId,

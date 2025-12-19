@@ -1,18 +1,8 @@
 // Proactive Intelligence Engine
 // Generates interventions, nudges, and coaching based on user state
-import { createClient } from "@supabase/supabase-js";
+import "server-only";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import { llmJson } from "@/lib/llm/client";
-
-function getSupabase() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  
-  if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error('Missing Supabase environment variables. Please configure NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
-  }
-  
-  return createClient(supabaseUrl, supabaseServiceKey);
-}
 
 export interface Intervention {
   id?: string;
@@ -27,7 +17,7 @@ export interface Intervention {
 }
 
 export async function generateProactiveInterventions(userId: string): Promise<Intervention[]> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   const interventions: Intervention[] = [];
 
   // Gather current state
@@ -159,7 +149,7 @@ export async function generateProactiveInterventions(userId: string): Promise<In
 }
 
 export async function storeIntervention(userId: string, intervention: Intervention): Promise<string | null> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   
   const { data, error } = await supabase.from("proactive_interventions").insert({
     user_id: userId,
@@ -177,7 +167,7 @@ export async function storeIntervention(userId: string, intervention: Interventi
 }
 
 export async function dismissIntervention(userId: string, interventionId: string, action: "dismissed" | "completed" | "snoozed"): Promise<boolean> {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   
   const { error } = await supabase
     .from("proactive_interventions")

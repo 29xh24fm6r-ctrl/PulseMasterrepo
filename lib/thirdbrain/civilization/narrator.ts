@@ -1,13 +1,14 @@
 // Third Brain Graph v4 - Civilization Narrator
 // lib/thirdbrain/civilization/narrator.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { callAIJson } from '@/lib/ai/call';
 import { CivilizationDomainState } from '../graph/types';
 
 export async function getCivilizationSnapshotNarrative(userId: string): Promise<string> {
   // Get latest domain states
-  const { data: states } = await supabaseAdminClient
+  const { data: states } = await supabaseAdmin
     .from('civilization_domain_state')
     .select('*, civilization_domains(*)')
     .eq('civilization_domains.user_id', userId)

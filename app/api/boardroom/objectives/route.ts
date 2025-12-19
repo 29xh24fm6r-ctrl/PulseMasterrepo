@@ -3,10 +3,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { supabaseAdminClient } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
 
     const dbUserId = await resolveUserId(userId);
 
-    const { data: objectives, error } = await supabaseAdminClient
+    const { data: objectives, error } = await supabaseAdmin
       .from('strategic_objectives')
       .select('*, strategic_domains(*)')
       .eq('user_id', dbUserId)
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
 
     const dbUserId = await resolveUserId(userId);
 
-    const { data: objective, error } = await supabaseAdminClient
+    const { data: objective, error } = await supabaseAdmin
       .from('strategic_objectives')
       .insert({
         user_id: dbUserId,

@@ -100,8 +100,7 @@ export interface WorldState {
     focusWindowsToday?: { start: string; end: string; quality: "excellent" | "good" | "fair" }[];
     riskOfProcrastinationOnKeyTasks?: boolean;
     predictedEmotionState?: string;
-      predictedProductivity?: "low" | "medium" | "high";
-    };
+    predictedProductivity?: "low" | "medium" | "high";
   };
 
   memoryGraph?: {

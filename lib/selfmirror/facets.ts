@@ -1,7 +1,8 @@
 // Global Sense of Self Mirror v1 - Facet Engine
 // lib/selfmirror/facets.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { SelfMirrorFacet } from './types';
 
 const FACET_DEFINITIONS = [
@@ -15,7 +16,7 @@ const FACET_DEFINITIONS = [
 
 export async function recomputeSelfMirrorFacets(userId: string): Promise<SelfMirrorFacet[]> {
   // Get latest snapshot
-  const { data: latestSnapshot } = await supabaseAdminClient
+  const { data: latestSnapshot } = await supabaseAdmin
     .from('self_identity_snapshots')
     .select('*')
     .eq('user_id', userId)
@@ -24,7 +25,7 @@ export async function recomputeSelfMirrorFacets(userId: string): Promise<SelfMir
     .maybeSingle();
 
   // Get previous snapshot for trend comparison
-  const { data: previousSnapshot } = await supabaseAdminClient
+  const { data: previousSnapshot } = await supabaseAdmin
     .from('self_identity_snapshots')
     .select('*')
     .eq('user_id', userId)
@@ -38,14 +39,14 @@ export async function recomputeSelfMirrorFacets(userId: string): Promise<SelfMir
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
   const thirtyDaysAgoStr = thirtyDaysAgo.toISOString();
 
-  const { data: signals } = await supabaseAdminClient
+  const { data: signals } = await supabaseAdmin
     .from('self_perception_signals')
     .select('*')
     .eq('user_id', userId)
     .gte('occurred_at', thirtyDaysAgoStr);
 
   // Get civilization domain states
-  const { data: domainStates } = await supabaseAdminClient
+  const { data: domainStates } = await supabaseAdmin
     .from('civilization_domain_state')
     .select('*, civilization_domains(*)')
     .eq('civilization_domains.user_id', userId)
@@ -104,7 +105,7 @@ export async function recomputeSelfMirrorFacets(userId: string): Promise<SelfMir
     } else if (facetDef.key === 'creative_expression') {
       if (domainStates) {
         // Check if there are creative projects or sessions
-        const { data: creativeProjects } = await supabaseAdminClient
+        const { data: creativeProjects } = await supabaseAdmin
           .from('creative_projects')
           .select('id')
           .eq('user_id', userId)
@@ -130,7 +131,7 @@ export async function recomputeSelfMirrorFacets(userId: string): Promise<SelfMir
     }
 
     // Upsert facet
-    const { data: facet } = await supabaseAdminClient
+    const { data: facet } = await supabaseAdmin
       .from('self_mirror_facets')
       .upsert(
         {

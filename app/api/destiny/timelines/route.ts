@@ -4,10 +4,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { createCustomTimeline } from '@/lib/destiny/builder';
-import { supabaseAdminClient } from '@/lib/supabase/admin';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
 
     const userId = await resolveUserId(clerkId);
 
-    const { data: timelines, error: timelinesError } = await supabaseAdminClient
+    const { data: timelines, error: timelinesError } = await supabaseAdmin
       .from('destiny_timelines')
       .select('*')
       .eq('user_id', userId)
@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
     // Get latest scores for each timeline
     const timelinesWithScores = await Promise.all(
       (timelines ?? []).map(async (timeline) => {
-        const { data: latestScore } = await supabaseAdminClient
+        const { data: latestScore } = await supabaseAdmin
           .from('destiny_timeline_scores')
           .select('*')
           .eq('timeline_id', timeline.id)

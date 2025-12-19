@@ -1,11 +1,12 @@
 // Mythic Coach Engine v1 - Context Builder
 // lib/mythic/coach/context.ts
 
-import { supabaseAdminClient } from '../../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { MythicContext } from './types';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -28,12 +29,12 @@ export async function buildMythicContext(params: {
     destinyRes,
     dealsRes,
   ] = await Promise.all([
-    supabaseAdminClient
+    supabaseAdmin
       .from('user_mythic_profile')
       .select('*')
       .eq('user_id', dbUserId)
       .maybeSingle(),
-    supabaseAdminClient
+    supabaseAdmin
       .from('life_chapters')
       .select('*')
       .eq('user_id', dbUserId)
@@ -41,21 +42,21 @@ export async function buildMythicContext(params: {
       .order('timeframe_start', { ascending: false })
       .limit(1)
       .maybeSingle(),
-    supabaseAdminClient
+    supabaseAdmin
       .from('emotion_state_daily')
       .select('*')
       .eq('user_id', dbUserId)
       .order('date', { ascending: false })
       .limit(1)
       .maybeSingle(),
-    supabaseAdminClient
+    supabaseAdmin
       .from('identity_snapshots')
       .select('*')
       .eq('user_id', dbUserId)
       .order('snapshot_time', { ascending: false })
       .limit(1)
       .maybeSingle(),
-    supabaseAdminClient
+    supabaseAdmin
       .from('destiny_arcs')
       .select('*')
       .eq('user_id', dbUserId)
@@ -63,7 +64,7 @@ export async function buildMythicContext(params: {
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle(),
-    supabaseAdminClient
+    supabaseAdmin
       .from('deals')
       .select('id')
       .eq('user_id', dbUserId)
@@ -83,7 +84,7 @@ export async function buildMythicContext(params: {
     ? [params.dealId]
     : deals.map((d: any) => d.id).slice(0, 5);
 
-  const { data: dealRuns } = await supabaseAdminClient
+  const { data: dealRuns } = await supabaseAdmin
     .from('deal_archetype_runs')
     .select('*')
     .eq('user_id', dbUserId)

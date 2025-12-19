@@ -6,7 +6,7 @@ import { auth } from "@clerk/nextjs/server";
 import { buildRelationshipState } from "@/lib/domains/relationships/v2/relationship-state";
 import { computeRelationshipScores, detectRelationshipRisks, detectOpportunities } from "@/lib/domains/relationships/v2/relationship-analyzer";
 import { buildRelationshipPlan } from "@/lib/domains/relationships/v2/relationship-plan-builder";
-import { buildPulseCortexContext } from "@/lib/cortex/context";
+import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 
 export async function GET(req: NextRequest) {
   try {
@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
     const opportunities = detectOpportunities(state);
 
     // Build context for plan generation
-    const ctx = await buildPulseCortexContext(userId);
+    const ctx = await getWorkCortexContextForUser(userId);
 
     // Generate plans for different goals
     const reconnectPlan = buildRelationshipPlan(state, ctx, "reconnect");

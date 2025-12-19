@@ -1,14 +1,15 @@
 // Boardroom Brain v1 - Decision Orchestrator
 // lib/boardroom/orchestrator.ts
 
+import "server-only";
 import { ensureDefaultCouncilSeeded, runCouncilVote } from './council';
 import { generateDecisionScenarios } from './decision_theater';
 import { callAIJson } from '@/lib/ai/call';
-import { supabaseAdminClient } from '../supabase/admin';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { ExecutiveCouncilVote, DecisionScenario } from './types';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -48,13 +49,13 @@ export async function runBoardroomReview(params: {
 
   // Get decision and options for recommendation
   const [decisionRes, optionsRes] = await Promise.all([
-    supabaseAdminClient
+    supabaseAdmin
       .from('decisions')
       .select('*')
       .eq('id', params.decisionId)
       .eq('user_id', dbUserId)
       .maybeSingle(),
-    supabaseAdminClient
+    supabaseAdmin
       .from('decision_options')
       .select('*')
       .eq('decision_id', params.decisionId)

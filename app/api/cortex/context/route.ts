@@ -3,7 +3,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { buildPulseCortexContext } from "@/lib/cortex/context";
+import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 import { evaluateAutonomy, getDomainActions } from "@/lib/cortex/autonomy";
 
 export async function GET(req: NextRequest) {
@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
     const includeActions = searchParams.get("actions") !== "false"; // Default true
 
     // Build context
-    const context = await buildPulseCortexContext(userId);
+    const context = await getWorkCortexContextForUser(userId);
 
     // Evaluate autonomy if requested
     let actions = null;

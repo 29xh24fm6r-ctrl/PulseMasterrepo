@@ -1,11 +1,12 @@
 // Mythic Intelligence Layer v1 - Deal Signal Extraction
 // lib/mythic/deal_extract.ts
 
-import { supabaseAdminClient } from '../supabase/admin';
+import "server-only";
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { MythicSignal } from './types';
 
 async function resolveUserId(clerkId: string): Promise<string> {
-  const { data: userRow } = await supabaseAdminClient
+  const { data: userRow } = await supabaseAdmin
     .from("users")
     .select("id")
     .eq("clerk_id", clerkId)
@@ -18,7 +19,7 @@ export async function extractDealSignals(dealId: string, userId: string): Promis
   const dbUserId = await resolveUserId(userId);
 
   // Get deal data
-  const { data: deal } = await supabaseAdminClient
+  const { data: deal } = await supabaseAdmin
     .from('deals')
     .select('*')
     .eq('id', dealId)
@@ -31,17 +32,17 @@ export async function extractDealSignals(dealId: string, userId: string): Promis
 
   // Get related communication/activity
   const [emailsRes, meetingsRes, notesRes] = await Promise.all([
-    supabaseAdminClient
+    supabaseAdmin
       .from('emails')
       .select('*')
       .eq('deal_id', dealId)
       .order('created_at', { ascending: true }),
-    supabaseAdminClient
+    supabaseAdmin
       .from('meetings')
       .select('*')
       .eq('deal_id', dealId)
       .order('created_at', { ascending: true }),
-    supabaseAdminClient
+    supabaseAdmin
       .from('deal_notes')
       .select('*')
       .eq('deal_id', dealId)

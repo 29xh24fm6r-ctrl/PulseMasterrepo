@@ -1,86 +1,51 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { auth } from "@clerk/nextjs/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { NextRequest, NextResponse } from "next/server";
+import { resolveSupabaseUser } from "@/lib/auth/resolveSupabaseUser";
+import { supabaseAdmin } from "@/lib/supabase/admin";
+import { log } from "@/lib/obs/logger";
+import { getRequestMeta } from "@/lib/obs/request-context";
+import { withApiAnalytics } from "@/lib/analytics/api";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
-  try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  return withApiAnalytics(req, async () => {
+    const meta = getRequestMeta();
+    const t0 = Date.now();
+    log.info("route.start", { ...meta, route: "GET /api/tasks" });
+
+    try {
+    const { supabaseUserId } = await resolveSupabaseUser();
+
+    const { searchParams } = new URL(req.url);
+    const status = searchParams.get("status"); // e.g. pending|completed
+    const limit = Number(searchParams.get("limit") || "50");
+
+    let q = supabaseAdmin.from("tasks").select("*").eq("user_id", supabaseUserId).limit(limit);
+
+    if (status) {
+      q = q.eq("status", status);
     }
 
-    const url = new URL(req.url);
-    const status = url.searchParams.get('status') ?? 'pending';
-    const limit = Number(url.searchParams.get('limit') ?? '10');
-
-    // Get user's database ID
-    const { data: userRow } = await supabaseAdmin
-      .from("users")
-      .select("id")
-      .eq("clerk_id", userId)
-      .single();
-
-    const dbUserId = userRow?.id || userId;
-
-    // Build query
-    let query = supabaseAdmin
-      .from("tasks")
-      .select("*")
-      .eq("user_id", dbUserId)
-      .order("due_date", { ascending: true, nullsFirst: false })
-      .order("created_at", { ascending: false })
-      .limit(limit);
-
-    // Filter by status
-    if (status === 'pending') {
-      query = query.in("status", ["pending", "in_progress"]);
-    } else if (status === 'completed' || status === 'done') {
-      query = query.eq("status", "done");
-    } else if (status !== 'all') {
-      query = query.eq("status", status);
-    }
-
-    const { data: tasks, error } = await query;
+    const { data, error } = await q.order("due_date", { ascending: true, nullsFirst: false });
 
     if (error) {
-      console.error("[Tasks] Query error:", error);
-      // Return empty tasks array instead of error to prevent page crashes
-      return NextResponse.json({
-        status,
-        limit,
-        tasks: [],
-      });
+      log.error("route.err", { ...meta, route: "GET /api/tasks", ms: Date.now() - t0, error: error.message });
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({
-      status,
-      limit,
-      tasks: (tasks || []).map(t => ({
-        id: t.id,
-        name: t.name || t.title,
-        title: t.title || t.name,
-        description: t.description,
-        status: t.status === 'done' ? 'Done' : t.status === 'in_progress' ? 'In Progress' : 'Todo',
-        priority: t.priority,
-        dueDate: t.due_date,
-        due_date: t.due_date,
-        project: t.project,
-        xp: t.xp,
-        completedAt: t.completed_at,
-        createdAt: t.created_at,
-      })),
-    });
-  } catch (err: any) {
-    console.error("[Tasks] Error:", err);
-    // Return empty tasks array instead of error to prevent page crashes
-    const url = new URL(req.url);
-    const status = url.searchParams.get('status') ?? 'pending';
-    const limit = Number(url.searchParams.get('limit') ?? '10');
-    return NextResponse.json({
-      status,
-      limit,
-      tasks: [],
-    });
-  }
-}
+    const tasks = (data || []).map((t: any) => ({
+      id: t.id,
+      title: t.title ?? t.name ?? "Untitled",
+      status: t.status ?? "pending",
+      priority: t.priority ?? "medium",
+      due_date: t.due_date ?? t.dueDate ?? null,
+    }));
 
+      log.info("route.ok", { ...meta, route: "GET /api/tasks", ms: Date.now() - t0, count: tasks.length });
+      return NextResponse.json({ tasks });
+    } catch (err: any) {
+      log.error("route.err", { ...meta, route: "GET /api/tasks", ms: Date.now() - t0, error: err?.message || String(err) });
+      return NextResponse.json({ error: err?.message || "Internal error" }, { status: 500 });
+    }
+  });
+}

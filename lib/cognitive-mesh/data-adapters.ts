@@ -1,19 +1,9 @@
 // Third Brain v3: Data Source Adapters
 // Automatically ingest data from existing Pulse systems
 
-import { createClient } from "@supabase/supabase-js";
+import "server-only";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import { CognitiveMesh } from "./index";
-
-function getSupabase() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  
-  if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error('Missing Supabase environment variables. Please configure NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
-  }
-  
-  return createClient(supabaseUrl, supabaseServiceKey);
-}
 
 // ============================================
 // TASK INGESTION
@@ -35,7 +25,7 @@ export async function ingestTask(userId: string, task: any) {
 }
 
 export async function ingestAllTasks(userId: string) {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   const { data: tasks } = await supabase
     .from("tasks")
     .select("*")
@@ -77,7 +67,7 @@ export async function ingestContact(userId: string, contact: any) {
 }
 
 export async function ingestAllContacts(userId: string) {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   const { data: contacts } = await supabase
     .from("contacts")
     .select("*")
@@ -117,7 +107,7 @@ export async function ingestCalendarEvent(userId: string, event: any) {
 }
 
 export async function ingestRecentCalendarEvents(userId: string, days: number = 30) {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   const since = new Date();
   since.setDate(since.getDate() - days);
 
@@ -162,7 +152,7 @@ export async function ingestDeal(userId: string, deal: any) {
 }
 
 export async function ingestAllDeals(userId: string) {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   const { data: deals } = await supabase
     .from("deals")
     .select("*")

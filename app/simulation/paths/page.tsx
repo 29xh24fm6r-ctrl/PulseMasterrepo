@@ -287,9 +287,8 @@ export default function SimulationPathsPage() {
                 </p>
               </div>
             )}
-          </section>
+          </PageSection>
         )}
-      </div>
-    </div>
+      </Page>
   );
 }

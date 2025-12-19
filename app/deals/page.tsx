@@ -47,10 +47,23 @@ export default function DealsPage() {
   async function loadDeals() {
     try {
       setLoading(true);
-      const res = await fetch("/api/notion/deals");
-      if (!res.ok) throw new Error("Failed to load deals");
-      const data = await res.json();
-      setDeals(data.deals ?? []);
+      const { getJson } = await import("@/lib/http/getJson");
+      const { ok, data } = await getJson("/api/deals");
+      if (!ok) throw new Error(data?.error || "Failed to load deals");
+      // Map Supabase deal format to UI format
+      const mappedDeals = (data.items || []).map((d: any) => ({
+        id: d.id,
+        name: d.name,
+        value: d.amount || 0,
+        stage: d.stage,
+        status: d.stage,
+        company: d.company,
+        daysSinceUpdate: d.updated_at 
+          ? Math.floor((Date.now() - new Date(d.updated_at).getTime()) / (1000 * 60 * 60 * 24))
+          : 0,
+        lastUpdated: d.updated_at || d.created_at,
+      }));
+      setDeals(mappedDeals);
     } catch (err) {
       console.error("Failed to load deals:", err);
     } finally {
@@ -66,15 +79,10 @@ export default function DealsPage() {
     setUpdating(dealId);
 
     try {
-      const res = await fetch("/api/deals/update-status", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dealId, newStatus: newStage }),
-      });
+      const { patchJson } = await import("@/lib/http/patchJson");
+      const { ok, data } = await patchJson(`/api/deals/${dealId}`, { stage: newStage });
 
-      if (res.ok) {
-        const data = await res.json();
-
+      if (ok) {
         // Update local state
         setDeals(prev => prev.map(d =>
           d.id === dealId

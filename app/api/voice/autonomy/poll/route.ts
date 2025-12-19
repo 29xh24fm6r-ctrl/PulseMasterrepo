@@ -3,7 +3,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { buildPulseCortexContext } from "@/lib/cortex/context";
+import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 import { evaluateTriggers } from "@/lib/voice/autonomy/voice-triggers";
 import { generateVoiceIntervention } from "@/lib/voice/autonomy/voice-autonomy-engine";
 import { VoiceAutonomyTrigger } from "@/lib/voice/autonomy/types";
@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
     const personaPreference = searchParams.get("personaPreference") as any;
 
     // Build context
-    const ctx = await buildPulseCortexContext(userId);
+    const ctx = await getWorkCortexContextForUser(userId);
 
     // Evaluate triggers
     const activeTriggers = evaluateTriggers(ctx);
