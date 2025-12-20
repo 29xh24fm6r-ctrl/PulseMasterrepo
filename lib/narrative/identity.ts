@@ -65,7 +65,7 @@ async function getIdentityProfileForUser(userId: string): Promise<any> {
 
   // Try identity engine v3
   try {
-    const { getIdentityProfile } = await import('@/app/lib/identity-engine');
+    const { getIdentityProfile } = await import('@/lib/identity-engine');
     const profile = await getIdentityProfile(userId);
     if (profile) {
       return {

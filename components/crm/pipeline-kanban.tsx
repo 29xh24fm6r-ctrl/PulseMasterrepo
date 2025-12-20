@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { DollarSign, Users, Calendar } from "lucide-react";
-import { Deal } from "@/lib/crm/overview";
+import type { Deal } from "@/lib/crm/types";
 
 interface PipelineProps {
   pipeline: {

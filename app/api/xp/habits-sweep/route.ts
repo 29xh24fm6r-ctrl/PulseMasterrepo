@@ -1,83 +1,46 @@
+// app/api/xp/habits-sweep/route.ts (migrated from Notion to Supabase)
 import { NextResponse } from "next/server";
-import { Client } from "@notionhq/client";
-import { normalizeDatabaseId } from "@/app/lib/notion";
-
-const NOTION_API_KEY = process.env.NOTION_API_KEY;
-const HABITS_DB_RAW = process.env.NOTION_DATABASE_HABITS;
-const XP_DB_RAW = process.env.NOTION_DATABASE_XP;
-
-if (!NOTION_API_KEY) {
-  throw new Error("NOTION_API_KEY is not set in environment");
-}
-if (!HABITS_DB_RAW) {
-  throw new Error("NOTION_DATABASE_HABITS is not set in environment");
-}
-
-const notion = new Client({ auth: NOTION_API_KEY });
-const HABITS_DB = normalizeDatabaseId(HABITS_DB_RAW);
-const XP_DB = XP_DB_RAW ? normalizeDatabaseId(XP_DB_RAW) : null;
-
-function getTitle(props: any, field: string = "Name"): string {
-  const titleProp = props[field]?.title?.[0]?.plain_text;
-  return titleProp || "Untitled";
-}
+import { resolveSupabaseUser } from "@/lib/auth/resolveSupabaseUser";
+import { supabaseAdmin } from "@/lib/supabase/admin";
+import { awardXP } from "@/lib/xp/award";
 
 export async function POST() {
   try {
-    if (!XP_DB) {
+    const { supabaseUserId } = await resolveSupabaseUser();
+
+    // Get habits from Supabase
+    const { data: habits, error: habitsError } = await supabaseAdmin
+      .from("habits")
+      .select("id, name, metadata")
+      .eq("user_id", supabaseUserId)
+      .eq("active", true);
+
+    if (habitsError) {
+      console.error("Error fetching habits:", habitsError);
       return NextResponse.json({
         ok: false,
-        error: "XP database not configured",
-      });
+        error: "Failed to fetch habits",
+      }, { status: 500 });
     }
-
-    const habitsResponse = await notion.databases.query({
-      database_id: HABITS_DB,
-    });
-
-    const habits = (habitsResponse.results || []).filter((page: any) => {
-      const props = page.properties || {};
-      const xp = props["XP"]?.number || 0;
-      return xp > 0;
-    });
 
     let totalXp = 0;
     let matched = 0;
 
-    for (const habit of habits) {
-      const props = (habit as any).properties || {};
-      const xp = props["XP"]?.number || 0;
-      const habitName = getTitle(props);
+    for (const habit of habits || []) {
+      const metadata = habit.metadata || {};
+      const xp = metadata.xp || 15; // Default XP for habit completion
 
-      await notion.pages.create({
-        parent: { database_id: XP_DB },
-        properties: {
-          Name: {
-            title: [
-              {
-                text: {
-                  content: `Habit: ${habitName}`,
-                },
-              },
-            ],
-          },
-          XP: {
-            number: xp,
-          },
-          Source: {
-            rich_text: [
-              {
-                text: {
-                  content: "Habit Completion",
-                },
-              },
-            ],
-          },
-        },
+      // Award XP using the migrated function
+      const result = await awardXP("habit_completed", {
+        sourceType: "habit",
+        sourceId: habit.id,
+        notes: habit.name,
       });
 
-      totalXp += xp;
-      matched += 1;
+      if (result.ok && result.xpAwarded) {
+        totalXp += result.xpAwarded;
+        matched += 1;
+      }
     }
 
     return NextResponse.json({

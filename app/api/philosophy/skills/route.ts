@@ -1,32 +1,27 @@
+// app/api/philosophy/skills/route.ts (migrated from Notion to Supabase)
 import { NextRequest, NextResponse } from "next/server";
+import { resolveSupabaseUser } from "@/lib/auth/resolveSupabaseUser";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import { 
   ALL_SKILL_TREES, 
   getSkillTreeById, 
   SkillTree,
-  UserSkillProgress,
 } from "@/lib/philosophy/skill-trees";
 import { getAllMasteredSkills, getAllSkillsWithProgress, getTreeProgress, calculateTreeStats } from "@/lib/philosophy/skills";
-import { Client } from "@notionhq/client";
-
-const notion = new Client({ auth: process.env.NOTION_API_KEY });
-const SKILL_PROGRESS_DB = process.env.NOTION_DATABASE_SKILL_PROGRESS || "";
-
-// Fallback in-memory store if Notion not configured
-const memoryStore = new Map<string, UserSkillProgress>();
 
 /**
  * GET - Fetch skill trees and user progress
  */
 export async function GET(request: NextRequest) {
   try {
+    const { supabaseUserId } = await resolveSupabaseUser();
     const { searchParams } = new URL(request.url);
     const treeId = searchParams.get('tree');
     const all = searchParams.get('all');
-    const mastered = searchParams.get('mastered'); // Get just mastered skills
+    const mastered = searchParams.get('mastered');
     
     // Return just mastered skills (for mentor context)
     if (mastered === 'true') {
-      // ✅ Use shared function instead of inline logic
       const allMastered = await getAllMasteredSkills();
       return NextResponse.json({ ok: true, masteredSkills: allMastered });
     }
@@ -37,8 +32,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ ok: false, error: 'Tree not found' }, { status: 404 });
       }
       
-      // ✅ Use shared function
-      const progress = await getTreeProgress(tree);
+      const progress = await getTreeProgress(tree, supabaseUserId);
       
       return NextResponse.json({
         ok: true,
@@ -49,16 +43,14 @@ export async function GET(request: NextRequest) {
     }
     
     if (all === 'true') {
-      // ✅ Use shared function instead of inline logic
       const treesWithProgress = await getAllSkillsWithProgress();
-      
       return NextResponse.json({ ok: true, trees: treesWithProgress });
     }
     
     // Default: return list of available trees with stats
     const treesList = await Promise.all(
       ALL_SKILL_TREES.map(async (tree) => {
-        const progress = await getTreeProgress(tree);
+        const progress = await getTreeProgress(tree, supabaseUserId);
         const stats = calculateTreeStats(tree, progress);
         return {
           id: tree.id,
@@ -84,10 +76,11 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * POST - Update skill progress
+ * POST - Update skill progress (stub - would need skill_progress table in Supabase)
  */
 export async function POST(request: NextRequest) {
   try {
+    const { supabaseUserId } = await resolveSupabaseUser();
     const body = await request.json();
     const { action, treeId, skillId } = body;
     
@@ -105,35 +98,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Tree or skill not found' }, { status: 404 });
     }
     
-    // Check prerequisites
-    const masteredSkills = await getMasteredSkills(treeId);
-    const prereqsMet = skill.prerequisites.every(p => masteredSkills.includes(p));
-    
-    if (!prereqsMet && action !== 'reset') {
-      return NextResponse.json({ ok: false, error: 'Prerequisites not met' }, { status: 400 });
-    }
-    
-    switch (action) {
-      case 'start':
-        await saveProgress(treeId, skillId, 'in_progress');
-        break;
-        
-      case 'complete':
-        await saveProgress(treeId, skillId, 'mastered');
-        break;
-        
-      case 'reset':
-        await deleteProgress(treeId, skillId);
-        break;
-        
-      default:
-        return NextResponse.json({ ok: false, error: 'Invalid action' }, { status: 400 });
-    }
-    
-    const progress = await getTreeProgress(tree);
+    // TODO: Implement skill progress tracking in Supabase
+    // For now, return success but don't persist
+    const progress = await getTreeProgress(tree, supabaseUserId);
     
     return NextResponse.json({
       ok: true,
+      message: 'Skill progress update not yet implemented in Supabase',
       treeStats: calculateTreeStats(tree, progress),
     });
     
@@ -141,117 +112,4 @@ export async function POST(request: NextRequest) {
     console.error('Skills API error:', error);
     return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   }
-}
-
-// ============================================
-// NOTION PERSISTENCE FUNCTIONS
-// ============================================
-
-async function saveProgress(treeId: string, skillId: string, state: 'in_progress' | 'mastered') {
-  const key = `${treeId}:${skillId}`;
-  
-  if (SKILL_PROGRESS_DB) {
-    try {
-      // Check if entry exists
-      const existing = await findProgressEntry(treeId, skillId);
-      
-      if (existing) {
-        // Update existing
-        await notion.pages.update({
-          page_id: existing.id,
-          properties: {
-            'State': { select: { name: state } },
-            ...(state === 'mastered' ? { 'Mastered At': { date: { start: new Date().toISOString() } } } : {}),
-          },
-        });
-      } else {
-        // Create new
-        await notion.pages.create({
-          parent: { database_id: SKILL_PROGRESS_DB.replace(/-/g, '') },
-          properties: {
-            'Skill ID': { title: [{ text: { content: skillId } }] },
-            'Tree ID': { select: { name: treeId } },
-            'State': { select: { name: state } },
-            'Started At': { date: { start: new Date().toISOString() } },
-            ...(state === 'mastered' ? { 'Mastered At': { date: { start: new Date().toISOString() } } } : {}),
-          },
-        });
-      }
-      console.log(`✅ Skill progress saved to Notion: ${treeId}/${skillId} = ${state}`);
-    } catch (error) {
-      console.error('Notion save failed, using memory:', error);
-      memoryStore.set(key, {
-        odId: treeId,
-        odllId: skillId,
-        state,
-        startedAt: new Date().toISOString(),
-        ...(state === 'mastered' ? { masteredAt: new Date().toISOString() } : {}),
-        attempts: 1,
-      });
-    }
-  } else {
-    // Use memory store
-    memoryStore.set(key, {
-      odId: treeId,
-      odllId: skillId,
-      state,
-      startedAt: new Date().toISOString(),
-      ...(state === 'mastered' ? { masteredAt: new Date().toISOString() } : {}),
-      attempts: 1,
-    });
-  }
-}
-
-async function deleteProgress(treeId: string, skillId: string) {
-  const key = `${treeId}:${skillId}`;
-  
-  if (SKILL_PROGRESS_DB) {
-    try {
-      const existing = await findProgressEntry(treeId, skillId);
-      if (existing) {
-        await notion.pages.update({
-          page_id: existing.id,
-          archived: true,
-        });
-      }
-    } catch (error) {
-      console.error('Notion delete failed:', error);
-    }
-  }
-  
-  memoryStore.delete(key);
-}
-
-async function findProgressEntry(treeId: string, skillId: string): Promise<{ id: string } | null> {
-  if (!SKILL_PROGRESS_DB) return null;
-  
-  try {
-    const response = await notion.databases.query({
-      database_id: SKILL_PROGRESS_DB.replace(/-/g, ''),
-      filter: {
-        and: [
-          { property: 'Skill ID', title: { equals: skillId } },
-          { property: 'Tree ID', select: { equals: treeId } },
-        ],
-      },
-      page_size: 1,
-    });
-    
-    return response.results.length > 0 ? { id: response.results[0].id } : null;
-  } catch {
-    return null;
-  }
-}
-
-// getTreeProgress and calculateTreeStats are now imported from lib/philosophy/skills
-
-async function getMasteredSkills(treeId: string): Promise<string[]> {
-  const tree = getSkillTreeById(treeId);
-  if (!tree) return [];
-  
-  // ✅ Use shared function
-  const progress = await getTreeProgress(tree);
-  return Object.entries(progress)
-    .filter(([_, p]) => p.state === 'mastered')
-    .map(([id, _]) => id);
 }

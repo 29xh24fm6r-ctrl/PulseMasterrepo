@@ -7,7 +7,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Heart, TrendingUp, Zap, DollarSign, Users, Balance } from "lucide-react";
+import { Heart, TrendingUp, Zap, DollarSign, Users, Scale } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 
 const FOCUS_OPTIONS = [
@@ -16,7 +16,7 @@ const FOCUS_OPTIONS = [
   { key: "performance", label: "Performance & Output", icon: Zap, color: "amber" },
   { key: "money", label: "Money & Finances", icon: DollarSign, color: "emerald" },
   { key: "relationships", label: "Relationships", icon: Users, color: "violet" },
-  { key: "balance", label: "Balanced Life", icon: Balance, color: "sky" },
+  { key: "balance", label: "Balanced Life", icon: Scale, color: "sky" },
 ];
 
 export default function FocusPage() {

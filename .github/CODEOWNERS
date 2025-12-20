@@ -1,0 +1,6 @@
+# .github/CODEOWNERS
+# Adjust to your GitHub handle/org
+
+.github/workflows/ @YOUR_GITHUB_USERNAME
+.github/pull_request_template.md @YOUR_GITHUB_USERNAME
+

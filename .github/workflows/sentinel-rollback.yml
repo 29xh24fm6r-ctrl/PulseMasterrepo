@@ -1,0 +1,242 @@
+name: Sentinel Rollback (Prod Smoke + Revert PR)
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "*/30 * * * *" # every 30 minutes
+  workflow_dispatch:
+    inputs:
+      rollback_head_ref:
+        description: "Rollback branch ref (e.g. rollback/incident-123)"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: sentinel-rollback
+  cancel-in-progress: true
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Production smoke
+        id: smoke
+        env:
+          PROD_URL: ${{ secrets.PROD_URL }}
+          ROLLBACK_HEAD_REF: ${{ inputs.rollback_head_ref }}
+        run: |
+          node scripts/sentinel/prod-smoke.mjs "$PROD_URL"
+
+      - name: Smoke summary
+        if: success()
+        run: |
+          echo "## ✅ Prod Smoke: PASS" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >> $GITHUB_STEP_SUMMARY
+          echo "- Commit: $GITHUB_SHA" >> $GITHUB_STEP_SUMMARY
+          echo "- Time (UTC): $(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> $GITHUB_STEP_SUMMARY
+          echo "- Prod URL: ${{ secrets.PROD_URL }}" >> $GITHUB_STEP_SUMMARY
+
+      - name: War Room event — smoke_passed
+        if: success()
+        run: |
+          curl -sS -X POST "${{ secrets.OPS_EVENTS_INGEST_URL }}" \
+            -H "content-type: application/json" \
+            -H "x-ops-token: ${{ secrets.OPS_EVENTS_TOKEN }}" \
+            -d '{
+              "source": "smoke",
+              "event_type": "smoke_passed",
+              "level": "success",
+              "summary": "Prod smoke passed",
+              "link": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+              "payload": {
+                "sha": "${{ github.sha }}",
+                "rollback_head_ref": "${{ env.ROLLBACK_HEAD_REF }}"
+              }
+            }' || true
+
+      - name: Create smoke check summary
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const sha = context.sha;
+
+            // Check if previous step (smoke) succeeded
+            const smokeStatus = "${{ steps.smoke.outcome }}" === "success" ? "success" : "failure";
+            const smokeResult = smokeStatus === "success" ? "✅ PASSED" : "❌ FAILED";
+            const prodUrl = "${{ secrets.PROD_URL }}" || process.env.PROD_URL || "not set";
+
+            const summary = `
+            ## Production Smoke Test Result
+
+            **Status**: ${smokeResult}
+            **Environment**: Production
+            **Time**: ${new Date().toISOString()}
+            **Prod URL**: ${prodUrl}
+
+            ### Endpoints Tested
+            - \`${prodUrl}/api/health/db\` - Database health check
+
+            ### Result
+            ${smokeStatus === "success" 
+              ? "✅ All smoke tests passed. Production is healthy." 
+              : "❌ Smoke tests failed. Rollback PR will be created."}
+            `;
+
+            // Create a check run
+            await github.rest.checks.create({
+              owner,
+              repo,
+              name: "Production Smoke Test",
+              head_sha: sha,
+              status: "completed",
+              conclusion: smokeStatus,
+              output: {
+                title: `Production Smoke: ${smokeResult}`,
+                summary: summary,
+              },
+            });
+
+            core.info(`Created smoke check: ${smokeResult}`);
+
+      - name: Auto revert PR on smoke failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PROD_URL: ${{ secrets.PROD_URL }}
+
+          # Optional safety knobs
+          ROLLBACK_BRANCH_PREFIX: "revert/prod"
+          ROLLBACK_PICK_SENTINEL_ONLY: "true" # if true, tries to revert last "Fix(sim): sentinel" commit first
+          ROLLBACK_GATE: "npm run build"       # ensures revert compiles
+
+        run: |
+          node scripts/sentinel/rollback.mjs
+
+      - name: Label rollback PR canary-green (by branch)
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            // Option 1: If ROLLBACK_HEAD_REF is set (from workflow_dispatch input), use it
+            const headRef = process.env.ROLLBACK_HEAD_REF;
+            
+            if (headRef) {
+              const { data: prs } = await github.rest.pulls.list({
+                owner,
+                repo,
+                state: "open",
+                base: "main",
+                per_page: 100,
+              });
+
+              const pr = prs.find(p => p.head?.ref === headRef);
+              if (pr) {
+                const labels = pr.labels || [];
+                const hasCanaryGreen = labels.some(l => (typeof l === "string" ? l : l.name) === "canary-green");
+                
+                if (!hasCanaryGreen) {
+                  await github.rest.issues.addLabels({
+                    owner,
+                    repo,
+                    issue_number: pr.number,
+                    labels: ["canary-green"]
+                  });
+                  core.info(`✅ Labeled PR #${pr.number} with canary-green (by branch: ${headRef})`);
+                } else {
+                  core.info(`PR #${pr.number} already has canary-green label`);
+                }
+                return;
+              } else {
+                core.info(`No open PR found for head ref: ${headRef} (this is OK if smoke was run on main)`);
+                return;
+              }
+            }
+
+            // Option 2: Find all open rollback PRs (fallback for normal main smoke runs)
+            core.info("No ROLLBACK_HEAD_REF provided; checking for any open rollback PRs");
+
+            // Option 2: Find all open rollback PRs (fallback)
+            const { data: prs } = await github.rest.pulls.list({
+              owner,
+              repo,
+              state: "open",
+              base: "main",
+              per_page: 100,
+            });
+
+            const rollbackPRs = prs.filter(pr => {
+              const labels = pr.labels || [];
+              const hasRollback = labels.some(l => (typeof l === "string" ? l : l.name) === "rollback");
+              const headRef = pr.head?.ref || "";
+              const looksRollback = /^rollback\/.+/i.test(headRef) || /^revert\/.+/i.test(headRef);
+              return hasRollback || looksRollback;
+            });
+
+            if (rollbackPRs.length === 0) {
+              core.info("No open rollback PRs found to label.");
+              return;
+            }
+
+            core.info(`Found ${rollbackPRs.length} rollback PR(s) to label with canary-green`);
+
+            for (const pr of rollbackPRs) {
+              const labels = pr.labels || [];
+              const hasCanaryGreen = labels.some(l => (typeof l === "string" ? l : l.name) === "canary-green");
+              
+              if (!hasCanaryGreen) {
+                await github.rest.issues.addLabels({
+                  owner,
+                  repo,
+                  issue_number: pr.number,
+                  labels: ["canary-green"]
+                });
+                core.info(`✅ Labeled PR #${pr.number} with canary-green`);
+              } else {
+                core.info(`PR #${pr.number} already has canary-green label`);
+              }
+            }
+
+      - name: War Room event — canary_green_applied
+        if: success()
+        run: |
+          if [ -n "${{ env.ROLLBACK_HEAD_REF }}" ]; then
+            curl -sS -X POST "${{ secrets.OPS_EVENTS_INGEST_URL }}" \
+              -H "content-type: application/json" \
+              -H "x-ops-token: ${{ secrets.OPS_EVENTS_TOKEN }}" \
+              -d '{
+                "source": "rollback",
+                "event_type": "canary_green_applied",
+                "level": "success",
+                "summary": "canary-green applied — rollback auto-merge armed",
+                "link": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+                "payload": { "rollback_head_ref": "${{ env.ROLLBACK_HEAD_REF }}" }
+              }' || true
+          fi
+

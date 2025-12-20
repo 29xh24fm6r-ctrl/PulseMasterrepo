@@ -1,21 +1,15 @@
 // Pulse Meta-OS Engine - Experience v12
 // lib/metaos/engine.ts
 
+import "server-only";
+
 import { supabaseAdmin } from "@/lib/supabase";
 import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 import { callAIJson } from "@/lib/ai/call";
+import type { MetaOSProfile, OSRebuild } from "./types";
 
-export interface MetaOSProfile {
-  preferredOSStyles: string[];
-  preferredCoachModes: string[];
-  preferredExperienceModes: string[];
-  autoAdjustmentsEnabled: boolean;
-}
-
-export interface OSRebuild {
-  rebuildType: "full" | "partial" | "theme" | "workflow";
-  changes: Record<string, any>;
-}
+// Re-export types for convenience
+export type { MetaOSProfile, OSRebuild } from "./types";
 
 /**
  * Rebuild user OS

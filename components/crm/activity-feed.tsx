@@ -1,7 +1,7 @@
 "use client";
 
 import { FileText, Phone, Mail, Calendar, CheckSquare } from "lucide-react";
-import { Activity } from "@/lib/crm/overview";
+import type { Activity } from "@/lib/crm/types";
 
 interface ActivityFeedProps {
   activity: Activity[];

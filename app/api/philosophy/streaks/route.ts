@@ -1,11 +1,7 @@
+// app/api/philosophy/streaks/route.ts (migrated from Notion to Supabase)
 import { NextRequest, NextResponse } from "next/server";
-import { Client } from "@notionhq/client";
-
-const notion = new Client({ auth: process.env.NOTION_API_KEY });
-const STREAKS_DB = process.env.NOTION_DATABASE_STREAKS || "";
-
-// In-memory fallback
-const memoryStreaks: Record<string, { date: string; activities: string[] }[]> = {};
+import { resolveSupabaseUser } from "@/lib/auth/resolveSupabaseUser";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 
 interface StreakData {
   currentStreak: number;
@@ -18,10 +14,10 @@ interface StreakData {
 
 // Get streak multiplier based on streak length
 function getStreakMultiplier(streak: number): number {
-  if (streak >= 30) return 2.0;    // 🔥🔥🔥 Legendary
-  if (streak >= 14) return 1.5;    // 🔥🔥 On Fire
-  if (streak >= 7) return 1.25;    // 🔥 Warming Up
-  if (streak >= 3) return 1.1;     // Building momentum
+  if (streak >= 30) return 2.0;
+  if (streak >= 14) return 1.5;
+  if (streak >= 7) return 1.25;
+  if (streak >= 3) return 1.1;
   return 1.0;
 }
 
@@ -57,10 +53,11 @@ function getYesterday(): string {
  */
 export async function GET(request: NextRequest) {
   try {
+    const { supabaseUserId } = await resolveSupabaseUser();
     const { searchParams } = new URL(request.url);
     const days = parseInt(searchParams.get('days') || '30');
     
-    const activityDates = await getActivityDates(days);
+    const activityDates = await getActivityDates(supabaseUserId, days);
     const streakData = calculateStreak(activityDates);
     
     return NextResponse.json({
@@ -80,29 +77,30 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    const { supabaseUserId } = await resolveSupabaseUser();
     const body = await request.json();
     const { activity, source } = body;
     
     const today = getToday();
     
-    // Record to Notion if configured
-    if (STREAKS_DB) {
-      await recordActivityNotion(today, activity, source);
-    } else {
-      // Fallback to memory
-      if (!memoryStreaks['default']) memoryStreaks['default'] = [];
-      const todayEntry = memoryStreaks['default'].find(e => e.date === today);
-      if (todayEntry) {
-        if (!todayEntry.activities.includes(activity)) {
-          todayEntry.activities.push(activity);
-        }
-      } else {
-        memoryStreaks['default'].push({ date: today, activities: [activity] });
-      }
-    }
+    // Record to Supabase (using xp_transactions or a dedicated streaks table)
+    // For now, we'll use xp_transactions metadata to track streaks
+    await supabaseAdmin
+      .from("xp_transactions")
+      .insert({
+        user_id: supabaseUserId,
+        amount: 0, // No XP, just tracking activity
+        source: source || "streak",
+        description: `Activity: ${activity}`,
+        metadata: {
+          activity,
+          isStreakActivity: true,
+          date: today,
+        },
+      });
     
     // Calculate updated streak
-    const activityDates = await getActivityDates(30);
+    const activityDates = await getActivityDates(supabaseUserId, 30);
     const streakData = calculateStreak(activityDates);
     
     console.log(`📊 Activity recorded: ${activity} | Streak: ${streakData.currentStreak} | Multiplier: ${streakData.streakMultiplier}x`);
@@ -120,96 +118,30 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// ============================================
-// NOTION FUNCTIONS
-// ============================================
+async function getActivityDates(supabaseUserId: string, days: number): Promise<string[]> {
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - days);
+  
+  // Get streak activities from xp_transactions
+  const { data: transactions } = await supabaseAdmin
+    .from("xp_transactions")
+    .select("created_at, metadata")
+    .eq("user_id", supabaseUserId)
+    .eq("metadata->>isStreakActivity", "true")
+    .gte("created_at", startDate.toISOString())
+    .order("created_at", { ascending: false });
 
-async function recordActivityNotion(date: string, activity: string, source: string) {
-  try {
-    // Check if entry exists for today
-    const existing = await notion.databases.query({
-      database_id: STREAKS_DB.replace(/-/g, ''),
-      filter: {
-        property: 'Date',
-        date: { equals: date },
-      },
-      page_size: 1,
-    });
-    
-    if (existing.results.length > 0) {
-      // Update existing - add to activities
-      const page = existing.results[0] as any;
-      const currentActivities = page.properties['Activities']?.rich_text?.[0]?.plain_text || '';
-      const activitiesList = currentActivities ? currentActivities.split(', ') : [];
-      
-      if (!activitiesList.includes(activity)) {
-        activitiesList.push(activity);
-        await notion.pages.update({
-          page_id: page.id,
-          properties: {
-            'Activities': { 
-              rich_text: [{ text: { content: activitiesList.join(', ') } }] 
-            },
-            'Count': { number: activitiesList.length },
-          },
-        });
-      }
-      console.log(`✅ Updated activity in Notion for ${date}`);
-    } else {
-      // Create new entry
-      await notion.pages.create({
-        parent: { database_id: STREAKS_DB.replace(/-/g, '') },
-        properties: {
-          'Date': { date: { start: date } },
-          'Activities': { rich_text: [{ text: { content: activity } }] },
-          'Source': { select: { name: source || 'dojo' } },
-          'Count': { number: 1 },
-        },
-      });
-      console.log(`✅ Created new activity in Notion for ${date}`);
-    }
-  } catch (error) {
-    console.error('Notion activity recording failed:', error);
-    throw error;
-  }
-}
-
-async function getActivityDates(days: number): Promise<string[]> {
-  const dates: string[] = [];
+  const dates = new Set<string>();
   
-  if (STREAKS_DB) {
-    try {
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() - days);
-      
-      const response = await notion.databases.query({
-        database_id: STREAKS_DB.replace(/-/g, ''),
-        filter: {
-          property: 'Date',
-          date: { on_or_after: formatDate(startDate) },
-        },
-        sorts: [{ property: 'Date', direction: 'descending' }],
-      });
-      
-      for (const page of response.results as any[]) {
-        const date = page.properties['Date']?.date?.start;
-        if (date) dates.push(date);
-      }
-    } catch (error) {
-      console.error('Failed to fetch from Notion:', error);
+  for (const tx of transactions || []) {
+    const metadata = tx.metadata || {};
+    const date = metadata.date || (tx.created_at ? formatDate(new Date(tx.created_at)) : null);
+    if (date) {
+      dates.add(date);
     }
   }
   
-  // Merge with memory fallback
-  if (memoryStreaks['default']) {
-    for (const entry of memoryStreaks['default']) {
-      if (!dates.includes(entry.date)) {
-        dates.push(entry.date);
-      }
-    }
-  }
-  
-  return dates.sort().reverse(); // Most recent first
+  return Array.from(dates).sort().reverse(); // Most recent first
 }
 
 function calculateStreak(activityDates: string[]): StreakData {

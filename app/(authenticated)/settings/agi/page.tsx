@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { AppCard } from "@/components/ui/AppCard";
 import { Badge } from "@/components/ui/badge";
 import { Save, Loader2 } from "lucide-react";
-import { AGIUserProfile } from "@/lib/agi/settings";
+import type { AGIUserProfile } from "@/types/agi";
 
 export default function AGISettingsPage() {
   const { user } = useUser();

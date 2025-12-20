@@ -3,7 +3,7 @@
 
 import { WorldState, AGIUserId } from "./types";
 import { supabaseAdmin } from "@/lib/supabase";
-import { getCurrentEmotionState } from "@/lib/emotion-os";
+import { getCurrentEmotionState } from "@/lib/emotion-os/server";
 import { getDeals } from "@/lib/crm/deals";
 import { getRelationships } from "@/lib/relationships/engine";
 
@@ -240,7 +240,7 @@ export async function buildWorldState(userId: AGIUserId): Promise<WorldState> {
     } catch (v3Err) {
       // Fallback to older identity system
       try {
-        const { getIdentityProfile } = await import("@/app/lib/identity-engine/index");
+        const { getIdentityProfile } = await import("@/lib/identity-engine");
         const profile = await getIdentityProfile(userId);
         
         identityRoles = profile.roles?.map((r: any) => r.role_name || r.name) || [];

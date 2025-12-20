@@ -13,17 +13,23 @@ import {
   DollarSign, 
   MessageSquare, 
   Settings,
-  Target
+  Target,
+  Sparkles,
+  Plus,
+  Calendar
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
+  { href: "/today", label: "Today", icon: Calendar },
+  { href: "/create", label: "Create", icon: Plus },
   { href: "/life", label: "Life", icon: Home },
   { href: "/strategy", label: "Strategy", icon: Compass },
   { href: "/simulation/paths", label: "Simulation", icon: Zap },
   { href: "/graph", label: "Graph", icon: Network },
   { href: "/finance", label: "Finance", icon: DollarSign },
   { href: "/coaches", label: "Coaches", icon: MessageSquare },
+  { href: "/features", label: "Feature Hub", icon: Sparkles },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 

@@ -3,7 +3,7 @@
 
 import { supabaseAdmin } from "@/lib/supabase";
 import { WorkItem, WorkItemSource } from "./types";
-import { getCurrentEmotionState } from "@/lib/emotion-os";
+import { getCurrentEmotionState } from "@/lib/emotion-os/server";
 import { analyzeTask, breakIntoSteps, sequenceTasks, CognitiveProfile } from "./executive-function";
 import { buildThirdBrainProductivityContext, ThirdBrainContext } from "./context-builder";
 

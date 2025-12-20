@@ -1,6 +1,8 @@
 // Coach Context Builder (Cortex-Driven)
 // lib/coaching/cortex/context.ts
 
+import "server-only";
+
 import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 import { CoachContext } from "./types";
 

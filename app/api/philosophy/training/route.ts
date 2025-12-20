@@ -1,20 +1,17 @@
+// app/api/philosophy/training/route.ts (migrated from Notion to Supabase)
 import { canMakeAICall, trackAIUsage } from "@/lib/services/usage";
 import { NextRequest, NextResponse } from "next/server";
-import { Client } from "@notionhq/client";
+import { resolveSupabaseUser } from "@/lib/auth/resolveSupabaseUser";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import OpenAI from "openai";
 import { getSkillTreeById } from "@/lib/philosophy/skill-trees";
 import { loadMentorWithKernel } from "@/app/lib/brain-loader";
 import { awardXP } from "@/lib/xp/award";
+import { checkAndUnlockAchievements } from "@/lib/philosophy/achievements";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-const notion = new Client({ auth: process.env.NOTION_API_KEY });
-const SKILL_PROGRESS_DB = process.env.NOTION_DATABASE_SKILL_PROGRESS || "";
-const STREAKS_DB = process.env.NOTION_DATABASE_STREAKS || "";
 
-// ============================================
-// STREAK FUNCTIONS
-// ============================================
-
+// Format date as YYYY-MM-DD
 function formatDate(date: Date): string {
   return date.toISOString().split('T')[0];
 }
@@ -31,161 +28,66 @@ function getStreakMultiplier(streak: number): number {
   return 1.0;
 }
 
-async function recordStreakActivity(activity: string, source: string): Promise<{ multiplier: number; streak: number }> {
+async function recordStreakActivity(supabaseUserId: string, activity: string, source: string): Promise<{ multiplier: number; streak: number }> {
   const today = getToday();
-  let currentStreak = 1;
   
-  if (STREAKS_DB) {
-    try {
-      // Check if entry exists for today
-      const existing = await notion.databases.query({
-        database_id: STREAKS_DB.replace(/-/g, ''),
-        filter: {
-          property: 'Date',
-          date: { equals: today },
-        },
-        page_size: 1,
-      });
-      
-      if (existing.results.length > 0) {
-        const page = existing.results[0] as any;
-        const currentActivities = page.properties['Activities']?.rich_text?.[0]?.plain_text || '';
-        const activitiesList = currentActivities ? currentActivities.split(', ') : [];
-        
-        if (!activitiesList.includes(activity)) {
-          activitiesList.push(activity);
-          await notion.pages.update({
-            page_id: page.id,
-            properties: {
-              'Activities': { rich_text: [{ text: { content: activitiesList.join(', ') } }] },
-              'Count': { number: activitiesList.length },
-            },
-          });
-        }
-      } else {
-        await notion.pages.create({
-          parent: { database_id: STREAKS_DB.replace(/-/g, '') },
-          properties: {
-            'Date': { date: { start: today } },
-            'Activities': { rich_text: [{ text: { content: activity } }] },
-            'Source': { select: { name: source } },
-            'Count': { number: 1 },
-          },
-        });
-      }
-      
-      // Calculate current streak
-      const last30 = await notion.databases.query({
-        database_id: STREAKS_DB.replace(/-/g, ''),
-        filter: {
-          property: 'Date',
-          date: { past_month: {} },
-        },
-        sorts: [{ property: 'Date', direction: 'descending' }],
-      });
-      
-      const dates = (last30.results as any[])
-        .map(p => p.properties['Date']?.date?.start)
-        .filter(Boolean);
-      
-      // Count consecutive days
-      let checkDate = today;
-      currentStreak = 0;
-      
-      for (const date of dates) {
-        if (date === checkDate) {
-          currentStreak++;
-          const prev = new Date(checkDate);
-          prev.setDate(prev.getDate() - 1);
-          checkDate = formatDate(prev);
-        } else if (date < checkDate) {
-          break;
-        }
-      }
-      
-      console.log(`📊 Streak recorded: ${currentStreak} days | Activity: ${activity}`);
-      
-    } catch (error) {
-      console.error('Streak recording failed:', error);
+  // Record streak activity
+  await supabaseAdmin
+    .from("xp_transactions")
+    .insert({
+      user_id: supabaseUserId,
+      amount: 0,
+      source: source || "streak",
+      description: `Activity: ${activity}`,
+      metadata: {
+        activity,
+        isStreakActivity: true,
+        date: today,
+      },
+    });
+  
+  // Calculate current streak
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - 30);
+  
+  const { data: transactions } = await supabaseAdmin
+    .from("xp_transactions")
+    .select("created_at, metadata")
+    .eq("user_id", supabaseUserId)
+    .eq("metadata->>isStreakActivity", "true")
+    .gte("created_at", startDate.toISOString())
+    .order("created_at", { ascending: false });
+
+  const dates = new Set<string>();
+  for (const tx of transactions || []) {
+    const metadata = tx.metadata || {};
+    const date = metadata.date || (tx.created_at ? formatDate(new Date(tx.created_at)) : null);
+    if (date) dates.add(date);
+  }
+  
+  // Count consecutive days
+  let checkDate = today;
+  let currentStreak = 0;
+  const sortedDates = Array.from(dates).sort().reverse();
+  
+  for (const date of sortedDates) {
+    if (date === checkDate) {
+      currentStreak++;
+      const prev = new Date(checkDate);
+      prev.setDate(prev.getDate() - 1);
+      checkDate = formatDate(prev);
+    } else if (date < checkDate) {
+      break;
     }
   }
+  
+  console.log(`📊 Streak recorded: ${currentStreak} days | Activity: ${activity}`);
   
   return {
     multiplier: getStreakMultiplier(currentStreak),
     streak: currentStreak,
   };
 }
-
-// ============================================
-// SKILL PROGRESS FUNCTIONS
-// ============================================
-
-async function updateSkillProgress(treeId: string, skillId: string, state: 'in_progress' | 'mastered') {
-  console.log(`📝 Updating skill progress: ${treeId}/${skillId} -> ${state}`);
-  
-  if (!SKILL_PROGRESS_DB) {
-    console.log('⚠️ No SKILL_PROGRESS_DB configured, skipping Notion update');
-    return;
-  }
-  
-  try {
-    const existing = await notion.databases.query({
-      database_id: SKILL_PROGRESS_DB.replace(/-/g, ''),
-      filter: {
-        and: [
-          { property: 'Skill ID', title: { equals: skillId } },
-          { property: 'Tree ID', select: { equals: treeId } },
-        ],
-      },
-      page_size: 1,
-    });
-    
-    if (existing.results.length > 0) {
-      await notion.pages.update({
-        page_id: existing.results[0].id,
-        properties: {
-          'State': { select: { name: state } },
-          ...(state === 'mastered' ? { 'Mastered At': { date: { start: new Date().toISOString() } } } : {}),
-        },
-      });
-      console.log(`✅ Updated existing skill in Notion: ${skillId}`);
-    } else {
-      await notion.pages.create({
-        parent: { database_id: SKILL_PROGRESS_DB.replace(/-/g, '') },
-        properties: {
-          'Skill ID': { title: [{ text: { content: skillId } }] },
-          'Tree ID': { select: { name: treeId } },
-          'State': { select: { name: state } },
-          'Started At': { date: { start: new Date().toISOString() } },
-          ...(state === 'mastered' ? { 'Mastered At': { date: { start: new Date().toISOString() } } } : {}),
-        },
-      });
-      console.log(`✅ Created new skill in Notion: ${skillId}`);
-    }
-  } catch (error) {
-    console.error('❌ Notion update failed:', error);
-  }
-}
-
-// ============================================
-// ACHIEVEMENT CHECK (via internal API call)
-// ============================================
-
-async function checkAchievements(_baseUrl: string): Promise<any[]> {
-  try {
-    // ✅ Use shared function instead of HTTP call
-    const { checkAndUnlockAchievements } = await import("@/lib/philosophy/achievements");
-    const result = await checkAndUnlockAchievements();
-    return result.ok ? result.newlyUnlocked : [];
-  } catch (error) {
-    console.error('Achievement check failed:', error);
-    return [];
-  }
-}
-
-// ============================================
-// MAIN API HANDLER
-// ============================================
 
 interface TrainingRequest {
   treeId: string;
@@ -196,6 +98,7 @@ interface TrainingRequest {
 
 export async function POST(request: NextRequest) {
   try {
+    const { supabaseUserId } = await resolveSupabaseUser();
     const body: TrainingRequest = await request.json();
     const { treeId, skillId, userResponse, mentorId } = body;
     
@@ -285,31 +188,28 @@ Respond ONLY with valid JSON, no other text.`;
     }
     
     // Record streak activity (always, even if not passed)
-    const streakData = await recordStreakActivity(`skill_training:${skillId}`, 'skill_tree');
+    const streakData = await recordStreakActivity(supabaseUserId, `skill_training:${skillId}`, 'skill_tree');
     
-    // If passed, award XP and update progress
+    // If passed, award XP
     let xpAwarded = null;
     let newAchievements: any[] = [];
     
     if (evaluation.passed) {
       try {
-        // Update skill progress
-        await updateSkillProgress(treeId, skillId, 'mastered');
-        
         // Calculate XP with streak multiplier
-        const baseXP = skill.xpReward;
-        const xpResult = await awardXP('philosophy_skill_unlocked', 'skill_tree', {
+        const baseXP = skill.xpReward || 50;
+        const xpResult = await awardXP('philosophy_skill_unlocked', {
+          sourceType: "skill_tree",
           notes: `Mastered ${skill.name} in ${tree.name}`,
         });
         
-        const totalBase = baseXP + xpResult.amount;
+        const totalBase = baseXP + (xpResult.xpAwarded || 0);
         const multipliedXP = Math.round(totalBase * streakData.multiplier);
         
         xpAwarded = {
           amount: multipliedXP,
           baseAmount: totalBase,
           category: 'IXP',
-          wasCrit: xpResult.wasCrit,
           streakMultiplier: streakData.multiplier,
           currentStreak: streakData.streak,
         };
@@ -317,15 +217,17 @@ Respond ONLY with valid JSON, no other text.`;
         console.log(`🎉 Skill mastered: ${skill.name} | Base XP: ${totalBase} | Multiplier: ${streakData.multiplier}x | Final: ${multipliedXP}`);
         
         // Check for new achievements
-        const baseUrl = new URL(request.url).origin;
-        newAchievements = await checkAchievements(baseUrl);
+        const result = await checkAndUnlockAchievements();
+        if (result.ok) {
+          newAchievements = result.newlyUnlocked;
+        }
         
         if (newAchievements.length > 0) {
-          console.log(`🏆 New achievements unlocked: ${newAchievements.map(a => a.name).join(', ')}`);
+          console.log(`🏆 New achievements unlocked: ${newAchievements.map((a: any) => a.name || a.id).join(', ')}`);
         }
         
       } catch (error) {
-        console.error('Failed to update progress or award XP:', error);
+        console.error('Failed to award XP:', error);
       }
     }
     
@@ -355,6 +257,6 @@ export async function GET() {
   return NextResponse.json({
     name: "Pulse Philosophy Training API",
     version: "3.0",
-    features: ["skill_evaluation", "notion_persistence", "streak_tracking", "xp_multipliers", "achievements"],
+    features: ["skill_evaluation", "supabase_persistence", "streak_tracking", "xp_multipliers", "achievements"],
   });
 }

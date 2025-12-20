@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 import { AppCard } from "@/components/ui/AppCard";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { Badge } from "@/components/ui/badge";
-import { UserCollectiveAlignment } from "@/lib/mesh/alignment";
+import type { UserCollectiveAlignment } from "@/lib/mesh/alignment-types";
 import { Users, TrendingUp, CheckCircle } from "lucide-react";
 
 export default function CollectiveMeshPage() {

@@ -3,7 +3,7 @@
 
 import { supabaseAdmin } from "@/lib/supabase";
 import { getLifeArcPlan } from "../planner";
-import { getCurrentEmotionState } from "@/lib/emotion-os";
+import { getCurrentEmotionState } from "@/lib/emotion-os/server";
 
 export interface LifeArcRisk {
   arcId: string;

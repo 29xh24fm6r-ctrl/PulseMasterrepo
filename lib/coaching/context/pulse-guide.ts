@@ -1,7 +1,7 @@
 // Pulse Guide Coach Context Builder
 // lib/coaching/context/pulse-guide.ts
 
-import { createClient } from "@/lib/supabase/server";
+import { supabaseServer } from "@/lib/supabase/server";
 
 export interface PulseGuideContext {
   userFocusProfile?: {
@@ -30,7 +30,7 @@ export async function buildPulseGuideContext(
   userId: string,
   origin?: string
 ): Promise<PulseGuideContext> {
-  const supabase = await createClient();
+  const supabase = supabaseServer();
 
   // Fetch user focus profile
   const { data: focusProfile } = await supabase

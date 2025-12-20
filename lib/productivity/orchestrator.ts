@@ -4,7 +4,7 @@
 import { buildTodayQueue } from "./queue";
 import { buildThirdBrainProductivityContext } from "./context-builder";
 import { sequenceTasks, CognitiveProfile } from "./executive-function";
-import { getCurrentEmotionState } from "@/lib/emotion-os";
+import { getCurrentEmotionState } from "@/lib/emotion-os/server";
 import { WorkItem } from "./types";
 
 export interface FocusBlockPlan {

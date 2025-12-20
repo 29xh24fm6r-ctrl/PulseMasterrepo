@@ -1,6 +1,10 @@
 // Cortex Context Helper for Coaches
 // lib/cortex/context.ts
 
+// Note: This file uses supabaseAdmin which is server-only
+// But we can't mark it server-only if it's used in pages/ directory
+// Instead, ensure it's only imported from API routes / server components
+
 import { supabaseAdmin } from '@/lib/supabase';
 
 async function resolveUserId(clerkId: string): Promise<string> {

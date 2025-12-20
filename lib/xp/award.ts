@@ -1,7 +1,6 @@
-import { Client } from "@notionhq/client";
-
-const notion = new Client({ auth: process.env.NOTION_API_KEY });
-const XP_LOG_DB = process.env.XP_LOG_DB || "";
+import "server-only";
+import { supabaseAdmin } from "@/lib/supabase/admin";
+import { resolveSupabaseUser } from "@/lib/auth/resolveSupabaseUser";
 
 // Activity XP mapping
 const ACTIVITY_XP_MAP: Record<string, { amount: number; category: string }> = {
@@ -51,165 +50,62 @@ function rollForCrit(): { wasCrit: boolean; multiplier: number } {
   return { wasCrit: false, multiplier: 1 };
 }
 
+/**
+ * Award XP for an activity (migrated from Notion to Supabase)
+ */
 export async function awardXP(
   activity: string,
-  sourceType: string,
-  options: {
-    sourceId?: string;
-    notes?: string;
+  options?: {
     forceCrit?: boolean;
     customMultiplier?: number;
-  } = {}
-): Promise<{
-  amount: number;
-  category: string;
-  wasCrit: boolean;
-  critMultiplier: number;
-  activity: string;
-}> {
-  const activityConfig = ACTIVITY_XP_MAP[activity];
-  if (!activityConfig) {
-    console.warn(`Unknown activity: ${activity}`);
-    return { amount: 0, category: "DXP", wasCrit: false, critMultiplier: 1, activity };
+    sourceType?: string;
+    sourceId?: string;
+    notes?: string;
   }
+): Promise<{ ok: boolean; xpAwarded?: number; error?: string }> {
+  try {
+    const { supabaseUserId } = await resolveSupabaseUser();
 
-  const { wasCrit, multiplier } = options.forceCrit
-    ? { wasCrit: true, multiplier: options.customMultiplier || 2 }
-    : rollForCrit();
+    const activityData = ACTIVITY_XP_MAP[activity];
+    if (!activityData) {
+      return { ok: false, error: `Unknown activity: ${activity}` };
+    }
 
-  const finalAmount = Math.round(activityConfig.amount * multiplier);
+    const { wasCrit, multiplier } = options?.forceCrit 
+      ? { wasCrit: true, multiplier: options.customMultiplier || 2 }
+      : rollForCrit();
 
-  if (XP_LOG_DB) {
-    try {
-      const properties: Record<string, any> = {
-        'Activity': { title: [{ text: { content: activity } }] },
-        'Amount': { number: finalAmount },
-        'Category': { select: { name: activityConfig.category } },
-        'Date': { date: { start: new Date().toISOString() } },
-        'Was Crit': { checkbox: wasCrit },
-        'Base Amount': { number: activityConfig.amount },
-        'Source Type': { select: { name: sourceType } },
-      };
+    const baseXP = activityData.amount;
+    const finalXP = Math.round(baseXP * multiplier);
 
-      if (options.sourceId) {
-        properties['Source ID'] = { rich_text: [{ text: { content: options.sourceId } }] };
-      }
-      if (options.notes) {
-        properties['Notes'] = { rich_text: [{ text: { content: options.notes } }] };
-      }
-      properties['Identity Bonus'] = { number: 0 };
-
-      await notion.pages.create({
-        parent: { database_id: XP_LOG_DB },
-        properties,
+    // Log to Supabase
+    const { error } = await supabaseAdmin
+      .from("xp_transactions")
+      .insert({
+        user_id: supabaseUserId,
+        amount: finalXP,
+        source: options?.sourceType || "manual",
+        description: `${activity}: ${finalXP} XP (${activityData.category})${wasCrit ? " [CRIT!]" : ""}`,
+        metadata: {
+          activity,
+          category: activityData.category,
+          baseXP,
+          finalXP,
+          wasCrit,
+          multiplier,
+          sourceId: options?.sourceId,
+          notes: options?.notes,
+        },
       });
 
-      console.log(`✅ XP Logged: +${finalAmount} ${activityConfig.category} for ${activity}${wasCrit ? ' (CRIT!)' : ''}`);
-    } catch (notionError: any) {
-      console.error("XP logging to Notion failed:", notionError.message);
-    }
-  }
-
-  return {
-    amount: finalAmount,
-    category: activityConfig.category,
-    wasCrit,
-    critMultiplier: multiplier,
-    activity,
-  };
-}
-
-export async function awardHabitXP(habitId: string, habitName: string) {
-  return awardXP("habit_completed", "habit", { sourceId: habitId, notes: habitName });
-}
-
-export async function awardTaskXP(taskId: string, priority: string, taskName: string) {
-  const activity = priority === "High" || priority === "🔴 High" ? "task_completed_high_priority" : "task_completed";
-  return awardXP(activity, "task", { sourceId: taskId, notes: taskName });
-}
-
-export async function awardJournalXP(journalId: string) {
-  return awardXP("journal_entry", "journal", { sourceId: journalId });
-}
-
-export async function awardFollowUpXP(followUpId: string, contactName: string) {
-  return awardXP("follow_up_sent", "follow_up", { sourceId: followUpId, notes: contactName });
-}
-
-export async function awardDealWonXP(dealId: string, dealName: string) {
-  return awardXP("deal_won", "deal", { sourceId: dealId, notes: dealName });
-}
-
-export async function awardDealAdvancedXP(dealId: string, dealName: string) {
-  return awardXP("deal_advanced", "deal", { sourceId: dealId, notes: dealName });
-}
-
-export async function awardStreakXP(streakDays: number) {
-  const milestoneActivities: Record<number, string> = {
-    7: "streak_milestone_7",
-    14: "streak_milestone_14",
-    30: "streak_milestone_30",
-    60: "streak_milestone_60",
-    90: "streak_milestone_90",
-    100: "streak_milestone_100",
-  };
-  const activity = milestoneActivities[streakDays];
-  if (!activity) {
-    return { amount: 0, category: "MXP", wasCrit: false, critMultiplier: 1, activity: "none" };
-  }
-  return awardXP(activity, "streak", { notes: `${streakDays}-day streak milestone!`, forceCrit: true, customMultiplier: 1 });
-}
-
-export async function awardMorningRoutineXP() {
-  return awardXP("morning_routine", "routine", { notes: "Morning routine completed" });
-}
-
-export async function awardMentorXP(mentorName: string, activity: 'started' | 'insight' | 'deep') {
-  const activityMap = { started: 'mentor_session_started', insight: 'mentor_insight_received', deep: 'mentor_deep_conversation' };
-  return awardXP(activityMap[activity], "mentor_session", { notes: `${mentorName} session` });
-}
-
-export async function getXPTotals(period: "today" | "week" | "month" | "all" = "all") {
-  if (!XP_LOG_DB) return { totals: {}, recentGains: [] };
-
-  try {
-    let dateFilter: any = undefined;
-    const now = new Date();
-    
-    if (period === "today") {
-      dateFilter = { property: "Date", date: { equals: now.toISOString().split("T")[0] } };
-    } else if (period === "week") {
-      dateFilter = { property: "Date", date: { after: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString() } };
-    } else if (period === "month") {
-      dateFilter = { property: "Date", date: { after: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString() } };
+    if (error) {
+      console.error("Failed to award XP:", error);
+      return { ok: false, error: error.message };
     }
 
-    const response = await notion.databases.query({
-      database_id: XP_LOG_DB,
-      filter: dateFilter,
-      sorts: [{ property: "Date", direction: "descending" }],
-      page_size: 100,
-    });
-
-    const totals: Record<string, number> = { DXP: 0, PXP: 0, IXP: 0, AXP: 0, MXP: 0 };
-    const recentGains: any[] = [];
-
-    for (const page of response.results as any[]) {
-      const props = page.properties;
-      const amount = props.Amount?.number || 0;
-      const category = props.Category?.select?.name || "DXP";
-      const activity = props.Activity?.title?.[0]?.plain_text || "Unknown";
-      const wasCrit = props['Was Crit']?.checkbox || false;
-
-      if (totals[category] !== undefined) totals[category] += amount;
-      if (recentGains.length < 10) {
-        recentGains.push({ activity, amount, category, date: props.Date?.date?.start, wasCrit });
-      }
-    }
-
-    return { totals, recentGains };
-  } catch (error) {
-    console.error("Failed to get XP totals:", error);
-    return { totals: {}, recentGains: [] };
+    return { ok: true, xpAwarded: finalXP };
+  } catch (error: any) {
+    console.error("XP award error:", error);
+    return { ok: false, error: error.message || "Failed to award XP" };
   }
 }

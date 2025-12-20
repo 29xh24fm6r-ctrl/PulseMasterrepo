@@ -1,42 +1,16 @@
 // World-Scale Mind Engine - Experience v8
 // lib/world/engine.ts
 
+import "server-only";
+
 import { supabaseAdmin } from "@/lib/supabase";
 import { getTwinModel } from "@/lib/twin/engine";
 import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 import { callAIJson } from "@/lib/ai/call";
+import type { WorldInfluence } from "./types";
 
-export interface WorldInfluence {
-  stressFronts: Array<{
-    name: string;
-    severity: "low" | "medium" | "high";
-    timeframe: string;
-    description: string;
-  }>;
-  focusHighs: Array<{
-    name: string;
-    intensity: number;
-    timeframe: string;
-    description: string;
-  }>;
-  burnoutRiskSpikes: Array<{
-    name: string;
-    risk: number;
-    timeframe: string;
-    description: string;
-  }>;
-  opportunityWindows: Array<{
-    name: string;
-    probability: number;
-    timeframe: string;
-    description: string;
-  }>;
-  bestEnergyHours: Array<{
-    day: string;
-    hours: string;
-    energy: number;
-  }>;
-}
+// Re-export types for convenience
+export type { WorldInfluence } from "./types";
 
 /**
  * Compute world influence for user

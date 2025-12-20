@@ -18,7 +18,7 @@ import {
   createEdge,
   linkEntityToFragment,
   markEventProcessed,
-} from "./index";
+} from "./server";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 

@@ -1,6 +1,8 @@
 // Decode Simulation to Insights
 // lib/simulation/decode.ts
 
+import "server-only";
+
 import { llmComplete } from "@/lib/llm/client";
 import { DigitalTwinState } from "./twin";
 import { SimulationStep } from "./scenario";
@@ -105,7 +107,6 @@ Output JSON:
     const response = await llmComplete(prompt, {
       model: "gpt-4o-mini",
       temperature: 0.7,
-      json: true,
       max_tokens: 500,
     });
 

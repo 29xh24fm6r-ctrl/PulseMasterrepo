@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 import { AppCard } from "@/components/ui/AppCard";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { Button } from "@/components/ui/button";
-import { SocietalInsight } from "@/lib/societal/insights";
+import type { SocietalInsight } from "@/lib/societal/types";
 import { Users, TrendingUp, AlertTriangle, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 

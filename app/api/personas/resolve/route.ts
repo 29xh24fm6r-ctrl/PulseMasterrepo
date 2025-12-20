@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { resolvePersona, calculateDrift, RouterContext } from "@/lib/personas/context-router";
-import { getCurrentEmotionState } from "@/lib/emotion-os";
+import { getCurrentEmotionState } from "@/lib/emotion-os/server";
 import { getCareerContextForMemory } from "@/lib/career/integrations";
 
 export async function POST(req: NextRequest) {

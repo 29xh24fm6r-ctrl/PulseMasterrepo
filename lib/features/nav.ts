@@ -1,34 +1,73 @@
-import { FEATURE_REGISTRY } from "./registry";
-import type { FeatureDef } from "./types";
-import { evalGate } from "@/lib/access/gates";
-import type { AccessContext } from "@/lib/access/types";
+// nav.ts
 
-export type NavVisibility = "core" | "core+beta" | "all";
+// Client-safe Nav Manifest: ZERO imports. Pure types + pure data.
+
+// This file must remain registry-free to prevent transitive leaks.
 
 export type NavItem = {
   id: string;
   label: string;
   href: string;
-  group: FeatureDef["group"];
-  status: FeatureDef["status"];
+
+  // Optional UI hints (client-safe)
+  icon?: string; // use string keys; map to icons in GlobalNav.tsx
+  group?: string;
+  description?: string;
+
+  // Optional access hints (enforced elsewhere server-side)
+  requiresAuth?: boolean;
+  featureFlag?: string;
+  status?: "core" | "beta" | "hidden";
 };
+
+export const NAV_ITEMS: NavItem[] = [
+  // Core
+  { id: "home", label: "Home", href: "/", icon: "home", group: "Core", requiresAuth: true, status: "core" },
+  { id: "deals", label: "Deals", href: "/deals", icon: "deals", group: "Core", requiresAuth: true, status: "core" },
+  { id: "contacts", label: "Contacts", href: "/contacts", icon: "contacts", group: "Core", requiresAuth: true, status: "core" },
+  { id: "tasks", label: "Tasks", href: "/tasks", icon: "tasks", group: "Core", requiresAuth: true, status: "core" },
+  { id: "followups", label: "Follow-Ups", href: "/followups", icon: "followups", group: "Core", requiresAuth: true, status: "core" },
+
+  // Work
+  { id: "work", label: "Work", href: "/work/v2", icon: "work", group: "Work", requiresAuth: true, status: "core" },
+  { id: "strategy", label: "Strategy", href: "/strategy", icon: "strategy", group: "Work", requiresAuth: true, status: "beta" },
+  { id: "finance", label: "Finance", href: "/finance", icon: "finance", group: "Work", requiresAuth: true, status: "beta" },
+
+  // Relationships
+  { id: "relationships", label: "Relationships", href: "/relationships/v2", icon: "relationships", group: "Relationships", requiresAuth: true, status: "core" },
+
+  // Voice
+  { id: "voice", label: "Voice", href: "/voice", icon: "voice", group: "Voice", requiresAuth: true, status: "beta" },
+
+  // Labs
+  { id: "simulation", label: "Simulation", href: "/simulation/paths", icon: "simulation", group: "Labs", requiresAuth: true, status: "beta" },
+  { id: "city", label: "City", href: "/city", icon: "city", group: "Labs", requiresAuth: true, status: "beta" },
+  { id: "twin", label: "Twin", href: "/twin", icon: "twin", group: "Labs", requiresAuth: true, status: "beta" },
+  { id: "world", label: "World", href: "/world", icon: "world", group: "Labs", requiresAuth: true, status: "beta" },
+  { id: "metaos", label: "MetaOS", href: "/metaos", icon: "metaos", group: "Labs", requiresAuth: true, status: "beta" },
+  { id: "collective", label: "Collective", href: "/collective", icon: "collective", group: "Labs", requiresAuth: true, status: "beta" },
+  { id: "society", label: "Society", href: "/society", icon: "society", group: "Labs", requiresAuth: true, status: "beta" },
+  { id: "simulator", label: "Simulator", href: "/simulator", icon: "simulator", group: "Labs", requiresAuth: true, status: "beta" },
+
+  // Settings
+  { id: "settings", label: "Settings", href: "/settings", icon: "settings", group: "Settings", requiresAuth: true, status: "core" },
+  { id: "features", label: "Features", href: "/features", icon: "features", group: "Settings", requiresAuth: true, status: "core" },
+
+  // Ops
+  { id: "ops-reliability", label: "Ops", href: "/ops/features", icon: "ops", group: "Ops", requiresAuth: true, status: "hidden" },
+];
+
+export function getNavItems(): NavItem[] {
+  return NAV_ITEMS;
+}
 
 export type NavSection = {
   title: string;
   items: NavItem[];
 };
 
-const GROUP_ORDER: FeatureDef["group"][] = [
-  "Core",
-  "Work",
-  "Relationships",
-  "Voice",
-  "Settings",
-  "Ops",
-  "Labs",
-];
+const GROUP_ORDER = ["Core", "Work", "Relationships", "Voice", "Settings", "Ops", "Labs"];
 
-// Manual pins appear first (if present & visible)
 const PINNED_FEATURE_IDS = [
   "home",
   "work",
@@ -40,47 +79,15 @@ const PINNED_FEATURE_IDS = [
   "settings",
 ];
 
-// Optional: label overrides for nav (keeps registry names intact)
-const NAV_LABEL_OVERRIDES: Record<string, string> = {
-  followups: "Follow-Ups",
-  features: "Features",
-};
-
-function firstUsableHref(f: FeatureDef): string | null {
-  if (!f.links?.length) return null;
-
-  // Prefer "Open" link if present
-  const open = f.links.find((l) => l.label.toLowerCase() === "open");
-  return (open?.href || f.links[0]?.href) ?? null;
-}
-
-function isVisible(f: FeatureDef, visibility: NavVisibility) {
-  if (visibility === "all") return true;
-  if (visibility === "core+beta") return f.status !== "hidden";
-  // core only
-  return f.status === "core";
-}
-
-function toNavItem(f: FeatureDef): NavItem | null {
-  const href = firstUsableHref(f);
-  if (!href) return null;
-
-  return {
-    id: f.id,
-    label: NAV_LABEL_OVERRIDES[f.id] || f.name,
-    href,
-    group: f.group,
-    status: f.status,
-  };
-}
-
-export function buildNavSections(opts?: { visibility?: NavVisibility }): NavSection[] {
+export function buildNavSections(opts?: { visibility?: "core" | "core+beta" | "all" }): NavSection[] {
   const visibility = opts?.visibility ?? "core+beta";
 
-  const items = FEATURE_REGISTRY
-    .filter((f) => isVisible(f, visibility))
-    .map(toNavItem)
-    .filter(Boolean) as NavItem[];
+  // Filter by visibility
+  let items = NAV_ITEMS.filter((item) => {
+    if (visibility === "all") return true;
+    if (visibility === "core+beta") return item.status !== "hidden";
+    return item.status === "core";
+  });
 
   // Remove duplicates by href (keep first)
   const seen = new Set<string>();
@@ -107,7 +114,7 @@ export function buildNavSections(opts?: { visibility?: NavVisibility }): NavSect
   // Group rest by group order, then alpha by label
   const byGroup = new Map<string, NavItem[]>();
   for (const it of rest) {
-    const key = it.group;
+    const key = it.group || "Other";
     if (!byGroup.has(key)) byGroup.set(key, []);
     byGroup.get(key)!.push(it);
   }
@@ -127,34 +134,3 @@ export function buildNavSections(opts?: { visibility?: NavVisibility }): NavSect
 
   return sections;
 }
-
-export async function buildNavSectionsForUser(
-  ctx: AccessContext,
-  opts?: { visibility?: NavVisibility; lockInsteadOfHide?: boolean }
-): Promise<NavSection[]> {
-  const visibility = opts?.visibility ?? "core+beta";
-  const lockInsteadOfHide = opts?.lockInsteadOfHide ?? true;
-
-  const sections = buildNavSections({ visibility });
-
-  // Filter or lock items by gate
-  const locked = (it: NavItem, reason: string) => ({ ...it, locked: true, lockedReason: reason } as NavItem & { locked: boolean; lockedReason: string });
-
-  const out = sections
-    .map((sec) => {
-      const items = sec.items
-        .map((it) => {
-          const f = FEATURE_REGISTRY.find((x) => x.id === it.id);
-          const r = evalGate(f?.gate, ctx);
-          if (r.ok) return it;
-          return lockInsteadOfHide ? locked(it, f?.locked_copy || r.reason) : null;
-        })
-        .filter(Boolean) as NavItem[];
-
-      return { ...sec, items };
-    })
-    .filter((sec) => sec.items.length);
-
-  return out;
-}
-

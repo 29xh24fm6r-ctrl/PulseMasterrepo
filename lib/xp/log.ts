@@ -1,5 +1,6 @@
 import "server-only";
-import { Client } from "@notionhq/client";
+import { supabaseAdmin } from "@/lib/supabase/admin";
+import { resolveSupabaseUser } from "@/lib/auth/resolveSupabaseUser";
 import { 
   XPCategory, 
   IdentityType, 
@@ -12,9 +13,6 @@ import {
   applyXPGain,
   XPGain,
 } from "@/lib/xp/engine";
-
-const notion = new Client({ auth: process.env.NOTION_API_KEY });
-const XP_LOG_DB = process.env.XP_LOG_DB;
 
 export interface LogXPRequest {
   activity: string;
@@ -29,22 +27,16 @@ export interface LogXPRequest {
 export interface LogXPResponse {
   ok: boolean;
   gain?: XPGain;
-  notionPageId?: string;
+  transactionId?: string;
   error?: string;
 }
 
 /**
- * Log XP to Notion
- * Extracted from app/api/xp/log/route.ts
+ * Log XP to Supabase (migrated from Notion)
  */
 export async function logXP(request: LogXPRequest): Promise<LogXPResponse> {
   try {
-    if (!XP_LOG_DB) {
-      return { 
-        ok: false, 
-        error: 'XP_LOG_DB not configured' 
-      };
-    }
+    const { supabaseUserId } = await resolveSupabaseUser();
 
     const { activity, sourceType, sourceId, forceCrit, customMultiplier, notes, currentState } = request;
 
@@ -82,57 +74,44 @@ export async function logXP(request: LogXPRequest): Promise<LogXPResponse> {
       };
     }
 
-    // Log to Notion
-    const notionPage = await notion.pages.create({
-      parent: { database_id: XP_LOG_DB },
-      properties: {
-        'Activity': {
-          title: [{ text: { content: ACTIVITY_XP_MAP[activity].description || activity } }],
+    // Apply gain to state
+    const newState = applyXPGain(state, gain);
+
+    // Log to Supabase xp_transactions table
+    const { data: transaction, error } = await supabaseAdmin
+      .from("xp_transactions")
+      .insert({
+        user_id: supabaseUserId,
+        amount: gain.finalXP,
+        source: sourceType || "manual",
+        description: `${activity}: ${gain.finalXP} XP (${gain.category})`,
+        metadata: {
+          activity,
+          category: gain.category,
+          baseXP: gain.baseXP,
+          finalXP: gain.finalXP,
+          wasCrit: gain.wasCrit,
+          multipliers: gain.multipliers,
+          identitiesRewarded: gain.identitiesRewarded,
+          sourceId,
+          notes,
         },
-        'Category': {
-          select: { name: gain.category },
-        },
-        'Amount': {
-          number: gain.finalXP,
-        },
-        'Base Amount': {
-          number: gain.baseXP,
-        },
-        'Was Crit': {
-          checkbox: gain.wasCrit,
-        },
-        'Crit Multiplier': {
-          number: gain.multipliers.crit,
-        },
-        'Source Type': {
-          select: { name: sourceType || 'manual' },
-        },
-        ...(sourceId && {
-          'Source ID': {
-            rich_text: [{ text: { content: sourceId } }],
-          },
-        }),
-        'Active Identities': {
-          multi_select: gain.identitiesRewarded.map(id => ({ name: id })),
-        },
-        'Identity Bonus': {
-          number: Math.round((gain.multipliers.identity - 1) * gain.baseXP),
-        },
-        'Date': {
-          date: { start: new Date().toISOString() },
-        },
-        ...(notes && {
-          'Notes': {
-            rich_text: [{ text: { content: notes } }],
-          },
-        }),
-      },
-    });
+      })
+      .select("id")
+      .single();
+
+    if (error) {
+      console.error("Failed to log XP transaction:", error);
+      return { 
+        ok: false, 
+        error: `Failed to log XP: ${error.message}` 
+      };
+    }
 
     return {
       ok: true,
       gain,
-      notionPageId: notionPage.id,
+      transactionId: transaction.id,
     };
   } catch (error: any) {
     console.error('XP log error:', error);
@@ -142,4 +121,3 @@ export async function logXP(request: LogXPRequest): Promise<LogXPResponse> {
     };
   }
 }
-

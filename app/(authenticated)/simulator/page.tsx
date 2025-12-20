@@ -7,7 +7,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { AppCard } from "@/components/ui/AppCard";
 import { Button } from "@/components/ui/button";
-import { ParallelSimulationResult } from "@/lib/simulation/parallel";
+import type { ParallelSimulationResult } from "@/lib/simulation/parallel-types";
 import { Play, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 

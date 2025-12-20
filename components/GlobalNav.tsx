@@ -3,9 +3,34 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect, useMemo } from "react";
 import dynamic from "next/dynamic";
-import { ChevronDown, Home, Menu, X, Crown } from "lucide-react";
+import {
+  ChevronDown,
+  Home,
+  Menu,
+  X,
+  Crown,
+  Briefcase,
+  Handshake,
+  CheckSquare,
+  Users,
+  Sparkles,
+  Settings,
+  Mic,
+  Shield,
+  Circle,
+  Mail,
+  Target,
+  DollarSign,
+  Heart,
+  Map,
+  Brain,
+  Globe,
+  Layers,
+  Network,
+  UsersRound,
+  Play,
+} from "lucide-react";
 import { buildNavSections } from "@/lib/features/nav";
-import { iconForFeatureId } from "@/lib/features/nav-icons";
 
 // Dynamically import UserButton to prevent hydration mismatch
 // Using a more stable import pattern to avoid HMR issues
@@ -20,7 +45,56 @@ const UserButton = dynamic(
   }
 );
 
-// Registry-driven navigation - no hardcoded routes
+// Client-safe icon mapping (no server-only dependencies)
+function iconForFeatureId(id: string) {
+  switch (id) {
+    case "home":
+      return Home;
+    case "work":
+      return Briefcase;
+    case "deals":
+      return Handshake;
+    case "tasks":
+      return CheckSquare;
+    case "contacts":
+      return Users;
+    case "followups":
+      return Mail;
+    case "voice":
+      return Mic;
+    case "settings":
+      return Settings;
+    case "ops-reliability":
+    case "ops":
+      return Shield;
+    case "features":
+      return Sparkles;
+    case "strategy":
+      return Target;
+    case "finance":
+      return DollarSign;
+    case "relationships":
+      return Heart;
+    case "city":
+      return Map;
+    case "simulation":
+      return Sparkles;
+    case "twin":
+      return Brain;
+    case "world":
+      return Globe;
+    case "metaos":
+      return Layers;
+    case "collective":
+      return Network;
+    case "society":
+      return UsersRound;
+    case "simulator":
+      return Play;
+    default:
+      return Circle;
+  }
+}
 
 export function GlobalNav() {
   const pathname = usePathname();

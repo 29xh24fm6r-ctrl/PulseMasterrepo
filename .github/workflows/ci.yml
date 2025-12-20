@@ -77,6 +77,15 @@ jobs:
       - name: Guard: No internal HTTP between server routes
         run: npm run guard:no-internal-http
 
+      - name: Guard: Server-only leaks
+        run: npm run guard:server-only-leaks
+
+      - name: Guard: No mixed barrels
+        run: npm run guard:no-mixed-barrels
+
+      - name: Guard: Server-only convention
+        run: npm run guard:server-only-convention
+
   build:
     name: Build + Canary Gate
     runs-on: ubuntu-latest

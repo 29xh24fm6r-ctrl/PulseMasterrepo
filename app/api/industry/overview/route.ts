@@ -3,7 +3,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { getIndustryContextForUser, enrichIndustryIntel } from "@/lib/industry/context";
+import { getIndustryContextForUser } from "@/lib/industry/context";
+import { enrichIndustryIntel } from "@/lib/industry/enrich";
 
 export async function GET(req: NextRequest) {
   try {

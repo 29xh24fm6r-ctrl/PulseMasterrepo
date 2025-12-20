@@ -2,7 +2,7 @@
 // lib/productivity/context-builder.ts
 
 import { supabaseAdmin } from "@/lib/supabase";
-import { getCurrentEmotionState } from "@/lib/emotion-os";
+import { getCurrentEmotionState } from "@/lib/emotion-os/server";
 
 export interface ProjectContext {
   id: string;

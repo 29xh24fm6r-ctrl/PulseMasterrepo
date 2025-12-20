@@ -5,8 +5,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { getWorkCortexContextForUser } from "@/lib/cortex/context";
-import { PulseCortexContext } from "@/lib/cortex/types";
+import type { PulseCortexContext } from "@/lib/cortex/types";
 
 interface HoloCanvasProps {
   userId: string;
@@ -21,8 +20,15 @@ export function HoloCanvas({ userId }: HoloCanvasProps) {
   }, [userId]);
 
   async function loadContext() {
-    const context = await getWorkCortexContextForUser(userId);
-    setCtx(context);
+    try {
+      const res = await fetch("/api/cortex/context");
+      const json = await res.json();
+      if (json?.ok && json?.context) {
+        setCtx(json.context);
+      }
+    } catch (err) {
+      console.error("Failed to load cortex context:", err);
+    }
   }
 
   // Three.js/React Three Fiber would be initialized here

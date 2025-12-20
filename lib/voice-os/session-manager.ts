@@ -1,6 +1,8 @@
 // Voice Session Manager
 // lib/voice-os/session-manager.ts
 
+import "server-only";
+
 import { supabaseAdmin } from "@/lib/supabase";
 import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 import { VoiceSession, VoiceContext, VoiceBriefing } from "./types";

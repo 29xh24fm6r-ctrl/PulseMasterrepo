@@ -1,49 +1,42 @@
+// app/api/xp/summary/route.ts (migrated from Notion to Supabase)
 import { NextResponse } from "next/server";
-import { 
-  notion, 
-  NotionDatabases, 
-  readNumber 
-} from "@/app/lib/notion";
+import { resolveSupabaseUser } from "@/lib/auth/resolveSupabaseUser";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 
 export async function GET() {
   try {
-    // Check if XP database is configured
-    if (!NotionDatabases.xp) {
-      return NextResponse.json({
-        ok: true,
-        xpToday: 0,
-        xpTotal: 0,
-        message: "XP database not configured",
-      });
-    }
+    const { supabaseUserId } = await resolveSupabaseUser();
 
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
-    const [todayRes, allRes] = await Promise.all([
-      notion.databases.query({
-        database_id: NotionDatabases.xp,
-        filter: {
-          timestamp: "created_time",
-          created_time: {
-            on_or_after: todayStart.toISOString(),
-          },
-        },
-      }),
-      notion.databases.query({
-        database_id: NotionDatabases.xp,
-      }),
-    ]);
+    // Get today's transactions
+    const { data: todayTx, error: todayError } = await supabaseAdmin
+      .from("xp_transactions")
+      .select("amount")
+      .eq("user_id", supabaseUserId)
+      .gte("created_at", todayStart.toISOString());
 
-    const xpToday = (todayRes.results || []).reduce((sum: number, page: any) => {
-      const xp = readNumber(page.properties || {}, "XP") ?? 0;
-      return sum + xp;
-    }, 0);
+    if (todayError) {
+      console.error("Error fetching today's XP:", todayError);
+    }
 
-    const xpTotal = (allRes.results || []).reduce((sum: number, page: any) => {
-      const xp = readNumber(page.properties || {}, "XP") ?? 0;
-      return sum + xp;
-    }, 0);
+    // Get all transactions
+    const { data: allTx, error: allError } = await supabaseAdmin
+      .from("xp_transactions")
+      .select("amount")
+      .eq("user_id", supabaseUserId);
+
+    if (allError) {
+      console.error("Error fetching all XP:", allError);
+      return NextResponse.json({
+        ok: false,
+        error: "Failed to get XP summary",
+      }, { status: 500 });
+    }
+
+    const xpToday = (todayTx || []).reduce((sum: number, tx: any) => sum + (tx.amount || 0), 0);
+    const xpTotal = (allTx || []).reduce((sum: number, tx: any) => sum + (tx.amount || 0), 0);
 
     return NextResponse.json({
       ok: true,

@@ -1,18 +1,15 @@
 // Guardian Mode (Anti-Overwhelm AI) - Experience Ω
 // lib/zero-friction/guardian-mode.ts
 
+import "server-only";
+
 import { supabaseAdmin } from "@/lib/supabase";
 import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 import { getCognitiveProfile } from "./cognitive-profile";
+import type { GuardianState } from "./types";
 
-export interface GuardianState {
-  isActive: boolean;
-  activatedAt?: string;
-  activationReason?: string;
-  simplifiedInterfaceEnabled: boolean;
-  notificationsPaused: boolean;
-  coachToneOverride?: string;
-}
+// Re-export types for convenience
+export type { GuardianState } from "./types";
 
 /**
  * Check if Guardian Mode should activate

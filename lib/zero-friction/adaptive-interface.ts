@@ -1,23 +1,14 @@
 // Adaptive Interface Composer - Experience Ω
 // lib/zero-friction/adaptive-interface.ts
 
+import "server-only";
+
 import { CognitiveProfile } from "./cognitive-profile";
 import { getWorkCortexContextForUser } from "@/lib/cortex/context";
+import type { AdaptiveInterfaceConfig } from "./types";
 
-export interface AdaptiveInterfaceConfig {
-  showComplexFeatures: boolean;
-  voiceFirstMode: boolean;
-  showAdvancedDashboards: boolean;
-  addNudges: boolean;
-  simplifyLayouts: boolean;
-  reduceVisualNoise: boolean;
-  softenColors: boolean;
-  slowAnimations: boolean;
-  calmerTone: boolean;
-  showMicroExplainers: boolean;
-  informationDensity: "low" | "medium" | "high";
-  componentVisibility: Record<string, boolean>;
-}
+// Re-export types for convenience
+export type { AdaptiveInterfaceConfig } from "./types";
 
 /**
  * Compose adaptive interface based on cognitive profile

@@ -4,7 +4,7 @@
 import { chooseReplyIntent, CoachId, EmotionSnapshot, OrchestratorInput } from "./orchestrator";
 import { getDynamicVoiceProfile } from "@/lib/voice/emotion-switcher";
 import { generateCoachReply } from "./llm-replies";
-import { getCurrentEmotionState } from "@/lib/emotion-os";
+import { getCurrentEmotionState } from "@/lib/emotion-os/server";
 import {
   startSession,
   getActiveSession,

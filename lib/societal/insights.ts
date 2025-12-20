@@ -1,16 +1,16 @@
 // Societal Insights - Experience v7
 // lib/societal/insights.ts
 
+import "server-only";
+
 import { getUserCohort } from "./cohorts";
 import { getTwinModel } from "@/lib/twin/engine";
 import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 import { callAIJson } from "@/lib/ai/call";
+import type { SocietalInsight } from "./types";
 
-export interface SocietalInsight {
-  title: string;
-  body: string;
-  type: "benchmark" | "warning" | "encouragement";
-}
+// Re-export types for convenience
+export type { SocietalInsight } from "./types";
 
 /**
  * Build societal insights for user

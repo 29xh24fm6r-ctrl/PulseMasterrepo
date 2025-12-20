@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 import { AppCard } from "@/components/ui/AppCard";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { Button } from "@/components/ui/button";
-import { MetaOSProfile } from "@/lib/metaos/engine";
+import type { MetaOSProfile } from "@/lib/metaos/types";
 import { RefreshCw, Settings, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 

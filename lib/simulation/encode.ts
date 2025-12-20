@@ -1,8 +1,10 @@
 // Encode User Model to Digital Twin
 // lib/simulation/encode.ts
 
+import "server-only";
+
 import { DigitalTwinState, createDefaultTwin } from "./twin";
-import { getCurrentEmotionState } from "@/lib/emotion-os";
+import { getCurrentEmotionState } from "@/lib/emotion-os/server";
 import { getLifeArcPlan } from "@/lib/life-arc/planner";
 import { getCareerContextForMemory } from "@/lib/career/integrations";
 

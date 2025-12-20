@@ -3,7 +3,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { EmotionOS } from "@/lib/emotion-os";
+import { EmotionOS } from "@/lib/emotion-os/server";
 
 // GET /api/emotion - Get current emotional context
 export async function GET(req: NextRequest) {

@@ -3,5 +3,5 @@
  * lib/emotion/state.ts
  */
 
-export { getCurrentEmotionState } from "@/lib/emotion-os";
+export { getCurrentEmotionState } from "@/lib/emotion-os/server";
 

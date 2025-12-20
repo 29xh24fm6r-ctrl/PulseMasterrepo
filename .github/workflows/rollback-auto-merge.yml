@@ -1,0 +1,303 @@
+# .github/workflows/rollback-auto-merge.yml
+name: Auto-merge Rollback PR (tight guardrails)
+
+on:
+  pull_request:
+    types: [labeled, synchronize, reopened, ready_for_review, edited]
+    branches: [main]
+  check_suite:
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: read
+  statuses: read
+  issues: write
+
+concurrency:
+  group: rollback-auto-merge
+  cancel-in-progress: false
+
+jobs:
+  maybe-auto-merge:
+    runs-on: ubuntu-latest
+    env:
+      OPS_EVENTS_INGEST_URL: ${{ secrets.OPS_EVENTS_INGEST_URL }}
+      OPS_EVENTS_TOKEN: ${{ secrets.OPS_EVENTS_TOKEN }}
+
+    steps:
+      - name: War Room freeze check (rollback auto-merge)
+        run: |
+          curl -sS -X GET "${{ secrets.OPS_WAR_ROOM_STATUS_URL }}" | tee /tmp/status.json
+          node -e "const s=require('/tmp/status.json'); if(s?.state?.freeze?.enabled){ console.error('FREEZE ACTIVE: aborting auto-merge'); process.exit(1);} console.log('Freeze not active.');"
+
+      - name: Auto-merge rollback PR if eligible
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            // -----------------------------
+            // Config (tune if needed)
+            // -----------------------------
+            const REQUIRED_LABELS = ["rollback", "canary-green"];
+            const REQUIRE_ROLLBACK_METADATA_LINE = true; // requires "ROLLBACK_OF_SHA:" in PR body
+            const ALLOW_DIRECT_MERGE_FALLBACK = true;    // if enable auto-merge fails, attempt direct merge (still checks green)
+            const REQUIRE_ROLLBACKISH_BRANCH = true;     // require rollback/* or revert/*
+
+            // -----------------------------
+            // Helpers
+            // -----------------------------
+            const hasLabel = (labels, name) =>
+              (labels || []).some(l => (typeof l === "string" ? l : l.name) === name);
+
+            function branchLooksRollback(headRef) {
+              const r = (headRef || "");
+              return /^rollback\/.+/i.test(r) || /^revert\/.+/i.test(r) || /^hotfix\/rollback\/.+/i.test(r);
+            }
+
+            function bodyHasRollbackSha(body) {
+              const b = (body || "");
+              // Accepts: "ROLLBACK_OF_SHA: abc123" or full 40-char sha
+              return /ROLLBACK_OF_SHA:\s*[0-9a-f]{7,40}/i.test(b);
+            }
+
+            async function getPR(prNumber) {
+              const { data } = await github.rest.pulls.get({ owner, repo, pull_number: prNumber });
+              return data;
+            }
+
+            async function listOpenRollbackPRs() {
+              const { data } = await github.rest.pulls.list({
+                owner,
+                repo,
+                state: "open",
+                base: "main",
+                per_page: 100,
+              });
+              return data.filter(pr => hasLabel(pr.labels || [], "rollback"));
+            }
+
+            async function checksGreenForRef(ref) {
+              const checks = await github.rest.checks.listForRef({
+                owner,
+                repo,
+                ref,
+                per_page: 100,
+              });
+
+              const status = await github.rest.repos.getCombinedStatusForRef({
+                owner,
+                repo,
+                ref,
+              });
+
+              const checkRuns = checks.data.check_runs || [];
+              const contexts = status.data.statuses || [];
+
+              // If any check run is incomplete or failing, bail.
+              for (const cr of checkRuns) {
+                if (cr.status !== "completed") return { ok: false, why: `check_not_completed:${cr.name}` };
+                if (!["success", "neutral", "skipped"].includes(cr.conclusion)) {
+                  return { ok: false, why: `check_failed:${cr.name}:${cr.conclusion}` };
+                }
+              }
+
+              // Combined status must be success
+              if (status.data.state !== "success") {
+                if (contexts.length === 0 && checkRuns.length === 0) {
+                  return { ok: false, why: "no_checks_present" };
+                }
+                return { ok: false, why: `combined_status:${status.data.state}` };
+              }
+
+              return { ok: true };
+            }
+
+            async function enableAutoMerge(prNodeId) {
+              const mutation = `
+                mutation EnableAutoMerge($pullRequestId: ID!) {
+                  enablePullRequestAutoMerge(input: {
+                    pullRequestId: $pullRequestId,
+                    mergeMethod: SQUASH
+                  }) {
+                    pullRequest { number }
+                  }
+                }
+              `;
+              await github.graphql(mutation, { pullRequestId: prNodeId });
+            }
+
+            async function tryMergeNow(prNumber) {
+              await github.rest.pulls.merge({
+                owner,
+                repo,
+                pull_number: prNumber,
+                merge_method: "squash",
+              });
+            }
+
+            async function comment(prNumber, msg) {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: prNumber,
+                body: msg,
+              });
+            }
+
+            // -----------------------------
+            // New Guardrail: Single rollback lock
+            // -----------------------------
+            async function singleRollbackLockOk(currentPrNumber) {
+              const openRollbacks = await listOpenRollbackPRs();
+              const others = openRollbacks
+                .map(p => p.number)
+                .filter(n => n !== currentPrNumber);
+
+              if (others.length > 0) {
+                return {
+                  ok: false,
+                  why: `another_open_rollback_pr_exists:${others.join(",")}`
+                };
+              }
+              return { ok: true };
+            }
+
+            // -----------------------------
+            // Core attempt
+            // -----------------------------
+            async function attempt(prLike) {
+              const prNumber = prLike.number;
+              const full = await getPR(prNumber);
+
+              // Basic guards
+              if (full.draft) return { ok: false, why: "draft" };
+              if (full.base?.ref !== "main") return { ok: false, why: "base_not_main" };
+
+              for (const label of REQUIRED_LABELS) {
+                if (!hasLabel(full.labels || [], label)) return { ok: false, why: `missing_label:${label}` };
+              }
+
+              if (REQUIRE_ROLLBACKISH_BRANCH && !branchLooksRollback(full.head?.ref || "")) {
+                return { ok: false, why: `head_not_rollbackish:${full.head?.ref}` };
+              }
+
+              if (REQUIRE_ROLLBACK_METADATA_LINE && !bodyHasRollbackSha(full.body || "")) {
+                return { ok: false, why: "missing_required_body_line:ROLLBACK_OF_SHA" };
+              }
+
+              // Single rollback lock (prevents two competing rollbacks)
+              const lock = await singleRollbackLockOk(prNumber);
+              if (!lock.ok) return { ok: false, why: lock.why };
+
+              // Mergeability (GitHub may return null briefly)
+              if (full.mergeable !== true) return { ok: false, why: `mergeable_not_true:${full.mergeable}` };
+
+              // allow clean or unstable (still enforce checks green)
+              if (!["clean", "unstable"].includes(full.mergeable_state)) {
+                return { ok: false, why: `mergeable_state:${full.mergeable_state}` };
+              }
+
+              const sha = full.head?.sha;
+              if (!sha) return { ok: false, why: "missing_head_sha" };
+
+              const checks = await checksGreenForRef(sha);
+              if (!checks.ok) return { ok: false, why: `checks_not_green:${checks.why}` };
+
+              if (full.merged) return { ok: true, why: "already_merged" };
+
+              // Enable auto-merge first
+              try {
+                await enableAutoMerge(full.node_id);
+                return { ok: true, why: "auto_merge_enabled" };
+              } catch (e) {
+                if (!ALLOW_DIRECT_MERGE_FALLBACK) {
+                  return { ok: false, why: `enable_auto_merge_failed:${e.message}` };
+                }
+                try {
+                  await tryMergeNow(prNumber);
+                  return { ok: true, why: "merged_directly" };
+                } catch (e2) {
+                  return { ok: false, why: `merge_failed:${e2.message}` };
+                }
+              }
+            }
+
+            // -----------------------------
+            // Event routing
+            // -----------------------------
+            let prs = [];
+
+            if (context.eventName === "pull_request") {
+              const pr = context.payload.pull_request;
+              if (pr && pr.base?.ref === "main") prs = [pr];
+            }
+
+            if (context.eventName === "check_suite") {
+              // On completed checks, evaluate open rollback PRs (safer than trying to map check_suite -> PR)
+              prs = await listOpenRollbackPRs();
+            }
+
+            if (prs.length === 0) {
+              core.info("No candidate PRs found.");
+              return;
+            }
+
+            for (const pr of prs) {
+              const r = await attempt(pr);
+              core.info(`PR #${pr.number}: ${r.ok ? "OK" : "SKIP"} — ${r.why}`);
+
+              // Emit War Room event on successful merge
+              if (r.ok && (r.why === "merged_directly" || r.why === "auto_merge_enabled")) {
+                const ingestUrl = process.env.OPS_EVENTS_INGEST_URL || "";
+                const token = process.env.OPS_EVENTS_TOKEN || "";
+                if (ingestUrl && token) {
+                  try {
+                    await fetch(ingestUrl, {
+                      method: "POST",
+                      headers: {
+                        "content-type": "application/json",
+                        "x-ops-token": token,
+                      },
+                      body: JSON.stringify({
+                        source: "rollback",
+                        event_type: "rollback_merged",
+                        level: "success",
+                        summary: "Rollback PR merged — system should be returning to green",
+                        link: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+                        payload: { run_id: context.runId, pr_number: pr.number, why: r.why },
+                      }),
+                    });
+                  } catch (e) {
+                    core.warning(`Failed to emit War Room event: ${e.message}`);
+                  }
+                }
+              }
+
+              // Optional: explain skip reasons on rollback PRs that are close but blocked
+              // (keeps operator visibility high during incidents)
+              if (!r.ok && hasLabel(pr.labels || [], "rollback")) {
+                const msg =
+`🛡️ **Rollback auto-merge skipped**: \`${r.why}\`
+
+**Requirements:**
+
+- labels: \`rollback\` + \`canary-green\`
+
+- base: \`main\`
+
+- rollback branch name: \`rollback/*\` (or \`revert/*\`)
+
+- PR body contains: \`ROLLBACK_OF_SHA: <sha>\`
+
+- **no other open rollback PRs**
+
+- mergeable + checks green`;
+
+                await comment(pr.number, msg);
+              }
+            }

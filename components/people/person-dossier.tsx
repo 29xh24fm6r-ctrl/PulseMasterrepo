@@ -17,7 +17,7 @@ import {
   Phone,
   Building,
 } from "lucide-react";
-import { PersonDossier } from "@/lib/people/dossier";
+import type { PersonDossier } from "@/lib/people/dossier-types";
 import AddNoteModal from "./modals/add-note-modal";
 import AddTaskModal from "./modals/add-task-modal";
 import AddDealModal from "./modals/add-deal-modal";

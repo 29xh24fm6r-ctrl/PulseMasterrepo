@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { createVoiceSession, generateVoiceBriefing, briefingToNarrative } from "@/lib/voice-os/session-manager";
+// Removed direct imports - using API routes instead
 import { generateAudioCue, audioCues } from "@/lib/voice-os/audio-cues";
 import { VoiceSession } from "@/lib/voice-os/types";
 import { Mic, MicOff, Volume2 } from "lucide-react";
@@ -24,16 +24,25 @@ export default function VoiceOSPage() {
   }, []);
 
   async function initializeSession() {
-    // Get userId from auth
-    const userId = "user_123"; // Would get from auth
-    const newSession = await createVoiceSession(userId);
-    setSession(newSession);
+    try {
+      // Create session via API
+      const sessionRes = await fetch("/api/voice-os/session", { method: "POST" });
+      const sessionJson = await sessionRes.json();
+      if (sessionJson?.ok) {
+        setSession(sessionJson.session);
+      }
 
-    // Generate and play briefing
-    const briefingData = await generateVoiceBriefing(userId);
-    const narrative = briefingToNarrative(briefingData, "warm_advisor");
-    setBriefing(narrative);
-    await speakText(narrative);
+      // Generate briefing via API
+      const briefingRes = await fetch("/api/voice-os/briefing");
+      const briefingJson = await briefingRes.json();
+      if (briefingJson?.ok) {
+        const narrative = briefingJson.narrative;
+        setBriefing(narrative);
+        await speakText(narrative);
+      }
+    } catch (err) {
+      console.error("Failed to initialize voice session:", err);
+    }
   }
 
   async function speakText(text: string) {

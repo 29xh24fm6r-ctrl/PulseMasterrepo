@@ -1,12 +1,15 @@
-// app/api/xp/log/route.ts
+// app/api/xp/log/route.ts (migrated from Notion to Supabase)
 import { NextRequest, NextResponse } from 'next/server';
 import { logXP, LogXPRequest, LogXPResponse } from '@/lib/xp/log';
+import { resolveSupabaseUser } from "@/lib/auth/resolveSupabaseUser";
+import { supabaseAdmin } from "@/lib/supabase/admin";
+import { XPCategory, getLevelFromXP, getLevelProgress, calculateAscensionLevel } from '@/lib/xp/types';
 
 export async function POST(request: NextRequest): Promise<NextResponse<LogXPResponse>> {
   try {
     const body: LogXPRequest = await request.json();
     
-    // ✅ Use shared function instead of inline logic
+    // Use shared function (already migrated to Supabase)
     const result = await logXP(body);
     
     if (!result.ok) {
@@ -23,54 +26,50 @@ export async function POST(request: NextRequest): Promise<NextResponse<LogXPResp
   }
 }
 
-// ============================================
-// GET XP TOTALS FROM LOG
-// ============================================
-
+// GET - Fetch XP totals from Supabase
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
-    if (!XP_LOG_DB) {
-      return NextResponse.json({ 
-        ok: false, 
-        error: 'XP_LOG_DB not configured' 
-      }, { status: 500 });
-    }
-
+    const { supabaseUserId } = await resolveSupabaseUser();
     const { searchParams } = new URL(request.url);
     const period = searchParams.get('period') || 'all'; // 'today', 'week', 'month', 'all'
 
     // Build date filter
-    let dateFilter: any = undefined;
+    let dateFilter: { gte?: string } = {};
     const now = new Date();
     
     if (period === 'today') {
       const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
-      dateFilter = {
-        property: 'Date',
-        date: { on_or_after: startOfDay },
-      };
+      dateFilter = { gte: startOfDay };
     } else if (period === 'week') {
       const startOfWeek = new Date(now);
       startOfWeek.setDate(now.getDate() - now.getDay());
       startOfWeek.setHours(0, 0, 0, 0);
-      dateFilter = {
-        property: 'Date',
-        date: { on_or_after: startOfWeek.toISOString() },
-      };
+      dateFilter = { gte: startOfWeek.toISOString() };
     } else if (period === 'month') {
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-      dateFilter = {
-        property: 'Date',
-        date: { on_or_after: startOfMonth },
-      };
+      dateFilter = { gte: startOfMonth };
     }
 
-    // Query all XP log entries
-    const response = await notion.databases.query({
-      database_id: XP_LOG_DB,
-      filter: dateFilter,
-      sorts: [{ property: 'Date', direction: 'descending' }],
-    });
+    // Query Supabase
+    let query = supabaseAdmin
+      .from("xp_transactions")
+      .select("*")
+      .eq("user_id", supabaseUserId)
+      .order("created_at", { ascending: false });
+
+    if (dateFilter.gte) {
+      query = query.gte("created_at", dateFilter.gte);
+    }
+
+    const { data: transactions, error } = await query.limit(1000);
+
+    if (error) {
+      console.error('Error fetching XP transactions:', error);
+      return NextResponse.json({ 
+        ok: false, 
+        error: error.message || 'Failed to fetch XP' 
+      }, { status: 500 });
+    }
 
     // Calculate totals
     const totals: Record<XPCategory, number> = {
@@ -81,13 +80,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     let critCount = 0;
     const recentGains: any[] = [];
 
-    for (const page of response.results as any[]) {
-      const props = page.properties;
-      const category = props['Category']?.select?.name as XPCategory;
-      const amount = props['Amount']?.number || 0;
-      const wasCrit = props['Was Crit']?.checkbox || false;
-      const activity = props['Activity']?.title?.[0]?.plain_text || 'Unknown';
-      const date = props['Date']?.date?.start;
+    for (const tx of transactions || []) {
+      const metadata = tx.metadata || {};
+      const category = metadata.category as XPCategory || "DXP";
+      const amount = tx.amount || 0;
+      const wasCrit = metadata.wasCrit || false;
 
       if (category && totals[category] !== undefined) {
         totals[category] += amount;
@@ -99,18 +96,16 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       // Collect recent gains (last 10)
       if (recentGains.length < 10) {
         recentGains.push({
-          activity,
+          activity: metadata.activity || 'unknown',
           category,
           amount,
           wasCrit,
-          date,
+          date: tx.created_at,
         });
       }
     }
 
     // Calculate levels from totals
-    const { getLevelFromXP, getLevelProgress, calculateAscensionLevel } = await import('@/lib/xp/types');
-    
     const levels: Record<XPCategory, number> = {
       DXP: getLevelFromXP(totals.DXP),
       PXP: getLevelFromXP(totals.PXP),
@@ -128,7 +123,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       levels,
       ascensionLevel,
       totalXP,
-      totalEntries: response.results.length,
+      totalEntries: transactions?.length || 0,
       critCount,
       recentGains,
     });

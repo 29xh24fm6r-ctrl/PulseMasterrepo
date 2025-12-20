@@ -1,10 +1,4 @@
-// Cortex-Driven Coaches v2 - Main Export
+// Client-safe types only
 // lib/coaching/cortex/index.ts
 
 export * from "./types";
-export * from "./context";
-export * from "./persona-engine";
-export * from "./personas";
-
-
-

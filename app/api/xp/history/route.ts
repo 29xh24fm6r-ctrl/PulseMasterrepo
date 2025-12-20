@@ -1,28 +1,7 @@
+// app/api/xp/history/route.ts (migrated from Notion to Supabase)
 import { NextRequest, NextResponse } from 'next/server';
-import { Client } from '@notionhq/client';
-
-const notion = new Client({ auth: process.env.NOTION_API_KEY });
-const XP_DB = process.env.NOTION_DATABASE_XP;
-
-// Safe property helpers
-function safeGetTitle(props: any, key: string): string {
-  try { return props[key]?.title?.[0]?.plain_text || ''; } catch { return ''; }
-}
-function safeGetNumber(props: any, key: string): number {
-  try { return props[key]?.number || 0; } catch { return 0; }
-}
-function safeGetSelect(props: any, key: string): string {
-  try { return props[key]?.select?.name || ''; } catch { return ''; }
-}
-function safeGetCheckbox(props: any, key: string): boolean {
-  try { return props[key]?.checkbox || false; } catch { return false; }
-}
-function safeGetDate(props: any, key: string): string {
-  try { return props[key]?.date?.start || ''; } catch { return ''; }
-}
-function safeGetRichText(props: any, key: string): string {
-  try { return props[key]?.rich_text?.[0]?.plain_text || ''; } catch { return ''; }
-}
+import { resolveSupabaseUser } from "@/lib/auth/resolveSupabaseUser";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 
 export interface XPEntry {
   id: string;
@@ -48,43 +27,49 @@ export interface XPSummary {
 
 export async function GET(request: NextRequest) {
   try {
+    const { supabaseUserId } = await resolveSupabaseUser();
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '50');
     const category = searchParams.get('category');
 
-    let entries: XPEntry[] = [];
-    
-    if (XP_DB) {
-      const filters: any[] = [];
-      if (category) {
-        filters.push({ property: 'Category', select: { equals: category } });
-      }
+    // Build query
+    let query = supabaseAdmin
+      .from("xp_transactions")
+      .select("*")
+      .eq("user_id", supabaseUserId)
+      .order("created_at", { ascending: false })
+      .limit(Math.min(limit, 100));
 
-      const response = await notion.databases.query({
-        database_id: XP_DB.replace(/-/g, ''),
-        filter: filters.length > 0 ? { and: filters } : undefined,
-        sorts: [{ property: 'Date', direction: 'descending' }],
-        page_size: Math.min(limit, 100),
-      });
-
-      entries = response.results.map((page: any) => {
-        const props = page.properties || {};
-        const notes = safeGetRichText(props, 'Notes');
-        return {
-          id: page.id,
-          name: safeGetTitle(props, 'Name') || 'XP Gained',
-          amount: safeGetNumber(props, 'Amount') || 0,
-          category: (safeGetSelect(props, 'Category') || 'DXP') as XPEntry['category'],
-          activity: safeGetSelect(props, 'Activity') || 'unknown',
-          date: safeGetDate(props, 'Date') || new Date().toISOString(),
-          wasCrit: safeGetCheckbox(props, 'Crit'),
-          notes: notes || undefined,
-          identityBonus: notes?.toLowerCase().includes('identity bonus'),
-        };
-      });
-    } else {
-      entries = generateMockXPHistory(limit);
+    // Filter by category if provided
+    if (category) {
+      query = query.contains("metadata", { category });
     }
+
+    const { data: transactions, error } = await query;
+
+    if (error) {
+      console.error('Error fetching XP history:', error);
+      return NextResponse.json({ 
+        ok: false, 
+        error: error.message || 'Failed to fetch XP history' 
+      }, { status: 500 });
+    }
+
+    const entries: XPEntry[] = (transactions || []).map((tx: any) => {
+      const metadata = tx.metadata || {};
+      const notes = metadata.notes || tx.description || '';
+      return {
+        id: tx.id,
+        name: tx.description || 'XP Gained',
+        amount: tx.amount || 0,
+        category: (metadata.category || 'DXP') as XPEntry['category'],
+        activity: metadata.activity || 'unknown',
+        date: tx.created_at || new Date().toISOString(),
+        wasCrit: metadata.wasCrit || false,
+        notes: notes || undefined,
+        identityBonus: notes?.toLowerCase().includes('identity bonus') || metadata.identitiesRewarded?.length > 0,
+      };
+    });
 
     const summary = calculateSummary(entries);
     return NextResponse.json({ ok: true, entries, summary, count: entries.length });
@@ -119,41 +104,4 @@ function calculateSummary(entries: XPEntry[]): XPSummary {
     if (entryDate >= monthStart) summary.thisMonth += entry.amount;
   }
   return summary;
-}
-
-function generateMockXPHistory(limit: number): XPEntry[] {
-  const activities = [
-    { name: 'Task Completed', activity: 'task_completed', category: 'DXP' },
-    { name: 'Deal Advanced', activity: 'deal_advanced', category: 'DXP' },
-    { name: 'Follow-up Sent', activity: 'follow_up_sent', category: 'PXP' },
-    { name: 'Journal Entry', activity: 'journal_entry', category: 'IXP' },
-    { name: 'Habit Completed', activity: 'habit_completed', category: 'MXP' },
-    { name: 'Capture Saved', activity: 'capture_saved', category: 'AXP' },
-  ];
-  const entries: XPEntry[] = [];
-  const now = new Date();
-
-  for (let i = 0; i < limit; i++) {
-    const activityData = activities[Math.floor(Math.random() * activities.length)];
-    const daysAgo = Math.floor(Math.random() * 30);
-    const date = new Date(now);
-    date.setDate(date.getDate() - daysAgo);
-    const wasCrit = Math.random() < 0.05;
-    const hasIdentityBonus = Math.random() < 0.2;
-    const baseAmount = 15 + Math.floor(Math.random() * 35);
-
-    entries.push({
-      id: `mock-${i}`,
-      name: activityData.name,
-      amount: wasCrit ? baseAmount * 2 : baseAmount,
-      category: activityData.category as XPEntry['category'],
-      activity: activityData.activity,
-      date: date.toISOString(),
-      wasCrit,
-      identityBonus: hasIdentityBonus,
-      notes: hasIdentityBonus ? 'Identity bonus: The Stoic +6 XP' : undefined,
-    });
-  }
-  entries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  return entries;
 }

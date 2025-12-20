@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { decideMetaCoachAction } from "@/lib/meta-coach/engine";
-import { getCurrentEmotionState } from "@/lib/emotion-os";
+import { getCurrentEmotionState } from "@/lib/emotion-os/server";
 import { getTodayPredictions } from "@/lib/prediction/engine";
 import { supabaseAdmin } from "@/lib/supabase";
 

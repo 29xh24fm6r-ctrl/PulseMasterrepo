@@ -6,7 +6,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Shield, Heart } from "lucide-react";
-import { GuardianState } from "@/lib/zero-friction/guardian-mode";
+import type { GuardianState } from "@/lib/zero-friction/types";
 import { Button } from "@/components/ui/button";
 
 export function GuardianShield() {

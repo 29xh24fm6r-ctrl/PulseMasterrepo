@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 import { UserProvider } from "./providers/user-provider";
@@ -11,8 +10,12 @@ import { CoachPanel } from "@/app/components/coaching/CoachPanel";
 import { WelcomeFlow } from "@/app/components/onboarding/WelcomeFlow";
 import { Toaster } from "sonner";
 import PageViewTracker from "@/components/analytics/PageViewTracker";
+import ClientErrorCollectorMount from "@/components/ops/ClientErrorCollectorMount";
 
-const inter = Inter({ subsets: ["latin"] });
+// System font stack - zero external network dependency, works immediately
+// To use Inter font later: Download Inter-Variable.woff2 from https://github.com/rsms/inter/releases
+// Place it in public/fonts/Inter-Variable.woff2, then switch to localFont in layout.tsx
+const fontClass = "font-sans";
 
 export const metadata: Metadata = {
   title: "Pulse Life OS",
@@ -43,10 +46,11 @@ export default function RootLayout({
         <head>
           <link rel="apple-touch-icon" href="/icons/icon-192.png" />
         </head>
-        <body className={`${inter.className} bg-slate-950 text-slate-100`} suppressHydrationWarning>
+        <body className={`${fontClass} bg-slate-950 text-slate-100`} suppressHydrationWarning>
           <Providers>
             <UserProvider>
               <LayoutTrace name="ROOT_LAYOUT" />
+              <ClientErrorCollectorMount />
               <RootNavGate />
               <LayoutTrace name="ROOT_NAV_GATE_RENDERED" />
               <PageViewTracker />

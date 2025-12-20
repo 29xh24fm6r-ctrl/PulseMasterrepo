@@ -1,7 +1,7 @@
 "use client";
 
 import { CheckSquare, Calendar, AlertCircle } from "lucide-react";
-import { Task } from "@/lib/crm/overview";
+import type { Task } from "@/lib/crm/types";
 
 interface TaskInboxProps {
   tasks: {

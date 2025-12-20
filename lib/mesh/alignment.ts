@@ -1,18 +1,16 @@
 // Collective Intelligence Mesh - Alignment - Experience v10
 // lib/mesh/alignment.ts
 
+import "server-only";
+
 import { supabaseAdmin } from "@/lib/supabase";
 import { getTwinModel } from "@/lib/twin/engine";
 import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 import { callAIJson } from "@/lib/ai/call";
+import type { UserCollectiveAlignment } from "./alignment-types";
 
-export interface UserCollectiveAlignment {
-  patternCode: string;
-  fitScore: number;
-  description: string;
-  strengths: string[];
-  recommendedProtocols: string[];
-}
+// Re-export type for convenience
+export type { UserCollectiveAlignment } from "./alignment-types";
 
 /**
  * Compute user's alignment with collective patterns

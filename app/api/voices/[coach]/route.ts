@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { resolveVoice, CoachId } from "@/lib/voices/router";
-import { getCurrentEmotionState } from "@/lib/emotion-os";
+import { getCurrentEmotionState } from "@/lib/emotion-os/server";
 import { getCareerContextForMemory } from "@/lib/career/integrations";
 
 export async function GET(

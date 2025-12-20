@@ -2,7 +2,7 @@
 // Short descriptions per coach × emotion for validation and LLM prompts
 // lib/voice/personas/persona-flavor-pack.ts
 
-import { EmotionType } from "@/lib/emotion-os";
+import type { EmotionType } from "@/lib/emotion-os";
 
 // Coaches covered by the flavor pack
 export type CoachFlavorId =

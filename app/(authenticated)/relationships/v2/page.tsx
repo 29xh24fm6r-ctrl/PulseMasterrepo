@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 import { AppCard } from "@/components/ui/AppCard";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { Badge } from "@/components/ui/badge";
-import { getWorkCortexContextForUser } from "@/lib/cortex/context";
+// Removed direct import - using API route instead
 import { buildSocialGraph, detectOpportunities, detectRisks } from "@/lib/relationships/social-graph";
 import { Users, AlertTriangle, Target, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -61,7 +61,12 @@ export default function RelationshipsDashboardV2Page() {
   async function loadRelationshipData() {
     setLoading(true);
     try {
-      const ctx = await getWorkCortexContextForUser("user_123"); // Would get from auth
+      const res = await fetch("/api/cortex/context");
+      const json = await res.json();
+      if (!json?.ok || !json?.context) {
+        throw new Error("Failed to load cortex context");
+      }
+      const ctx = json.context;
       const graph = await buildSocialGraph("user_123", ctx);
       const opportunities = detectOpportunities(graph);
       const risks = detectRisks(graph);

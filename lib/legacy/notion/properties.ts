@@ -1,3 +1,7 @@
+// lib/legacy/notion/properties.ts
+// LEGACY: Notion is no longer supported. This file is quarantined.
+import "server-only";
+
 /**
  * Safe Notion Property Readers
  * =============================

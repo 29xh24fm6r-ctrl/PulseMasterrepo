@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, DollarSign, CheckSquare, FileText, Users } from "lucide-react";
-import { Deal, Task, Activity, CrmOverviewData } from "@/lib/crm/overview";
+import type { Deal, Task, Activity, CrmOverviewData } from "@/lib/crm/types";
 import AddDealModal from "./add-deal-modal";
 import AddTaskModal from "./add-task-modal";
 import AddNoteModal from "./add-note-modal";

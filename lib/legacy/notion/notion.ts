@@ -1,3 +1,7 @@
+// lib/legacy/notion/notion.ts
+// LEGACY: Notion is no longer supported. This file is quarantined.
+import "server-only";
+
 /**
  * Notion Utilities - Main Entry Point
  * =====================================

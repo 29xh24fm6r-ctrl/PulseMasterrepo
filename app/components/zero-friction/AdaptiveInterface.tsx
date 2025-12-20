@@ -4,7 +4,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AdaptiveInterfaceConfig } from "@/lib/zero-friction/adaptive-interface";
+import type { AdaptiveInterfaceConfig } from "@/lib/zero-friction/types";
 import { useEmotion } from "@/lib/emotion-os/hooks/useEmotion";
 
 interface AdaptiveInterfaceProps {

@@ -1,8 +1,9 @@
-// Pulse OS - XP Ascension API Route
+// Pulse OS - XP Ascension API Route (migrated from Notion to Supabase)
 // app/api/xp/route.ts
 
 import { NextRequest, NextResponse } from 'next/server';
-import { Client } from '@notionhq/client';
+import { resolveSupabaseUser } from "@/lib/auth/resolveSupabaseUser";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import {
   XPCategory,
   XP_CATEGORIES,
@@ -27,26 +28,23 @@ import {
   detectActivity,
   createAnimationData,
 } from '@/lib/xp/engine';
-
-const notion = new Client({ auth: process.env.NOTION_API_KEY });
-
-// We'll store XP state in a Notion database or use localStorage on client
-// For now, we'll calculate from activity data
+import { logXP } from '@/lib/xp/log';
 
 // GET - Fetch current XP state
 export async function GET(request: NextRequest) {
   try {
+    const { supabaseUserId } = await resolveSupabaseUser();
     const { searchParams } = new URL(request.url);
     const includeHistory = searchParams.get('history') === 'true';
     
-    // Calculate XP from Notion data
-    const xpState = await calculateXPFromNotion();
+    // Calculate XP from Supabase
+    const xpState = await calculateXPFromSupabase(supabaseUserId);
     const stats = getXPStats(xpState);
     
     // Get recent XP history if requested
     let history: any[] = [];
     if (includeHistory) {
-      history = await getXPHistory();
+      history = await getXPHistory(supabaseUserId);
     }
     
     return NextResponse.json({
@@ -57,10 +55,10 @@ export async function GET(request: NextRequest) {
       categories: XP_CATEGORIES,
       identities: IDENTITIES,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('XP fetch error:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch XP' },
+      { success: false, error: error.message || 'Failed to fetch XP' },
       { status: 500 }
     );
   }
@@ -69,11 +67,12 @@ export async function GET(request: NextRequest) {
 // POST - Award XP for an activity
 export async function POST(request: NextRequest) {
   try {
+    const { supabaseUserId } = await resolveSupabaseUser();
     const body = await request.json();
     const { activity, description, forceCrit, customMultiplier } = body;
     
     // Get current state
-    const currentState = await calculateXPFromNotion();
+    const currentState = await calculateXPFromSupabase(supabaseUserId);
     
     // Determine activity type
     let activityType = activity;
@@ -104,8 +103,19 @@ export async function POST(request: NextRequest) {
     // Apply gain to state
     const newState = applyXPGain(currentState, gain);
     
-    // Log to Notion XP Log database (if it exists)
-    await logXPGain(gain, description || activityType);
+    // Log to Supabase
+    const logResult = await logXP({
+      activity: activityType,
+      sourceType: 'manual',
+      forceCrit,
+      customMultiplier,
+      notes: description,
+      currentState,
+    });
+    
+    if (!logResult.ok) {
+      console.error('Failed to log XP:', logResult.error);
+    }
     
     // Create animation data
     const animation = createAnimationData(gain, currentState, newState);
@@ -117,64 +127,60 @@ export async function POST(request: NextRequest) {
       animation,
       message: generateXPMessage(gain),
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('XP award error:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to award XP' },
+      { success: false, error: error.message || 'Failed to award XP' },
       { status: 500 }
     );
   }
 }
 
 // ============================================
-// NOTION INTEGRATION
+// SUPABASE INTEGRATION
 // ============================================
 
-async function calculateXPFromNotion(): Promise<XPState> {
+async function calculateXPFromSupabase(supabaseUserId: string): Promise<XPState> {
   const state = createInitialXPState();
   
   try {
-    // Check if XP Log database exists
-    const xpLogDbId = process.env.XP_LOG_DB;
+    // Fetch all XP transactions from Supabase
+    const { data: transactions, error } = await supabaseAdmin
+      .from("xp_transactions")
+      .select("*")
+      .eq("user_id", supabaseUserId)
+      .order("created_at", { ascending: false })
+      .limit(1000);
+
+    if (error) {
+      console.error('Error fetching XP transactions:', error);
+      return state;
+    }
+
+    const today = new Date().toDateString();
     
-    if (xpLogDbId) {
-      // Fetch from dedicated XP log
-      const response = await notion.databases.query({
-        database_id: xpLogDbId,
-        sorts: [{ property: 'Date', direction: 'descending' }],
-        page_size: 100,
-      });
+    for (const tx of transactions || []) {
+      const metadata = tx.metadata || {};
+      const category = metadata.category as XPCategory || "DXP";
+      const amount = tx.amount || 0;
+      const date = tx.created_at ? new Date(tx.created_at) : null;
       
-      const today = new Date().toDateString();
-      
-      for (const page of response.results as any[]) {
-        const props = page.properties;
+      if (category && XP_CATEGORIES[category]) {
+        state.totals[category] += amount;
         
-        const category = props.Category?.select?.name as XPCategory;
-        const amount = props.Amount?.number || 0;
-        const dateStr = props.Date?.date?.start;
-        const date = dateStr ? new Date(dateStr) : null;
-        
-        if (category && XP_CATEGORIES[category]) {
-          state.totals[category] += amount;
-          
-          // Track today's XP
-          if (date && date.toDateString() === today) {
-            state.todayXP[category] += amount;
-          }
-        }
-        
-        // Track identity resonance
-        const identities = props.Identities?.multi_select || [];
-        for (const id of identities) {
-          if (IDENTITIES[id.name as IdentityType]) {
-            state.identityResonance[id.name as IdentityType] += amount;
-          }
+        // Track today's XP
+        if (date && date.toDateString() === today) {
+          state.todayXP[category] += amount;
         }
       }
-    } else {
-      // Calculate from existing databases (habits, tasks, deals)
-      await calculateXPFromActivity(state);
+      
+      // Track identity resonance from metadata
+      const identities = metadata.identitiesRewarded || [];
+      for (const id of identities) {
+        if (IDENTITIES[id as IdentityType]) {
+          state.identityResonance[id as IdentityType] += amount;
+        }
+      }
     }
     
     // Calculate levels from totals
@@ -207,190 +213,39 @@ async function calculateXPFromNotion(): Promise<XPState> {
     state.lastUpdated = new Date().toISOString();
     
   } catch (error) {
-    console.error('Error calculating XP from Notion:', error);
+    console.error('Error calculating XP from Supabase:', error);
   }
   
   return state;
 }
 
-async function calculateXPFromActivity(state: XPState): Promise<void> {
-  const today = new Date().toDateString();
-  
-  // Habits → DXP + MXP
-  const habitsDbId = process.env.HABITS_DB;
-  if (habitsDbId) {
-    try {
-      const habits = await notion.databases.query({
-        database_id: habitsDbId,
-        page_size: 100,
-      });
-      
-      for (const page of habits.results as any[]) {
-        const props = page.properties;
-        const streak = props.Streak?.number || props['Current Streak']?.number || 0;
-        const completedToday = props['Completed Today']?.checkbox || false;
-        
-        // Base XP per habit with streak
-        const habitXP = 15 + (streak * 2);
-        state.totals.DXP += habitXP * Math.min(streak, 30); // Cap multiplier
-        state.totals.MXP += streak * 5;
-        
-        if (completedToday) {
-          state.todayXP.DXP += 15;
-          state.todayXP.MXP += 5;
-        }
-        
-        // Track streak for momentum
-        if (streak > state.currentStreak) {
-          state.currentStreak = streak;
-        }
-        if (streak > state.longestStreak) {
-          state.longestStreak = streak;
-        }
-        
-        // Identity resonance
-        state.identityResonance.Warrior += streak * 3;
-        state.identityResonance.Samurai += streak * 2;
-      }
-    } catch (e) {
-      console.error('Error fetching habits for XP:', e);
-    }
-  }
-  
-  // Tasks → DXP + AXP
-  const tasksDbId = process.env.TASKS_DB;
-  if (tasksDbId) {
-    try {
-      const tasks = await notion.databases.query({
-        database_id: tasksDbId,
-        filter: {
-          or: [
-            { property: 'Status', status: { equals: 'Done' } },
-            { property: 'Status', select: { equals: 'Done' } },
-          ]
-        },
-        page_size: 100,
-      });
-      
-      for (const page of tasks.results as any[]) {
-        const props = page.properties;
-        const priority = props.Priority?.select?.name || 'Medium';
-        
-        let taskXP = 25;
-        if (priority === 'High' || priority === '🔴 High') taskXP = 40;
-        if (priority === 'Low' || priority === '🟢 Low') taskXP = 15;
-        
-        state.totals.DXP += taskXP;
-        state.totals.AXP += Math.round(taskXP * 0.5);
-        
-        // Identity
-        state.identityResonance.Builder += taskXP;
-        if (priority === 'High' || priority === '🔴 High') {
-          state.identityResonance.Warrior += 20;
-        }
-      }
-    } catch (e) {
-      console.error('Error fetching tasks for XP:', e);
-    }
-  }
-  
-  // Deals → AXP + PXP
-  const dealsDbId = process.env.DEALS_DB;
-  if (dealsDbId) {
-    try {
-      const deals = await notion.databases.query({
-        database_id: dealsDbId,
-        page_size: 100,
-      });
-      
-      for (const page of deals.results as any[]) {
-        const props = page.properties;
-        const stage = props.Stage?.status?.name || props.Stage?.select?.name || '';
-        const value = props['Loan Amount']?.number || props.Value?.number || 0;
-        
-        // XP based on stage
-        const stageXP: Record<string, number> = {
-          'Lead': 10,
-          'Contacted': 20,
-          'Application': 40,
-          'Processing': 60,
-          'Underwriting': 80,
-          'Approved': 100,
-          'Docs Out': 120,
-          'Funded': 200,
-          'Closed Won': 200,
-        };
-        
-        const dealXP = stageXP[stage] || 10;
-        state.totals.AXP += dealXP;
-        
-        // Bigger deals = more PXP (leadership/influence)
-        if (value > 500000) {
-          state.totals.PXP += 50;
-          state.identityResonance.Leader += 30;
-        } else if (value > 100000) {
-          state.totals.PXP += 25;
-        }
-        
-        // Identity
-        state.identityResonance.Builder += dealXP;
-        state.identityResonance.Strategist += Math.round(dealXP * 0.5);
-        
-        if (stage === 'Funded' || stage === 'Closed Won') {
-          state.identityResonance.Leader += 50;
-        }
-      }
-    } catch (e) {
-      console.error('Error fetching deals for XP:', e);
-    }
-  }
-}
-
-async function logXPGain(gain: XPGain, description: string): Promise<void> {
-  const xpLogDbId = process.env.XP_LOG_DB;
-  if (!xpLogDbId) return;
-  
+async function getXPHistory(supabaseUserId: string): Promise<any[]> {
   try {
-    await notion.pages.create({
-      parent: { database_id: xpLogDbId },
-      properties: {
-        Name: { title: [{ text: { content: description } }] },
-        Category: { select: { name: gain.category } },
-        Amount: { number: gain.finalXP },
-        Activity: { select: { name: gain.activity } },
-        'Was Crit': { checkbox: gain.wasCrit },
-        Date: { date: { start: new Date().toISOString().split('T')[0] } },
-        Identities: { 
-          multi_select: gain.identitiesRewarded.map(id => ({ name: id }))
-        },
-      },
-    });
-  } catch (e) {
-    console.error('Error logging XP:', e);
-  }
-}
+    const { data: transactions, error } = await supabaseAdmin
+      .from("xp_transactions")
+      .select("*")
+      .eq("user_id", supabaseUserId)
+      .order("created_at", { ascending: false })
+      .limit(20);
 
-async function getXPHistory(): Promise<any[]> {
-  const xpLogDbId = process.env.XP_LOG_DB;
-  if (!xpLogDbId) return [];
-  
-  try {
-    const response = await notion.databases.query({
-      database_id: xpLogDbId,
-      sorts: [{ property: 'Date', direction: 'descending' }],
-      page_size: 20,
+    if (error) {
+      console.error('Error fetching XP history:', error);
+      return [];
+    }
+
+    return (transactions || []).map((tx: any) => {
+      const metadata = tx.metadata || {};
+      return {
+        id: tx.id,
+        description: tx.description || '',
+        category: metadata.category,
+        amount: tx.amount || 0,
+        activity: metadata.activity,
+        wasCrit: metadata.wasCrit || false,
+        date: tx.created_at,
+        identities: metadata.identitiesRewarded || [],
+      };
     });
-    
-    return response.results.map((page: any) => ({
-      id: page.id,
-      description: page.properties.Name?.title?.[0]?.plain_text || '',
-      category: page.properties.Category?.select?.name,
-      amount: page.properties.Amount?.number || 0,
-      activity: page.properties.Activity?.select?.name,
-      wasCrit: page.properties['Was Crit']?.checkbox || false,
-      date: page.properties.Date?.date?.start,
-      identities: page.properties.Identities?.multi_select?.map((s: any) => s.name) || [],
-    }));
   } catch (e) {
     console.error('Error fetching XP history:', e);
     return [];

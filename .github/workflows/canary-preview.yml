@@ -1,0 +1,76 @@
+name: Canary Preview (Deploy + Smoke)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: canary-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      startsWith(github.head_ref, 'sentinel/fix/') ||
+      startsWith(github.head_ref, 'revert/') ||
+      startsWith(github.head_ref, 'rollback/')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install
+        run: npm ci
+
+      # ---- Provider: Vercel Preview Deploy ----
+      # Requires: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID in repo secrets
+      - name: Install Vercel CLI
+        run: npm i -g vercel@latest
+
+      - name: Deploy Preview (Vercel)
+        id: deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          set -e
+          # Deploy preview and capture URL
+          URL=$(vercel deploy --token "$VERCEL_TOKEN" --scope "$VERCEL_ORG_ID" --yes)
+          echo "preview_url=$URL" >> $GITHUB_OUTPUT
+          echo "Preview URL: $URL"
+
+      - name: Smoke Test Preview
+        id: smoke
+        env:
+          PREVIEW_URL: ${{ steps.deploy.outputs.preview_url }}
+        run: |
+          node scripts/sentinel/smoke.mjs "$PREVIEW_URL"
+
+      - name: Label PR canary-green
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr edit ${{ github.event.pull_request.number }} --add-label "canary-green" --remove-label "canary-failed"
+
+      - name: On failure: comment + label canary-failed
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr edit ${{ github.event.pull_request.number }} --add-label "canary-failed"
+          gh pr comment ${{ github.event.pull_request.number }} --body "❌ Canary smoke tests failed. Check the Actions logs for details."
+

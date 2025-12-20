@@ -2,7 +2,7 @@
 // lib/voice/emotion-switcher.ts
 
 import { getCoachPersona } from "./personas/coach-voice-personas";
-import { getCurrentEmotionState } from "@/lib/emotion-os";
+import { getCurrentEmotionState } from "@/lib/emotion-os/server";
 import { supabaseAdmin } from "@/lib/supabase";
 
 export interface ActiveVoiceProfile {

@@ -1,57 +1,17 @@
 // Parallel Life Simulator - Experience v9
 // lib/simulation/parallel.ts
 
+import "server-only";
+
 import { supabaseAdmin } from "@/lib/supabase";
 import { getTwinModel } from "@/lib/twin/engine";
 import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 import { generateFutureSelfPrediction } from "@/lib/future-self/model";
 import { callAIJson } from "@/lib/ai/call";
+import type { SimulationScenario, ParallelSimulationResult } from "./parallel-types";
 
-export interface SimulationScenario {
-  userId: string;
-  scenario: string;
-  hypothesis?: string;
-}
-
-export interface ParallelSimulationResult {
-  baseline: {
-    narrative: string;
-    risks: string[];
-    opportunities: string[];
-    timeline: Array<{
-      month: number;
-      events: string[];
-      metrics: Record<string, number>;
-    }>;
-    predictedDeltas: {
-      income?: number;
-      xp?: number;
-      focus?: number;
-      burnoutProbability?: number;
-    };
-  };
-  hypothetical?: {
-    narrative: string;
-    risks: string[];
-    opportunities: string[];
-    timeline: Array<{
-      month: number;
-      events: string[];
-      metrics: Record<string, number>;
-    }>;
-    predictedDeltas: {
-      income?: number;
-      xp?: number;
-      focus?: number;
-      burnoutProbability?: number;
-    };
-  };
-  comparison?: {
-    narrative: string;
-    keyDifferences: string[];
-    recommendation: string;
-  };
-}
+// Re-export types for convenience
+export type { SimulationScenario, ParallelSimulationResult } from "./parallel-types";
 
 /**
  * Run parallel life simulation

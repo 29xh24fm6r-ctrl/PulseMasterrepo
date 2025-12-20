@@ -1,51 +1,24 @@
-import { NextResponse } from "next/server";
-import { Client } from "@notionhq/client";
+// Legacy Notion route - migrated to Supabase
+import { NextRequest, NextResponse } from "next/server";
 
-const NOTION_API_KEY = process.env.NOTION_API_KEY;
-
-if (!NOTION_API_KEY) {
-  throw new Error("NOTION_API_KEY is not set");
+export async function GET(req?: NextRequest) {
+  return NextResponse.json(
+    { 
+      ok: false, 
+      error: "This endpoint has been migrated to Supabase. Notion is no longer supported.",
+      migrated: true,
+    },
+    { status: 410 }
+  );
 }
 
-const notion = new Client({ auth: NOTION_API_KEY });
-
-export async function POST(req: Request) {
-  try {
-    const body = await req.json();
-    const { followUpId, status } = body;
-
-    if (!followUpId || !status) {
-      return NextResponse.json(
-        { ok: false, error: "Missing required data" },
-        { status: 400 }
-      );
-    }
-
-    console.log(`📝 Updating follow-up ${followUpId} to ${status}`);
-
-    await notion.pages.update({
-      page_id: followUpId,
-      properties: {
-        Status: {
-          select: { name: status },
-        },
-      },
-    });
-
-    console.log("✅ Status updated!");
-
-    return NextResponse.json({
-      ok: true,
-      status,
-    });
-  } catch (err: any) {
-    console.error("Update status error:", err?.message ?? err);
-    return NextResponse.json(
-      {
-        ok: false,
-        error: err?.message || "Failed to update status",
-      },
-      { status: 500 }
-    );
-  }
+export async function POST(req?: NextRequest) {
+  return NextResponse.json(
+    { 
+      ok: false, 
+      error: "This endpoint has been migrated to Supabase. Notion is no longer supported.",
+      migrated: true,
+    },
+    { status: 410 }
+  );
 }

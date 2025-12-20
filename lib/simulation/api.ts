@@ -1,7 +1,10 @@
 // Simulation API Helpers
 // lib/simulation/api.ts
 
-import { runSimulationScenario, getPredefinedScenarios } from "./run";
+import "server-only";
+
+// Import from server-only path (this file should only be used in API routes)
+import { runSimulationScenario, getPredefinedScenarios } from "./server/runSimulationPaths";
 import { SimulationInput } from "./scenario";
 
 /**

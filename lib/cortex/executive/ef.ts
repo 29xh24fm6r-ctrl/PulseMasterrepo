@@ -2,6 +2,7 @@
 // lib/cortex/executive/ef.ts
 
 import { DomainKey, PulseCortexContext } from "../types";
+import type { PulseObjective, MicroStep } from "../executive";
 
 export interface MicroPlan {
   id: string;

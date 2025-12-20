@@ -1,0 +1,50 @@
+name: Sentinel Maintainer
+
+on:
+  schedule:
+    - cron: "0 */4 * * *" # every 4 hours
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: sentinel-maintainer
+  cancel-in-progress: false
+
+jobs:
+  maintainer:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install
+        run: npm ci
+
+      - name: Run Maintainer
+        env:
+          # Require canary-green label before merge
+          SENTINEL_REQUIRE_LABEL: "canary-green"
+
+          # Close PRs older than 7 days
+          SENTINEL_STALE_DAYS: "7"
+
+          # Base branch
+          SENTINEL_BASE_BRANCH: "main"
+
+          # Auto-merge enabled (set to false to require manual merge)
+          SENTINEL_AUTO_MERGE: "true"
+
+          # GitHub token
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+        run: node scripts/sentinel/maintainer.mjs
+

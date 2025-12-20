@@ -8,7 +8,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { requireClerkUserId } from "@/lib/auth/requireUser";
+// Removed direct import - using API route instead
 
 interface ProfileData {
   entity: any;
@@ -34,7 +34,13 @@ export default function UnifiedProfilePage() {
   async function loadProfileData() {
     try {
       setLoading(true);
-      const userId = await requireClerkUserId();
+      // Get userId from API
+      const userRes = await fetch("/api/user/me");
+      const userJson = await userRes.json();
+      const userId = userJson?.userId || null;
+      if (!userId) {
+        throw new Error("Not authenticated");
+      }
 
       // Fetch entity
       const entityResponse = await fetch(

@@ -11,7 +11,7 @@ import { getVoiceProfileByKey } from "@/lib/voices/seed";
 import { getUserSafetySettings, applyUserSafetyPreferencesToPersona } from "@/lib/safety/user-preferences";
 import { getCompanionState, CompanionState } from "./companion";
 import { getMoodResonanceTuning } from "./mood_resonance";
-import { getCurrentEmotionState } from "@/lib/emotion-os";
+import { getCurrentEmotionState } from "@/lib/emotion-os/server";
 
 export interface PersonaResponsePlan {
   personaProfile: PersonaProfile;

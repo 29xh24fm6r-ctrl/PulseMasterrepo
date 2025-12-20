@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 import { AppCard } from "@/components/ui/AppCard";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { Badge } from "@/components/ui/badge";
-import { WorldInfluence } from "@/lib/world/engine";
+import type { WorldInfluence } from "@/lib/world/types";
 import { Cloud, TrendingUp, AlertTriangle, Target, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 

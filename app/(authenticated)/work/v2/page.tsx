@@ -10,7 +10,6 @@ import { LoadingState } from "@/components/ui/LoadingState";
 import { Badge } from "@/components/ui/badge";
 import { ButlerPanel } from "@/app/components/butler/ButlerPanel";
 import { generateTimeSlices } from "@/lib/time-slicing/v1/tse";
-import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 import {
   Briefcase,
   Clock,
@@ -60,7 +59,12 @@ export default function WorkDashboardV2Page() {
   async function loadWorkData() {
     setLoading(true);
     try {
-      const ctx = await getWorkCortexContextForUser("user_123"); // Would get from auth
+      const res = await fetch("/api/cortex/context");
+      const json = await res.json();
+      if (!json?.ok || !json?.context) {
+        throw new Error("Failed to load cortex context");
+      }
+      const ctx = json.context;
 
       // Generate time slices
       const timeSlices = generateTimeSlices(ctx);

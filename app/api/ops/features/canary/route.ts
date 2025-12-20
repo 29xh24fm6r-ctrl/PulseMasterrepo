@@ -2,7 +2,7 @@
 import "server-only";
 import { NextRequest, NextResponse } from "next/server";
 import { requireClerkUserId } from "@/lib/auth/requireUser";
-import { getCanary, listCanaryFeatureIds } from "@/lib/features/canaries";
+import { getCanary, listCanaryFeatureIds } from "@/lib/features/canaries/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { log } from "@/lib/obs/logger";
 import { getRequestMeta } from "@/lib/obs/request-context";

@@ -1,18 +1,15 @@
 // AI Twin Engine - Experience v6
 // lib/twin/engine.ts
 
+import "server-only";
+
 import { supabaseAdmin } from "@/lib/supabase";
 import { callAIJson } from "@/lib/ai/call";
 import { getWorkCortexContextForUser } from "@/lib/cortex/context";
+import type { TwinModel } from "./types";
 
-export interface TwinModel {
-  summary: any;
-  strengths: any[];
-  weaknesses: any[];
-  decisionPatterns: any[];
-  riskPatterns: any[];
-  values: any[];
-}
+// Re-export types for convenience
+export type { TwinModel } from "./types";
 
 /**
  * Build or update twin model

@@ -1,35 +1,14 @@
 // AR Context Builder - Minimal Cortex Dataset for AR
 // lib/ar/context-builder.ts
 
+import "server-only";
+
 import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 import { PulseCortexContext } from "@/lib/cortex/types";
+import type { ARContext } from "./types";
 
-export interface ARContext {
-  todaysState: {
-    emotion: string;
-    intensity: number;
-    energy: number;
-  };
-  priorities: Array<{ id: string; title: string; priority: number }>;
-  energyCurve: Array<{ time: string; level: number }>;
-  relationshipTouch: {
-    id: string;
-    name: string;
-    strength: number;
-    action: string;
-  } | null;
-  opportunity: {
-    id: string;
-    title: string;
-    description: string;
-  } | null;
-  risk: {
-    id: string;
-    title: string;
-    description: string;
-    severity: "low" | "medium" | "high";
-  } | null;
-}
+// Re-export types for convenience
+export type { ARContext } from "./types";
 
 /**
  * Build minimal AR context from Cortex

@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 import { AppCard } from "@/components/ui/AppCard";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { Button } from "@/components/ui/button";
-import { TwinModel } from "@/lib/twin/engine";
+import type { TwinModel } from "@/lib/twin/types";
 import { Brain, RefreshCw, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 

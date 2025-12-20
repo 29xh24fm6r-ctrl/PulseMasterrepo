@@ -4,7 +4,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getWorkCortexContextForUser } from "@/lib/cortex/context";
 import { generateCity, CityState } from "@/lib/city/city-generator";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { motion } from "framer-motion";
@@ -23,11 +22,12 @@ export default function PulseCityPage() {
   async function loadCity() {
     setLoading(true);
     try {
-      // Get userId from auth
-      const userId = "user_123"; // Would get from auth
-      const ctx = await getWorkCortexContextForUser(userId);
-      const city = generateCity(ctx);
-      setCityState(city);
+      const res = await fetch("/api/cortex/context");
+      const json = await res.json();
+      if (json?.ok && json?.context) {
+        const city = generateCity(json.context);
+        setCityState(city);
+      }
     } catch (err) {
       console.error("Failed to load city:", err);
     } finally {

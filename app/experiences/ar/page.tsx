@@ -5,8 +5,7 @@
 
 import { useState, useEffect } from "react";
 import { ARScene } from "./ARScene";
-import { buildARContext } from "@/lib/ar/context-builder";
-import { ARContext } from "@/lib/ar/context-builder";
+import type { ARContext } from "@/lib/ar/types";
 import { LoadingState } from "@/components/ui/LoadingState";
 
 export default function ARModePage() {
@@ -20,10 +19,13 @@ export default function ARModePage() {
   async function loadARContext() {
     setLoading(true);
     try {
-      // Get userId from auth
-      const userId = "user_123"; // Would get from auth
-      const arContext = await buildARContext(userId);
-      setContext(arContext);
+      const res = await fetch("/api/ar/context");
+      const json = await res.json();
+      if (json?.ok) {
+        setContext(json.context);
+      } else {
+        throw new Error(json?.error || "Failed to load AR context");
+      }
     } catch (err) {
       console.error("Failed to load AR context:", err);
     } finally {

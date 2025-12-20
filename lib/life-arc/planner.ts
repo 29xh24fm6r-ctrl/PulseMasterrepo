@@ -5,7 +5,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { buildOrUpdateLifeArcs } from "./builder";
 import { getArcQuests } from "./quests";
 import { LifeArc, LifeArcQuest, LifeArcPlan, UserModelSnapshot } from "./model";
-import { getCurrentEmotionState } from "@/lib/emotion-os";
+import { getCurrentEmotionState } from "@/lib/emotion-os/server";
 import { getCareerContextForMemory } from "@/lib/career/integrations";
 
 /**

@@ -6,7 +6,7 @@
 import { motion } from "framer-motion";
 import { Page } from "@/app/components/layout/Page";
 import { PageSection } from "@/app/components/layout/PageSection";
-import { AnimatedPanel } from "@/components/ui/AnimatedPanel";
+import { AnimatedPanel } from "@/app/components/ui/AnimatedPanel";
 import { AppCard } from "@/components/ui/AppCard";
 import { CoachLauncher } from "@/app/components/coaching/CoachLauncher";
 import { DollarSign, Target, AlertTriangle } from "lucide-react";

@@ -3,7 +3,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { CognitiveMesh } from "@/lib/cognitive-mesh";
+import { CognitiveMesh } from "@/lib/cognitive-mesh/server";
 import { ExtractionEngine } from "@/lib/cognitive-mesh/extraction-engine";
 
 export async function POST(req: NextRequest) {

@@ -1,6 +1,8 @@
 // Coach Persona Engine v2 (Cortex-Driven)
 // lib/coaching/cortex/persona-engine.ts
 
+import "server-only";
+
 import { CoachContext, CoachOutput, CoachPersona } from "./types";
 import { getCoachPersona } from "./personas";
 import { generateMicroPlan } from "@/lib/cortex/executive";

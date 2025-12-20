@@ -3,6 +3,9 @@
 
 import { DomainKey, PulseCortexContext } from "./types";
 
+// Re-export from ef.ts (v3 implementation)
+export { generateMicroPlan, type MicroPlan } from "./executive/ef";
+
 export interface PulseObjective {
   id: string;
   domain: DomainKey;

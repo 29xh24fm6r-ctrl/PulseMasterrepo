@@ -3,7 +3,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { runSimulation } from "@/lib/simulation/v2/engine";
+import { runMultiTimelineSimulationForUser } from "@/lib/simulation/v2/engine";
 import { SimulationInput } from "@/lib/simulation/v2/types";
 
 export async function POST(req: NextRequest) {
@@ -42,13 +42,11 @@ export async function POST(req: NextRequest) {
       },
     ];
 
-    const input: SimulationInput = {
+    const output = await runMultiTimelineSimulationForUser(
       userId,
-      horizonDays: horizonDays || 90,
-      scenarios: scenarios.length > 0 ? scenarios : defaultScenarios,
-    };
-
-    const output = await runSimulation(input);
+      horizonDays || 90,
+      scenarios.length > 0 ? scenarios : defaultScenarios
+    );
 
     return NextResponse.json(output);
   } catch (err: unknown) {

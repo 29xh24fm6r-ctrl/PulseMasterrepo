@@ -3,7 +3,7 @@
 
 "use client";
 
-import { useState, useEffect } from "users";
+import { useState, useEffect } from "react";
 import { Users, Calendar, MessageSquare } from "lucide-react";
 import Link from "next/link";
 

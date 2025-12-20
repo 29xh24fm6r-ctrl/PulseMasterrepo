@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { ARContext } from "@/lib/ar/context-builder";
+import type { ARContext } from "@/lib/ar/types";
 import { ARPriorityCard } from "./ARPriorityCard";
 import { AREnergyOrb } from "./AREnergyOrb";
 import { ARIdentityArc } from "./ARIdentityArc";
