@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { FocusLockBanner } from "@/components/focus/FocusLockBanner";
 
 interface Card {
   title: string;
@@ -43,7 +44,8 @@ export default function TimeOverview({ data }: { data: TimeOverviewData }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950 text-white p-8">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-7xl mx-auto space-y-4">
+        <FocusLockBanner />
         <h1 className="text-3xl font-bold mb-2">Time - Capacity OS</h1>
         <p className="text-gray-400 mb-8">{data.summary}</p>
 

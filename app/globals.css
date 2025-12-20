@@ -39,7 +39,11 @@
 }
 
 body {
-  background: linear-gradient(to bottom, #0a0a0a 0%, #1a0a1f 50%, #0a0a0a 100%);
+  background:
+    radial-gradient(1200px 700px at 18% 10%, rgba(168, 85, 247, 0.18), rgba(0, 0, 0, 0) 60%),
+    radial-gradient(900px 600px at 80% 30%, rgba(59, 130, 246, 0.12), rgba(0, 0, 0, 0) 62%),
+    radial-gradient(800px 600px at 40% 90%, rgba(236, 72, 153, 0.08), rgba(0, 0, 0, 0) 60%),
+    linear-gradient(180deg, rgba(6, 7, 12, 1), rgba(2, 2, 6, 1));
   background-attachment: fixed;
   color: var(--foreground);
   /* System font stack - Inter-like, zero external dependency */
@@ -238,9 +242,522 @@ html {
   animation: fade-in 0.6s ease-out;
 }
 
+/* Quick fade-in for arrival breath (300ms) */
+@keyframes fade-in-quick {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.fade-in-quick {
+  animation: fade-in-quick 0.3s ease-in;
+}
+
 /* Smooth transitions */
 * {
   transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
+}
+
+/* ===========================
+   Pulse Core Presence (Living Entity)
+   - Single visual stimulation point
+   - Calm, intelligent, not gimmicky
+   =========================== */
+
+.pulse-core {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 9999px;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pulse-core:disabled {
+  cursor: default;
+}
+
+.pulse-core:focus-visible {
+  outline: 2px solid rgba(168, 85, 247, 0.55); /* purple focus ring */
+  outline-offset: 3px;
+}
+
+.pulse-core__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.pulse-core__dot {
+  width: 62%;
+  height: 62%;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.75), rgba(168, 85, 247, 0.65) 35%, rgba(88, 28, 135, 0.2) 70%);
+  box-shadow:
+    0 0 16px rgba(168, 85, 247, 0.45),
+    0 0 36px rgba(168, 85, 247, 0.18);
+  transform: translateZ(0);
+}
+
+.pulse-core__ring,
+.pulse-core__ring2 {
+  position: absolute;
+  inset: -35%;
+  border-radius: 9999px;
+  border: 1px solid rgba(168, 85, 247, 0.25);
+  box-shadow: 0 0 18px rgba(168, 85, 247, 0.12);
+  opacity: 0.65;
+  transform: translateZ(0);
+  pointer-events: none;
+}
+
+.pulse-core__ring2 {
+  inset: -55%;
+  opacity: 0.35;
+}
+
+/* The "alive" behavior */
+@keyframes pulseCoreBreath {
+  0%   { transform: scale(1); filter: saturate(1); }
+  50%  { transform: scale(1.06); filter: saturate(1.15); }
+  100% { transform: scale(1); filter: saturate(1); }
+}
+
+@keyframes pulseCoreWave {
+  0%   { transform: scale(0.92); opacity: 0.00; }
+  15%  { opacity: 0.55; }
+  100% { transform: scale(1.20); opacity: 0.00; }
+}
+
+@keyframes pulseCoreWave2 {
+  0%   { transform: scale(0.86); opacity: 0.00; }
+  20%  { opacity: 0.40; }
+  100% { transform: scale(1.34); opacity: 0.00; }
+}
+
+/* Default (calm) */
+.pulse-core:not(.pulse-core--reduced) .pulse-core__dot {
+  animation: pulseCoreBreath 5.2s ease-in-out infinite;
+}
+
+.pulse-core:not(.pulse-core--reduced) .pulse-core__ring {
+  animation: pulseCoreWave 3.6s ease-out infinite;
+}
+
+.pulse-core:not(.pulse-core--reduced) .pulse-core__ring2 {
+  animation: pulseCoreWave2 4.6s ease-out infinite;
+}
+
+/* Hover = "it noticed you noticing it" */
+.pulse-core:hover .pulse-core__dot {
+  box-shadow:
+    0 0 22px rgba(168, 85, 247, 0.55),
+    0 0 52px rgba(168, 85, 247, 0.22);
+}
+
+.pulse-core:hover .pulse-core__ring {
+  border-color: rgba(168, 85, 247, 0.38);
+}
+
+/* Focus mode = tighter, quieter */
+.pulse-core--focus .pulse-core__dot {
+  box-shadow:
+    0 0 14px rgba(168, 85, 247, 0.35),
+    0 0 28px rgba(168, 85, 247, 0.14);
+}
+
+.pulse-core--focus:not(.pulse-core--reduced) .pulse-core__dot {
+  animation-duration: 6.2s; /* slower breath */
+}
+
+.pulse-core--focus:not(.pulse-core--reduced) .pulse-core__ring {
+  animation-duration: 4.4s; /* slower wave */
+}
+
+/* Alert = higher frequency, tighter waves (still classy) */
+.pulse-core--alert .pulse-core__dot {
+  box-shadow:
+    0 0 22px rgba(239, 68, 68, 0.40),
+    0 0 44px rgba(168, 85, 247, 0.22);
+}
+
+.pulse-core--alert:not(.pulse-core--reduced) .pulse-core__dot {
+  animation-duration: 2.4s; /* faster breath */
+}
+
+.pulse-core--alert:not(.pulse-core--reduced) .pulse-core__ring {
+  animation-duration: 1.9s;
+  border-color: rgba(239, 68, 68, 0.32);
+}
+
+.pulse-core--alert:not(.pulse-core--reduced) .pulse-core__ring2 {
+  animation-duration: 2.3s;
+  border-color: rgba(239, 68, 68, 0.18);
+}
+
+/* Offline = no motion, dim */
+.pulse-core--offline {
+  cursor: default;
+}
+
+.pulse-core--offline .pulse-core__dot {
+  background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.28), rgba(148, 163, 184, 0.22) 40%, rgba(15, 23, 42, 0.22) 80%);
+  box-shadow: 0 0 10px rgba(148, 163, 184, 0.12);
+}
+
+.pulse-core--offline .pulse-core__ring,
+.pulse-core--offline .pulse-core__ring2 {
+  opacity: 0.12;
+}
+
+/* Reduced motion: no animations at all */
+.pulse-core--reduced .pulse-core__dot,
+.pulse-core--reduced .pulse-core__ring,
+.pulse-core--reduced .pulse-core__ring2 {
+  animation: none !important;
+}
+
+/* ===========================
+   WOW Contrast + Depth
+   =========================== */
+
+:root {
+  --pulse-surface: rgba(255, 255, 255, 0.06);
+  --pulse-surface-2: rgba(255, 255, 255, 0.08);
+  --pulse-border: rgba(255, 255, 255, 0.10);
+  --pulse-border-2: rgba(255, 255, 255, 0.14);
+}
+
+/* Give all "card borders" a crisper look globally (helps your existing components) */
+.pulse-card-border-boost {
+  border-color: rgba(255, 255, 255, 0.14) !important;
+}
+
+/* ===========================
+   Pulse Command Bar (Global)
+   =========================== */
+
+.pulse-cmdbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 60;
+  height: 64px;
+  background: rgba(6, 7, 12, 0.72);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+  backdrop-filter: blur(18px);
+}
+
+.pulse-cmdbar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(900px 220px at 15% 0%, rgba(168,85,247,0.22), rgba(0,0,0,0) 60%);
+  opacity: 0.9;
+}
+
+.pulse-cmdbar__inner {
+  position: relative;
+  height: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.pulse-cmdbar__spacer {
+  height: 64px;
+}
+
+.pulse-cmdbar__left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 240px;
+}
+
+.pulse-cmdbar__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.pulse-cmdbar__logo {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.pulse-cmdbar__presence {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.pulse-cmdbar__presenceText {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.70);
+  white-space: nowrap;
+}
+
+.pulse-cmdbar__nav {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  overflow: hidden;
+}
+
+.pulse-cmdbar__navGroup {
+  display: none;
+}
+
+@media (min-width: 980px) {
+  .pulse-cmdbar__navGroup {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
+.pulse-cmdbar__navGroupLabel {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.40);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.pulse-cmdbar__navGroupItems {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.pulse-cmdbar__chip {
+  text-decoration: none;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.74);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 6px 10px;
+  border-radius: 9999px;
+  transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
+}
+
+.pulse-cmdbar__chip:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.14);
+  transform: translateY(-1px);
+}
+
+.pulse-cmdbar__chip.is-active {
+  background: rgba(168, 85, 247, 0.14);
+  border-color: rgba(168, 85, 247, 0.28);
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.pulse-cmdbar__right {
+  min-width: 320px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+}
+
+.pulse-cmdbar__search {
+  width: 100%;
+  max-width: 320px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 10px 12px;
+  color: rgba(255, 255, 255, 0.75);
+  transition: background 120ms ease, border-color 120ms ease;
+  cursor: pointer;
+}
+
+.pulse-cmdbar__search:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.pulse-cmdbar__searchHint {
+  font-size: 12px;
+}
+
+.pulse-cmdbar__kbd {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(0, 0, 0, 0.25);
+  padding: 3px 8px;
+  border-radius: 9999px;
+}
+
+/* ===========================
+   Context Actions (Command Bar)
+   =========================== */
+
+.pulse-cmdbar__actions {
+  display: none;
+  gap: 8px;
+}
+
+@media (min-width: 860px) {
+  .pulse-cmdbar__actions {
+    display: inline-flex;
+  }
+}
+
+.pulse-cmdbar__actionBtn {
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 9px 12px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.78);
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.pulse-cmdbar__actionBtn:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.pulse-cmdbar__actionBtn.is-primary {
+  background: rgba(168, 85, 247, 0.16);
+  border-color: rgba(168, 85, 247, 0.30);
+  color: rgba(255, 255, 255, 0.90);
+  box-shadow: 0 0 22px rgba(168, 85, 247, 0.14);
+}
+
+/* ===========================
+   Command Palette
+   =========================== */
+
+.pulse-palette {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+}
+
+.pulse-palette__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+}
+
+.pulse-palette__panel {
+  position: relative;
+  width: min(680px, calc(100vw - 24px));
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(12, 12, 18, 0.88);
+  box-shadow: 0 40px 140px rgba(0, 0, 0, 0.75);
+  overflow: hidden;
+}
+
+.pulse-palette__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 14px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.pulse-palette__title {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.pulse-palette__close {
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 6px 10px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.70);
+  cursor: pointer;
+}
+
+.pulse-palette__input {
+  width: 100%;
+  padding: 14px;
+  outline: none;
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.90);
+  font-size: 14px;
+}
+
+.pulse-palette__list {
+  padding: 6px;
+  display: grid;
+  gap: 6px;
+}
+
+.pulse-palette__item {
+  width: 100%;
+  text-align: left;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: rgba(255, 255, 255, 0.80);
+  cursor: pointer;
+}
+
+.pulse-palette__item.is-active {
+  background: rgba(168, 85, 247, 0.14);
+  border-color: rgba(168, 85, 247, 0.25);
+}
+
+.pulse-palette__itemMain {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.pulse-palette__itemMeta {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
 }

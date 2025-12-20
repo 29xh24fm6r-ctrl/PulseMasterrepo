@@ -37,8 +37,10 @@ interface DashboardData {
 export function RevolutionaryDashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     // Simulate loading data - replace with actual API calls
     setTimeout(() => {
       setData({
@@ -65,6 +67,7 @@ export function RevolutionaryDashboard() {
   }, []);
 
   const getGreeting = () => {
+    if (!mounted) return "";
     const hour = new Date().getHours();
     if (hour < 12) return "Good morning";
     if (hour < 17) return "Good afternoon";

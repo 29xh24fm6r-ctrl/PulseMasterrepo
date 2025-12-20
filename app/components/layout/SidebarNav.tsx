@@ -21,9 +21,9 @@ import {
 import { cn } from "@/lib/utils";
 
 const navItems = [
+  { href: "/home", label: "Home", icon: Home },
   { href: "/today", label: "Today", icon: Calendar },
   { href: "/create", label: "Create", icon: Plus },
-  { href: "/life", label: "Life", icon: Home },
   { href: "/strategy", label: "Strategy", icon: Compass },
   { href: "/simulation/paths", label: "Simulation", icon: Zap },
   { href: "/graph", label: "Graph", icon: Network },
@@ -39,7 +39,7 @@ export function SidebarNav() {
   return (
     <aside className="w-64 bg-zinc-900 border-r border-zinc-800 flex flex-col">
       <div className="p-4 border-b border-zinc-800">
-        <Link href="/life" className="flex items-center gap-2">
+        <Link href="/home" className="flex items-center gap-2">
           <Target className="w-6 h-6 text-violet-400" />
           <span className="text-lg font-bold text-white">Pulse</span>
         </Link>

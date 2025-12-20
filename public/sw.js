@@ -38,20 +38,34 @@ self.addEventListener("activate", (event) => {
 
 // Fetch - network first, fallback to cache
 self.addEventListener("fetch", (event) => {
-  // Skip non-GET requests
+  // Early exit for non-GET requests
   if (event.request.method !== "GET") return;
   
+  // Early exit for non-HTTP(S) requests (chrome-extension://, blob:, data:, etc.)
+  const requestUrl = event.request.url;
+  if (!requestUrl.startsWith("http://") && !requestUrl.startsWith("https://")) {
+    return; // Don't even try to process chrome-extension://, blob:, etc.
+  }
+  
   // Skip API requests
-  if (event.request.url.includes("/api/")) return;
+  if (requestUrl.includes("/api/")) return;
 
   event.respondWith(
     fetch(event.request)
       .then((response) => {
         // Clone and cache successful responses
-        if (response.status === 200) {
+        if (response.status === 200 && response.type === "basic") {
           const responseClone = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseClone);
+            // Only cache same-origin requests
+            try {
+              cache.put(event.request, responseClone).catch((err) => {
+                // Silently fail if caching fails (e.g., chrome-extension URLs)
+                console.log("[SW] Cache put failed (non-fatal):", err);
+              });
+            } catch (err) {
+              // Silently fail if request is not cacheable
+            }
           });
         }
         return response;

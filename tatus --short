@@ -1,0 +1,29 @@
+warning: in the working copy of 'app/components/ServiceWorkerRegistration.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/globals.css', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/layout.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/sign-in/[[...sign-in]]/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/sign-up/[[...sign-up]]/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'middleware.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'public/manifest.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'public/sw.js', LF will be replaced by CRLF the next time Git touches it
+app/(pulse)/home/page.tsx
+app/(pulse)/layout.tsx
+app/api/surfaces/home/route.ts
+app/components/ServiceWorkerRegistration.tsx
+app/components/dashboard/RevolutionaryDashboard.tsx
+app/components/layout/SidebarNav.tsx
+app/globals.css
+app/layout.tsx
+app/page.tsx
+app/sign-in/[[...sign-in]]/page.tsx
+app/sign-up/[[...sign-up]]/page.tsx
+components/home/LeverageStack.tsx
+components/home/LifeSignalsGrid.tsx
+components/home/PulseStateBanner.tsx
+components/time/time-overview.tsx
+lib/surfaces/types.ts
+lib/wisdom/aggregator.ts
+middleware.ts
+public/manifest.json
+public/sw.js

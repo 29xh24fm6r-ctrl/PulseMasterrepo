@@ -11,6 +11,7 @@ import Link from "next/link";
 import { CommandBar } from "@/components/command/CommandBar";
 import { FloatingActions } from "@/components/shell/FloatingActions";
 import { LayoutTrace } from "@/app/components/dev/LayoutTrace";
+import { FocusLockGate } from "@/components/focus/FocusLockGate";
 import {
   Home,
   Briefcase,
@@ -125,6 +126,7 @@ export default function PulseLayout({ children }: { children: React.ReactNode })
 
         {/* Page Content */}
         <main className="flex-1 overflow-y-auto px-6 py-6">
+          <FocusLockGate />
           {children}
         </main>
 

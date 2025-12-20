@@ -9,24 +9,42 @@ import { evalGate } from "@/lib/access/gates";
 export default clerkMiddleware(async (auth, req: NextRequest) => {
   // Generate or propagate request ID (using Web Crypto API for Edge Runtime)
   const requestId = req.headers.get("x-request-id") || crypto.randomUUID();
+
+  const pathname = req.nextUrl.pathname;
+
+  /**
+   * ROOT ROUTE WOW MOMENT
+   * - If not signed in -> /sign-in
+   * - If signed in -> /home (Pulse Home Surface)
+   */
+  if (pathname === "/") {
+    const authResult = await auth();
+    if (!authResult.userId) {
+      return NextResponse.redirect(new URL("/sign-in", req.url));
+    }
+    return NextResponse.redirect(new URL("/home", req.url));
+  }
+
   const res = NextResponse.next();
 
   // Propagate request ID to downstream
   res.headers.set("x-request-id", requestId);
 
   // Route-level gate enforcement (skip API routes - they handle auth themselves)
-  const pathname = req.nextUrl.pathname;
   if (!pathname.startsWith("/api/") && pathname !== "/sign-in" && pathname !== "/sign-up") {
     try {
       const featureId = featureIdForPath(pathname);
       if (featureId) {
-        const feature = FEATURE_REGISTRY.find((f) => f.id === featureId);
+        // Use getAccessContext to check gate - this handles feature access control
+        const ctx = await getAccessContext();
+        // Note: Feature registry structure may vary - gate evaluation happens in evalGate
+        // This preserves existing gate logic without requiring specific FeatureDef shape
+        const feature = (FEATURE_REGISTRY as any[]).find((f: any) => f.id === featureId || f.key === featureId);
         if (feature?.gate) {
-          const ctx = await getAccessContext();
           const result = evalGate(feature.gate, ctx);
           if (!result.ok) {
             const reason = "reason" in result ? result.reason : "Not allowed";
-            
+
             // Track gate block event
             try {
               const { trackEvent } = await import("@/lib/analytics/server");
@@ -34,14 +52,14 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
                 user_id: ctx.userId || null,
                 request_id: requestId,
                 event_name: "gate_block",
-                feature_id: feature.id,
+                feature_id: featureId,
                 path: pathname,
-                properties: { reason: feature.locked_copy || reason },
+                properties: { reason: (feature as any).locked_copy || reason },
               });
             } catch {
               // Analytics must never break product flow
             }
-            
+
             // Redirect based on reason
             if (reason === "Sign in required") {
               return NextResponse.redirect(new URL("/sign-in", req.url));
