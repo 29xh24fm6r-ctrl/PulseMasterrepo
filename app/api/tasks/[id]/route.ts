@@ -1,48 +1,39 @@
+// app/api/tasks/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { resolveSupabaseUser } from "@/lib/auth/resolveSupabaseUser";
+import { requireUserId } from "@/lib/auth/requireUserId";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { log } from "@/lib/obs/logger";
-import { getRequestMeta } from "@/lib/obs/request-context";
+import { uiToDbTaskStatus } from "@/lib/pulse/normalizeTaskStatus";
 
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
-  const meta = getRequestMeta();
-  const t0 = Date.now();
-  log.info("route.start", { ...meta, route: "PATCH /api/tasks/[id]", taskId: params.id });
-
+export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> | { id: string } }) {
   try {
-    const { supabaseUserId } = await resolveSupabaseUser();
-
+    const userId = await requireUserId();
+    const sp = supabaseAdmin;
+    const params = await Promise.resolve(ctx.params);
     const id = params.id;
+
     const body = await req.json().catch(() => ({}));
-    const nextStatus = body.status;
+    const nextStatus = uiToDbTaskStatus(body?.status ?? null);
 
-    if (!id || !nextStatus) {
-      log.warn("route.validation_failed", { ...meta, route: "PATCH /api/tasks/[id]", ms: Date.now() - t0, error: "Missing id or status" });
-      return NextResponse.json({ error: "Missing id or status" }, { status: 400 });
+    const update: any = {};
+    if (nextStatus) {
+      update.status = nextStatus;
+      if (nextStatus === "done") update.completed_at = new Date().toISOString();
     }
 
-    const { data, error } = await supabaseAdmin
-      .from("tasks")
-      .update({ 
-        status: nextStatus, 
-        completed_at: nextStatus === "completed" ? new Date().toISOString() : null 
-      })
-      .eq("id", id)
-      .eq("user_id", supabaseUserId)
-      .select("*")
-      .single();
-
-    if (error) {
-      log.error("route.err", { ...meta, route: "PATCH /api/tasks/[id]", ms: Date.now() - t0, error: error.message });
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    if (Object.keys(update).length === 0) {
+      return NextResponse.json({ ok: false, error: "No valid fields to update" }, { status: 400 });
     }
 
-    log.info("route.ok", { ...meta, route: "PATCH /api/tasks/[id]", ms: Date.now() - t0, taskId: id, status: nextStatus });
-    return NextResponse.json({ ok: true, task: data });
-  } catch (err: any) {
-    log.error("route.err", { ...meta, route: "PATCH /api/tasks/[id]", ms: Date.now() - t0, error: err?.message || String(err) });
-    return NextResponse.json({ error: err?.message || "Internal error" }, { status: 500 });
+    const { error } = await sp.from("tasks").update(update).eq("id", id).eq("user_id", userId);
+    if (error) throw error;
+
+    return NextResponse.json({ ok: true });
+  } catch (e: any) {
+    const msg = e?.message ?? "Failed";
+    const status = msg === "Unauthorized" ? 401 : 500;
+    return NextResponse.json({ ok: false, error: msg }, { status });
   }
 }

@@ -12,6 +12,7 @@ import { Toaster } from "sonner";
 import PageViewTracker from "@/components/analytics/PageViewTracker";
 import ClientErrorCollectorMount from "@/components/ops/ClientErrorCollectorMount";
 import PulseCommandBar from "@/components/nav/PulseCommandBar";
+import { PulseControlDock } from "@/components/PulseControlDock";
 
 // System font stack - zero external network dependency, works immediately
 // To use Inter font later: Download Inter-Variable.woff2 from https://github.com/rsms/inter/releases
@@ -60,6 +61,7 @@ export default function RootLayout({
               <ServiceWorkerRegistration />
               <CoachPanel />
               <WelcomeFlow />
+              <PulseControlDock />
               <Toaster />
             </UserProvider>
           </Providers>

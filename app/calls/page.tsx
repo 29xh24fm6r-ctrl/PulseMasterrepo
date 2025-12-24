@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import React, { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { emitPulseIncoming } from "@/lib/ui/pulseDockEvents";
 
 interface CallSession {
   id: string;

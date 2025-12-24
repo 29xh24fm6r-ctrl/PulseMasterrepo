@@ -3,6 +3,12 @@
     { "path": "/api/cron/emotion-detect", "schedule": "*/10 * * * *" },
     { "path": "/api/cron/nightly", "schedule": "0 3 * * *" },
     { "path": "/api/cron/weekly", "schedule": "0 4 * * 0" },
-    { "path": "/api/cron/monthly", "schedule": "0 5 1 * *" }
+    { "path": "/api/cron/monthly", "schedule": "0 5 1 * *" },
+    { "path": "/api/email/outbox/cron?limit=10", "schedule": "*/2 * * * *" },
+    { "path": "/api/email/gmail/cron?limit=25&minutes=60", "schedule": "*/5 * * * *" },
+    { "path": "/api/email/sla/cron?limit=50", "schedule": "*/10 * * * *" },
+    { "path": "/api/email/sla/followup-cron", "schedule": "0 */6 * * *" },
+    { "path": "/api/email/autopilot/worker-cron?limit=10", "schedule": "*/5 * * * *" },
+    { "path": "/api/email/autopilot/autoapprove/worker-cron?limit=10", "schedule": "*/10 * * * *" }
   ]
 }

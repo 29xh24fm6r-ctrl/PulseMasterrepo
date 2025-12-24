@@ -1,50 +1,55 @@
+// app/api/follow-ups/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { resolveSupabaseUser } from "@/lib/auth/resolveSupabaseUser";
+import { requireUserId } from "@/lib/auth/requireUserId";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { log } from "@/lib/obs/logger";
-import { getRequestMeta } from "@/lib/obs/request-context";
-import { withApiAnalytics } from "@/lib/analytics/api";
+import { isUuid } from "@/lib/pulse/isUuid";
 
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
-  return withApiAnalytics(req, async () => {
-    const meta = getRequestMeta();
-    const t0 = Date.now();
-    log.info("route.start", { ...meta, route: "GET /api/follow-ups" });
+  try {
+    const userId = await requireUserId();
+    const sp = supabaseAdmin;
 
-    try {
-    const { supabaseUserId } = await resolveSupabaseUser();
+    // If dev override uses a non-UUID (e.g., "dev_matt"), return empty for smoke testing
+    if (!isUuid(userId)) {
+      return NextResponse.json({ ok: true, followUps: [] });
+    }
 
     const { searchParams } = new URL(req.url);
-    const status = searchParams.get("status");
+    const status = searchParams.get("status"); // e.g., pending/scheduled/done
     const limit = Number(searchParams.get("limit") || "50");
 
-    let q = supabaseAdmin.from("follow_ups").select("*").eq("user_id", supabaseUserId).limit(limit);
-    if (status) {
-      q = q.eq("status", status);
-    }
+    let q = sp.from("follow_ups").select("*").eq("user_id", userId).limit(limit);
+    if (status) q = q.eq("status", status);
 
     const { data, error } = await q.order("due_date", { ascending: true, nullsFirst: false });
+    if (error) throw error;
 
-    if (error) {
-      log.error("route.err", { ...meta, route: "GET /api/follow-ups", ms: Date.now() - t0, error: error.message });
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    const followUps = (data || []).map((f: any) => ({
+    const followUps = (data ?? []).map((f: any) => ({
       id: f.id,
-      contact_name: f.person_name ?? f.contact_name ?? f.name ?? "Unknown",
-      reason: f.type ?? f.reason ?? "follow_up",
-      due_date: f.due_date ?? null,
+      personName: f.person_name ?? f.contact_name ?? f.name ?? "Unknown",
+      company: f.company ?? null,
+      email: f.email ?? null,
+      phone: f.phone ?? null,
+      type: f.type ?? "email",
       status: f.status ?? "pending",
+      priority: f.priority ?? "medium",
+      dueDate: f.due_date ?? null,
+      subject: f.subject ?? null,
+      notes: f.notes ?? null,
+      lastAction: f.last_action ?? null,
+      lastActionDate: f.last_action_date ?? null,
+      dealId: f.deal_id ?? null,
+      createdAt: f.created_at ?? null,
+      updatedAt: f.updated_at ?? null,
     }));
 
-      log.info("route.ok", { ...meta, route: "GET /api/follow-ups", ms: Date.now() - t0, count: followUps.length });
-      return NextResponse.json({ followUps });
-    } catch (err: any) {
-      log.error("route.err", { ...meta, route: "GET /api/follow-ups", ms: Date.now() - t0, error: err?.message || String(err) });
-      return NextResponse.json({ error: err?.message || "Internal error" }, { status: 500 });
-    }
-  });
+    return NextResponse.json({ ok: true, followUps });
+  } catch (e: any) {
+    const msg = e?.message ?? "Failed";
+    const status = msg === "Unauthorized" ? 401 : 500;
+    return NextResponse.json({ ok: false, error: msg }, { status });
+  }
 }

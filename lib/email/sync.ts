@@ -9,6 +9,7 @@ import "server-only";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { google } from "googleapis";
 import { refreshAccessToken } from "@/app/lib/gmail-utils";
+import { upsertTriageFromInbound } from "@/lib/email/ingestToTriage";
 
 // ============================================
 // TYPES
@@ -154,7 +155,7 @@ export async function syncEmailThreads(
         else if (labels.includes("CATEGORY_FORUMS")) category = "forums";
 
         // Upsert to Supabase
-        const { error } = await supabaseAdmin
+        const { data: upsertedThread, error } = await supabaseAdmin
           .from("email_threads")
           .upsert(
             {
@@ -174,13 +175,31 @@ export async function syncEmailThreads(
               labels: labels.filter((l) => !l.startsWith("CATEGORY_")),
             },
             { onConflict: "user_id,provider,thread_id" }
-          );
+          )
+          .select("id")
+          .single();
 
         if (error) {
           console.error("[EmailSync] Thread upsert error:", error);
           errors++;
         } else {
           synced++;
+
+          // Upsert triage item for this thread
+          try {
+            await upsertTriageFromInbound({
+              userId: userId,
+              emailThreadId: upsertedThread.id, // Use internal UUID, not external thread_id
+              subject: subject ?? null,
+              snippet: threadDetail.data.snippet ?? null,
+              fromEmail: parseFromField(from).email ?? null,
+              hasAttachments: false, // Would need to check message parts for this
+              receivedAt: dateStr ? new Date(dateStr).toISOString() : null,
+            });
+          } catch (triageErr) {
+            // Don't fail sync if triage fails
+            console.warn("[EmailSync] Triage upsert error:", triageErr);
+          }
         }
 
         // Extract and upsert contact

@@ -1,156 +1,106 @@
 // app/api/deals/route.ts
-// Supabase-only deals endpoint (migrated from legacy storage)
-// Uses canonical resolveSupabaseUser()
-// Returns shape expected by UI dashboards
-
 import { NextRequest, NextResponse } from "next/server";
-import { resolveSupabaseUser } from "@/lib/auth/resolveSupabaseUser";
+import { requireUserId } from "@/lib/auth/requireUserId";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { log } from "@/lib/obs/logger";
-import { getRequestMeta } from "@/lib/obs/request-context";
-import { withApiAnalytics } from "@/lib/analytics/api";
-import { withRouteBreadcrumbs } from "@/lib/ops/breadcrumbs/withRouteBreadcrumbs";
-import { addBreadcrumb } from "@/lib/ops/breadcrumbs/store";
+import { isUuid } from "@/lib/pulse/isUuid";
 
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// GET - List all deals for user
-export const GET = withRouteBreadcrumbs("GET /api/deals", async (req: NextRequest) => {
-  return withApiAnalytics(req, async () => {
-    const meta = getRequestMeta();
-    const t0 = Date.now();
-    log.info("route.start", { ...meta, route: "GET /api/deals" });
+export async function GET(req: NextRequest) {
+  try {
+    const userId = await requireUserId();
+    const sp = supabaseAdmin;
 
-    try {
-      addBreadcrumb({ type: "auth", name: "begin_user_resolution" });
-      const { supabaseUserId } = await resolveSupabaseUser();
-      addBreadcrumb({ type: "auth", name: "user_resolved", data: { userId: supabaseUserId } });
-
-      const { searchParams } = new URL(req.url);
-      const stage = searchParams.get("stage"); // optional filter
-
-      addBreadcrumb({ type: "db", name: "supabase_query", data: { table: "deals", op: "select" } });
-      let query = supabaseAdmin
-        .from("deals")
-        .select("*")
-        .eq("user_id", supabaseUserId)
-        // Supabase uses nullsFirst (boolean). nullsFirst:false => NULLS LAST
-        .order("close_date", { ascending: true, nullsFirst: false })
-        .order("created_at", { ascending: false });
-
-      if (stage) {
-        query = query.eq("stage", stage);
-      }
-
-      const { data: deals, error } = await query;
-      if (error) throw error;
-
-      // Return shape expected by UI dashboards
-      const normalized = (deals || []).map((d: any) => ({
-        id: d.id,
-        name: d.name ?? d.title ?? "Untitled Deal",
-        stage: d.stage ?? d.status ?? "open",
-        amount: d.amount ?? d.value ?? 0,
-        probability: d.probability ?? 50,
-        contact_name: d.contact_name ?? d.person_name ?? null,
-        last_activity: d.last_activity ?? d.updated_at ?? null,
-        next_action: d.next_action ?? null,
-      }));
-
-      log.info("route.ok", {
-        ...meta,
-        route: "GET /api/deals",
-        ms: Date.now() - t0,
-        count: normalized.length,
-      });
-
-      // Support both shapes: { items: [...] } for existing code, { deals: [...] } for new code
-      const format = searchParams.get("format");
-      if (format === "legacy") {
-        return NextResponse.json({ items: normalized });
-      }
-      return NextResponse.json({ deals: normalized });
-    } catch (err: any) {
-      log.error("route.err", {
-        ...meta,
-        route: "GET /api/deals",
-        ms: Date.now() - t0,
-        error: err?.message || String(err),
-      });
-      return NextResponse.json(
-        { error: err?.message || "Failed to load deals" },
-        { status: 500 }
-      );
+    // If dev override uses a non-UUID (e.g., "dev_matt"), return empty for smoke testing
+    if (!isUuid(userId)) {
+      return NextResponse.json({ ok: true, deals: [] });
     }
-  });
-});
 
-// POST - Create new deal
+    const { searchParams } = new URL(req.url);
+    const limit = Number(searchParams.get("limit") || "50");
+    const stage = searchParams.get("stage"); // optional filter
+
+    let q = sp
+      .from("deals")
+      .select("*")
+      .eq("user_id", userId)
+      .order("updated_at", { ascending: false })
+      .limit(limit);
+
+    if (stage) {
+      q = q.eq("stage", stage);
+    }
+
+    const { data, error } = await q;
+    if (error) throw error;
+
+    const deals = (data ?? []).map((d: any) => ({
+      id: d.id,
+      name: d.name ?? d.title ?? "Untitled Deal",
+      company: d.company ?? null,
+      contactName: d.contact_name ?? d.person_name ?? null,
+      contactEmail: d.contact_email ?? null,
+      contactPhone: d.contact_phone ?? null,
+      stage: d.stage ?? d.status ?? "lead",
+      value: d.value ?? d.amount ?? 0,
+      loanType: d.loan_type ?? null,
+      notes: d.notes ?? null,
+      lastContact: d.last_contact ?? d.last_activity ?? null,
+      nextAction: d.next_action ?? null,
+      nextActionDate: d.next_action_date ?? null,
+      probability: d.probability ?? 50,
+      createdAt: d.created_at ?? null,
+      updatedAt: d.updated_at ?? null,
+    }));
+
+    return NextResponse.json({ ok: true, deals });
+  } catch (e: any) {
+    const msg = e?.message ?? "Failed";
+    const status = msg === "Unauthorized" ? 401 : 500;
+    return NextResponse.json({ ok: false, error: msg }, { status });
+  }
+}
+
+// POST - Create new deal (keep for compatibility)
 export async function POST(req: NextRequest) {
-  return withApiAnalytics(req, async () => {
-    const meta = getRequestMeta();
-    const t0 = Date.now();
-    log.info("route.start", { ...meta, route: "POST /api/deals" });
+  try {
+    const userId = await requireUserId();
+    const sp = supabaseAdmin;
+    const body = (await req.json().catch(() => ({}))) as any;
 
-    try {
-      const { supabaseUserId } = await resolveSupabaseUser();
-      const body = (await req.json().catch(() => ({}))) as any;
-
-      // Ignore user_id if provided (server sets it)
-      if (body?.user_id) delete body.user_id;
-
-      const { name, company, amount, stage, close_date, notes } = body || {};
-
-      if (!name || !String(name).trim()) {
-        log.warn("route.validation_failed", {
-          ...meta,
-          route: "POST /api/deals",
-          ms: Date.now() - t0,
-          error: "Name is required",
-        });
-        return NextResponse.json({ error: "Name is required" }, { status: 400 });
-      }
-
-      const amt =
-        amount === null || amount === undefined || amount === ""
-          ? null
-          : Number(amount);
-
-      const { data: deal, error } = await supabaseAdmin
-        .from("deals")
-        .insert({
-          user_id: supabaseUserId,
-          name: String(name).trim(),
-          company: company ? String(company).trim() : null,
-          amount: Number.isFinite(amt) ? amt : null,
-          stage: stage || "prospect",
-          close_date: close_date || null,
-          notes: notes ? String(notes).trim() : null,
-        })
-        .select("*")
-        .single();
-
-      if (error) throw error;
-
-      log.info("route.ok", {
-        ...meta,
-        route: "POST /api/deals",
-        ms: Date.now() - t0,
-        dealId: deal?.id,
-      });
-
-      return NextResponse.json({ item: deal }, { status: 200 });
-    } catch (err: any) {
-      log.error("route.err", {
-        ...meta,
-        route: "POST /api/deals",
-        ms: Date.now() - t0,
-        error: err?.message || String(err),
-      });
-      return NextResponse.json(
-        { error: err?.message || "Failed to create deal" },
-        { status: 500 }
-      );
+    if (!isUuid(userId)) {
+      return NextResponse.json({ ok: false, error: "Invalid user ID" }, { status: 401 });
     }
-  });
+
+    const { name, company, amount, stage, close_date, notes } = body || {};
+
+    if (!name || !String(name).trim()) {
+      return NextResponse.json({ ok: false, error: "Name is required" }, { status: 400 });
+    }
+
+    const amt = amount === null || amount === undefined || amount === "" ? null : Number(amount);
+
+    const { data: deal, error } = await sp
+      .from("deals")
+      .insert({
+        user_id: userId,
+        name: String(name).trim(),
+        company: company ? String(company).trim() : null,
+        amount: Number.isFinite(amt) ? amt : null,
+        stage: stage || "prospect",
+        close_date: close_date || null,
+        notes: notes ? String(notes).trim() : null,
+      })
+      .select("*")
+      .single();
+
+    if (error) throw error;
+
+    return NextResponse.json({ ok: true, deal });
+  } catch (e: any) {
+    const msg = e?.message ?? "Failed";
+    const status = msg === "Unauthorized" ? 401 : 500;
+    return NextResponse.json({ ok: false, error: msg }, { status });
+  }
 }

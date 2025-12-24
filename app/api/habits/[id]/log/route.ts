@@ -1,9 +1,9 @@
 // app/api/habits/[id]/log/route.ts
 // Log habit completion
-// Sprint 3B: Uses canonical resolveSupabaseUser()
 import { NextRequest, NextResponse } from "next/server";
-import { resolveSupabaseUser } from "@/lib/auth/resolveSupabaseUser";
+import { requireUserId } from "@/lib/auth/requireUserId";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { isUuid } from "@/lib/pulse/isUuid";
 
 export const dynamic = "force-dynamic";
 
@@ -13,9 +13,14 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
-    const { supabaseUserId } = await resolveSupabaseUser();
+    const userId = await requireUserId();
     const resolvedParams = params instanceof Promise ? await params : params;
     const habitId = resolvedParams.id;
+
+    // Dev override: non-UUID means no real DB user yet
+    if (!isUuid(userId)) {
+      return NextResponse.json({ ok: false, error: "Habit not found" }, { status: 404 });
+    }
 
     const body = await req.json();
     const { occurred_on, count } = body;
@@ -25,7 +30,7 @@ export async function POST(
       .from("habits")
       .select("id")
       .eq("id", habitId)
-      .eq("user_id", supabaseUserId)
+      .eq("user_id", userId)
       .single();
 
     if (habitError || !habit) {
@@ -41,7 +46,7 @@ export async function POST(
       .from("habit_logs")
       .upsert(
         {
-          user_id: supabaseUserId,
+          user_id: userId,
           habit_id: habitId,
           occurred_on: logDate,
           count: logCount,
@@ -59,21 +64,23 @@ export async function POST(
         const { data: updated, error: updateError } = await supabaseAdmin
           .from("habit_logs")
           .update({ count: logCount })
-          .eq("user_id", supabaseUserId)
+          .eq("user_id", userId)
           .eq("habit_id", habitId)
           .eq("occurred_on", logDate)
           .select("*")
           .single();
 
         if (updateError) throw updateError;
-        return NextResponse.json({ item: updated });
+        return NextResponse.json({ ok: true, item: updated });
       }
       throw error;
     }
 
-    return NextResponse.json({ item: log }, { status: 200 });
+    return NextResponse.json({ ok: true, item: log }, { status: 200 });
   } catch (err: any) {
     console.error("Habit log POST error:", err);
-    return NextResponse.json({ error: err.message || "Failed to log habit" }, { status: 500 });
+    const msg = err?.message ?? "Failed to log habit";
+    const status = msg === "Unauthorized" ? 401 : 500;
+    return NextResponse.json({ ok: false, error: msg }, { status });
   }
 }

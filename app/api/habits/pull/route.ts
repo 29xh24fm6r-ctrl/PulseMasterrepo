@@ -1,48 +1,43 @@
 // app/api/habits/pull/route.ts
-// Legacy endpoint - kept for backward compatibility with existing widgets
-// Maps to canonical /api/habits schema
 import { NextResponse } from "next/server";
-import { requireClerkUserId } from "@/lib/auth/requireUser";
+import { requireUserId } from "@/lib/auth/requireUserId";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { resolvePulseUserUuidFromClerk } from "@/lib/auth/resolvePulseUserUuid";
+import { isUuid } from "@/lib/pulse/isUuid";
 
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const clerkUserId = await requireClerkUserId();
-    const pulseUserUuid = await resolvePulseUserUuidFromClerk(clerkUserId);
+    const userId = await requireUserId();
+    const sp = supabaseAdmin;
 
-    const { data: habits, error } = await supabaseAdmin
+    if (!isUuid(userId)) {
+      return NextResponse.json({ ok: true, habits: [] });
+    }
+
+    const { data, error } = await sp
       .from("habits")
-      .select("*")
-      .eq("user_id", pulseUserUuid)
+      .select("id,name,xp,is_active,created_at,updated_at")
+      .eq("user_id", userId)
       .eq("is_active", true)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: true });
 
     if (error) throw error;
 
-    // Map to legacy format for backward compatibility
-    return NextResponse.json({
-      ok: true,
-      habits: (habits || []).map((h: any) => ({
-        id: h.id,
-        name: h.name,
-        icon: "✓", // Default icon
-        streak: 0, // TODO: Calculate from habit_logs
-        lastCompleted: null, // TODO: Fetch from habit_logs
-        frequency: h.frequency,
-        completedToday: false, // TODO: Check habit_logs for today
-      })),
-    });
-  } catch (err: any) {
-    console.error("Habits pull error:", err?.message ?? err);
-    return NextResponse.json(
-      {
-        ok: false,
-        error: "Failed to pull habits",
-      },
-      { status: 500 }
-    );
+    const habits = (data ?? []).map((h: any) => ({
+      id: h.id,
+      name: h.name,
+      xp: h.xp ?? 10,
+      isActive: h.is_active ?? true,
+      createdAt: h.created_at ?? null,
+      updatedAt: h.updated_at ?? null,
+    }));
+
+    return NextResponse.json({ ok: true, habits });
+  } catch (e: any) {
+    const msg = e?.message ?? "Failed to pull habits";
+    const status = msg === "Unauthorized" ? 401 : 500;
+    return NextResponse.json({ ok: false, error: msg }, { status });
   }
 }

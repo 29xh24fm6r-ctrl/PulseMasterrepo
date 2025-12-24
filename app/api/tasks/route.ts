@@ -1,51 +1,56 @@
+// app/api/tasks/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { resolveSupabaseUser } from "@/lib/auth/resolveSupabaseUser";
+import { requireUserId } from "@/lib/auth/requireUserId";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { log } from "@/lib/obs/logger";
-import { getRequestMeta } from "@/lib/obs/request-context";
-import { withApiAnalytics } from "@/lib/analytics/api";
+import { dbToUiTaskStatus, uiToDbTaskStatus } from "@/lib/pulse/normalizeTaskStatus";
 
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET(req: NextRequest) {
-  return withApiAnalytics(req, async () => {
-    const meta = getRequestMeta();
-    const t0 = Date.now();
-    log.info("route.start", { ...meta, route: "GET /api/tasks" });
+function isValidUUID(str: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(str);
+}
 
-    try {
-    const { supabaseUserId } = await resolveSupabaseUser();
+export async function GET(req: NextRequest) {
+  try {
+    const userId = await requireUserId(); // ✅ supports PULSE_DEV_USER_ID in dev
+    const sp = supabaseAdmin;
 
     const { searchParams } = new URL(req.url);
-    const status = searchParams.get("status"); // e.g. pending|completed
-    const limit = Number(searchParams.get("limit") || "50");
+    const statusParam = searchParams.get("status"); // UI sends "Todo" | "In Progress" | "Done"
+    const dbStatus = uiToDbTaskStatus(statusParam);
 
-    let q = supabaseAdmin.from("tasks").select("*").eq("user_id", supabaseUserId).limit(limit);
-
-    if (status) {
-      q = q.eq("status", status);
+    // In dev mode with non-UUID user_id, return empty tasks (smoke test safe)
+    if (!isValidUUID(userId)) {
+      return NextResponse.json({ ok: true, tasks: [] });
     }
+
+    let q = sp.from("tasks").select("*").eq("user_id", userId);
+
+    if (dbStatus) q = q.eq("status", dbStatus);
 
     const { data, error } = await q.order("due_date", { ascending: true, nullsFirst: false });
+    if (error) throw error;
 
-    if (error) {
-      log.error("route.err", { ...meta, route: "GET /api/tasks", ms: Date.now() - t0, error: error.message });
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    const tasks = (data || []).map((t: any) => ({
+    const tasks = (data ?? []).map((t: any) => ({
       id: t.id,
-      title: t.title ?? t.name ?? "Untitled",
-      status: t.status ?? "pending",
+      name: t.name ?? t.title ?? "Untitled",
+      description: t.description ?? null,
+      status: dbToUiTaskStatus(t.status ?? "todo"),
       priority: t.priority ?? "medium",
-      due_date: t.due_date ?? t.dueDate ?? null,
+      dueDate: t.due_date ?? null,
+      project: t.project ?? null,
+      xp: t.xp ?? 0,
+      completedAt: t.completed_at ?? null,
+      createdAt: t.created_at ?? null,
+      updatedAt: t.updated_at ?? null,
     }));
 
-      log.info("route.ok", { ...meta, route: "GET /api/tasks", ms: Date.now() - t0, count: tasks.length });
-      return NextResponse.json({ tasks });
-    } catch (err: any) {
-      log.error("route.err", { ...meta, route: "GET /api/tasks", ms: Date.now() - t0, error: err?.message || String(err) });
-      return NextResponse.json({ error: err?.message || "Internal error" }, { status: 500 });
-    }
-  });
+    return NextResponse.json({ ok: true, tasks });
+  } catch (e: any) {
+    const msg = e?.message ?? "Failed";
+    const status = msg === "Unauthorized" ? 401 : 500;
+    return NextResponse.json({ ok: false, error: msg }, { status });
+  }
 }

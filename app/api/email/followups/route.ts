@@ -1,104 +1,49 @@
-// Email Followups API
-// app/api/email/followups/route.ts
-
-import { NextRequest, NextResponse } from "next/server";
+// src/app/api/email/followups/route.ts
+import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { getOpenFollowupsForUser } from "@/lib/email/followups";
-import { supabaseAdmin } from "@/lib/supabase";
+import { sbEmailAdmin } from "@/lib/email/db";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 
-export async function GET(req: NextRequest) {
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+async function requireUserId(): Promise<string> {
+  const { userId: clerkUserId } = await auth();
+  if (!clerkUserId) throw new Error("Unauthorized");
+
+  // Resolve Clerk ID to DB user_id
+  const { data: userRow } = await supabaseAdmin
+    .from("users")
+    .select("id")
+    .eq("clerk_id", clerkUserId)
+    .maybeSingle();
+
+  return userRow?.id ?? clerkUserId;
+}
+
+export async function GET(req: Request) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
+    const userId = await requireUserId();
     const url = new URL(req.url);
-    const before = url.searchParams.get("before");
+    const limit = Math.max(1, Math.min(500, Number(url.searchParams.get("limit") || 100)));
+    const status = url.searchParams.get("status"); // scheduled|done|canceled
 
-    const followups = await getOpenFollowupsForUser(userId, {
-      before: before ? new Date(before) : undefined,
-    });
+    const sb = sbEmailAdmin();
 
-    // Enrich with thread details
-    const enriched = await Promise.all(
-      followups.map(async (f) => {
-        const { data: thread } = await supabaseAdmin
-          .from("email_threads")
-          .select("*")
-          .eq("id", f.threadId)
-          .single();
-
-        return {
-          id: f.id,
-          threadId: f.threadId,
-          subject: thread?.subject || "No subject",
-          from: thread?.last_from || "Unknown",
-          responseDueAt: f.responseDueAt,
-          lastFromYou: f.lastFromYou,
-          isOverdue: new Date(f.responseDueAt) < new Date(),
-        };
-      })
-    );
-
-    return NextResponse.json({ followups: enriched });
-  } catch (err: any) {
-    console.error("[EmailFollowups] Error:", err);
-    return NextResponse.json(
-      { error: err.message || "Failed to get followups" },
-      { status: 500 }
-    );
-  }
-}
-
-export async function PATCH(req: NextRequest) {
-  try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    // Get user's database ID
-    const { data: userRow } = await supabaseAdmin
-      .from("users")
-      .select("id")
-      .eq("clerk_id", userId)
-      .single();
-
-    const dbUserId = userRow?.id || userId;
-
-    const body = await req.json();
-    const { followupId, status } = body;
-
-    if (!followupId || !status) {
-      return NextResponse.json(
-        { error: "followupId and status are required" },
-        { status: 400 }
-      );
-    }
-
-    const { data: followup } = await supabaseAdmin
+    let q = sb
       .from("email_followups")
-      .update({
-        status: status,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", followupId)
-      .eq("user_id", dbUserId)
-      .select()
-      .single();
+      .select("id, thread_id, follow_up_at, reason, status, created_at, updated_at")
+      .eq("user_id", userId)
+      .order("follow_up_at", { ascending: true })
+      .limit(limit);
 
-    if (!followup) {
-      return NextResponse.json({ error: "Followup not found" }, { status: 404 });
-    }
+    if (status) q = q.eq("status", status);
 
-    return NextResponse.json({ followup });
-  } catch (err: any) {
-    console.error("[EmailFollowups] Error:", err);
-    return NextResponse.json(
-      { error: err.message || "Failed to update followup" },
-      { status: 500 }
-    );
+    const { data, error } = await q;
+    if (error) throw error;
+
+    return NextResponse.json({ ok: true, followups: data ?? [] });
+  } catch (e: any) {
+    return NextResponse.json({ ok: false, error: e?.message ?? "unknown_error" }, { status: 400 });
   }
 }
-
