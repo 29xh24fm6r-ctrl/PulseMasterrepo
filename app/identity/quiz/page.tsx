@@ -67,7 +67,7 @@ export default function IdentityQuizPage() {
     try {
       // Get current state or create new one
       const saved = localStorage.getItem(STORAGE_KEY);
-      let state = saved ? JSON.parse(saved) : createInitialIdentityState();
+      const state = saved ? JSON.parse(saved) : createInitialIdentityState();
 
       // Apply quiz results
       const { resonance, values } = quizResultsToResonance(results);

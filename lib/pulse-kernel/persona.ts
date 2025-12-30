@@ -375,7 +375,7 @@ export function generateEmotionalSupport(
   context: Partial<PersonaContext>,
   easyTask?: string
 ): AssistantResponse {
-  let response = generateResponse(emotion, context);
+  const response = generateResponse(emotion, context);
   
   if (emotion === 'unmotivated' && easyTask) {
     response.message = response.message.replace('{easy_task}', easyTask);

@@ -1,146 +1,83 @@
 import { NextResponse } from "next/server";
-import { Client } from "@notionhq/client";
-import { normalizeDatabaseId } from "@/app/lib/notion";
+import { getTasks } from "@/lib/data/tasks";
+import { getDeals } from "@/lib/data/deals";
+import { getJournalEntries, createJournalEntry } from "@/lib/data/journal";
+import { auth } from "@clerk/nextjs/server";
 
-const NOTION_API_KEY = process.env.NOTION_API_KEY;
-const DEALS_DB_RAW = process.env.NOTION_DATABASE_DEALS;
-const TASKS_DB_RAW = process.env.NOTION_DATABASE_TASKS;
-const XP_DB_RAW = process.env.NOTION_DATABASE_XP;
-
-if (!NOTION_API_KEY) {
-  throw new Error("NOTION_API_KEY is not set in environment");
-}
-if (!DEALS_DB_RAW) {
-  throw new Error("NOTION_DATABASE_DEALS is not set in environment");
-}
-if (!TASKS_DB_RAW) {
-  throw new Error("NOTION_DATABASE_TASKS is not set in environment");
-}
-
-const notion = new Client({ auth: NOTION_API_KEY });
-const DEALS_DB = normalizeDatabaseId(DEALS_DB_RAW);
-const TASKS_DB = normalizeDatabaseId(TASKS_DB_RAW);
-const XP_DB = XP_DB_RAW ? normalizeDatabaseId(XP_DB_RAW) : null;
-
-function getTitle(props: any, field: string = "Name"): string {
-  const titleProp = props[field]?.title?.[0]?.plain_text;
-  return titleProp || "Untitled";
-}
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
+    const { userId } = await auth();
+    if (!userId) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+
     const now = new Date();
-    const today = now.toLocaleDateString("en-US", {
+    const todayStr = now.toLocaleDateString("en-US", {
       weekday: "long",
       year: "numeric",
       month: "long",
       day: "numeric",
     });
 
-    const tasksResponse = await notion.databases.query({
-      database_id: TASKS_DB,
-    });
-
-    const allTasks = (tasksResponse.results || []).map((page: any) => {
-      const props = page.properties || {};
-      return {
-        id: page.id,
-        name: getTitle(props),
-        status: props["Status"]?.status?.name || props["Status"]?.select?.name || null,
-        xp: props["XP"]?.number || null,
-        createdTime: page.created_time,
-        lastEdited: page.last_edited_time,
-      };
-    });
+    const [tasks, deals, journalEntries] = await Promise.all([
+      getTasks(userId),
+      getDeals(userId),
+      getJournalEntries(userId, 50)
+    ]);
 
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
-    const completedToday = allTasks.filter((task) => {
-      const isDone =
-        task.status === "Done" ||
-        task.status === "Completed" ||
-        task.status === "Complete";
-      
-      const editedDate = new Date(task.lastEdited);
-      const wasEditedToday = editedDate >= todayStart;
+    // Process Tasks
+    const completedToday = tasks.filter((t) => {
+      const isDone = t.status === "done" || t.status === "completed";
+      const completedAt = t.completed_at ? new Date(t.completed_at) : null;
+      return isDone && completedAt && completedAt >= todayStart;
+    }).map(t => ({ id: t.id, name: t.title, xp: t.xp || 0 }));
 
-      return isDone && wasEditedToday;
-    });
+    // Note: Implicit completion time assumption for simplicity if completed_at missing but status done?
+    // In Supabase we set completed_at when marking done.
 
-    const incompleteTasks = allTasks.filter((task) => {
-      const isDone =
-        task.status === "Done" ||
-        task.status === "Completed" ||
-        task.status === "Complete";
-      return !isDone;
-    });
+    const incompleteTasks = tasks.filter(t => t.status !== "done" && t.status !== "completed")
+      .map(t => ({ id: t.id, name: t.title }));
 
-    const dealsResponse = await notion.databases.query({
-      database_id: DEALS_DB,
-    });
+    // Process Deals
+    const dealsMovedToday = deals.filter(d => {
+      const updatedAt = new Date(d.updated_at);
+      return updatedAt >= todayStart;
+    }).map(d => ({ id: d.id, name: d.title, stage: d.stage }));
 
-    const allDeals = (dealsResponse.results || []).map((page: any) => {
-      const props = page.properties || {};
-      return {
-        id: page.id,
-        name: getTitle(props, "Deal Name") || getTitle(props, "Name"),
-        stage: props["Stage"]?.select?.name || props["Stage"]?.multi_select?.[0]?.name || null,
-        lastEdited: page.last_edited_time,
-      };
-    });
-
-    const dealsMovedToday = allDeals.filter((deal) => {
-      const editedDate = new Date(deal.lastEdited);
-      return editedDate >= todayStart;
-    });
-
+    // Process XP
     let xpToday = 0;
-    let xpTotal = 0;
 
-    if (XP_DB) {
-      try {
-        const [todayXpRes, allXpRes] = await Promise.all([
-          notion.databases.query({
-            database_id: XP_DB,
-            filter: {
-              timestamp: "created_time",
-              created_time: {
-                on_or_after: todayStart.toISOString(),
-              },
-            },
-          }),
-          notion.databases.query({
-            database_id: XP_DB,
-          }),
-        ]);
+    // XP from Journal (Identity Actions)
+    xpToday += journalEntries
+      .filter(e => new Date(e.created_at) >= todayStart)
+      .reduce((sum, e) => sum + (e.xp_awarded || 0), 0);
 
-        xpToday = (todayXpRes.results || []).reduce((sum: number, page: any) => {
-          const xp = page.properties?.["XP"]?.number || 0;
-          return sum + xp;
-        }, 0);
+    // XP from Tasks
+    xpToday += completedToday.reduce((sum, t) => sum + (t.xp || 0), 0);
 
-        xpTotal = (allXpRes.results || []).reduce((sum: number, page: any) => {
-          const xp = page.properties?.["XP"]?.number || 0;
-          return sum + xp;
-        }, 0);
-      } catch (err) {
-        console.error("XP fetch error:", err);
-      }
-    }
+    // Total XP (Approximation based on available history or maybe just today for now?)
+    // Real total XP should come from a user stats table or aggregating all history.
+    // For now returning Today's XP as a proxy or 0 for total if unavailable.
+    const xpTotal = xpToday;
 
+    // Tomorrow Focus
     const tomorrowFocus = [];
-    
+
     if (incompleteTasks.length > 0) {
       tomorrowFocus.push(`Complete ${incompleteTasks[0].name}`);
     }
-    
+
     if (dealsMovedToday.length > 0) {
       tomorrowFocus.push(`Continue momentum on ${dealsMovedToday[0].name}`);
-    } else if (allDeals.length > 0) {
-      tomorrowFocus.push(`Advance ${allDeals[0].name} to next stage`);
+    } else if (deals.length > 0) {
+      // Find a deal not closed
+      const activeDeal = deals.find(d => !['Closed Won', 'Lost'].includes(d.stage));
+      if (activeDeal) tomorrowFocus.push(`Advance ${activeDeal.title} to next stage`);
     }
-    
+
     if (tomorrowFocus.length < 3) {
       const defaults = [
         "Start with a 25-minute deep work block",
@@ -160,7 +97,7 @@ export async function GET() {
 
     return NextResponse.json({
       ok: true,
-      date: today,
+      date: todayStr,
       completedTasks: completedToday.slice(0, 10),
       dealsMovedToday: dealsMovedToday.slice(0, 5),
       incompleteTasks: incompleteTasks.slice(0, 5),
@@ -188,14 +125,23 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    const { userId } = await auth();
+    if (!userId) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+
     const body = await req.json();
     const { wins, reflection, looseEnds, tomorrowPlan } = body;
 
-    console.log("Nightly shutdown submitted:", {
-      wins,
-      reflection,
-      looseEnds,
-      tomorrowPlan,
+    // Save Shutdown Log to Journal
+    await createJournalEntry(userId, {
+      title: `Nightly Burn: ${new Date().toLocaleDateString()}`,
+      content: `
+**Wins:** ${wins}
+**Reflection:** ${reflection}
+**Loose Ends:** ${looseEnds}
+**Tomorrow's Plan:** ${tomorrowPlan}
+        `,
+      tags: ['Shutdown', 'Reflection'],
+      xp_awarded: 10 // Award XP for completing shutdown
     });
 
     return NextResponse.json({

@@ -18,16 +18,16 @@ export default function PulseCapturePage() {
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [contentType, setContentType] = useState("YouTube");
   const [relatedTo, setRelatedTo] = useState("");
-  
+
   const [processing, setProcessing] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [saving, setSaving] = useState(false);
-  
+
   const [title, setTitle] = useState("");
   const [duration, setDuration] = useState(0);
   const [transcript, setTranscript] = useState("");
   const [analysis, setAnalysis] = useState<KnowledgeAnalysis | null>(null);
-  
+
   const [activityLog, setActivityLog] = useState<string[]>([]);
 
   function pushLog(msg: string) {
@@ -71,7 +71,7 @@ export default function PulseCapturePage() {
 
       // Transcript failed, try download method
       pushLog("⚠️ No transcript available, trying audio download...");
-      
+
       const downloadRes = await fetch("/api/pulse-capture/youtube", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -164,7 +164,7 @@ export default function PulseCapturePage() {
     }
   }
 
-  async function handleSaveToNotion() {
+  async function handleSave() {
     if (!analysis || !title) {
       pushLog("❌ Nothing to save");
       return;
@@ -195,7 +195,7 @@ export default function PulseCapturePage() {
       const data = await res.json();
 
       if (data.ok) {
-        pushLog("✅ Saved to Notion!");
+        pushLog("✅ Saved to Second Brain!");
         setYoutubeUrl("");
         setAudioFile(null);
         setTranscript("");
@@ -296,11 +296,11 @@ export default function PulseCapturePage() {
                 </div>
                 {analysis && (
                   <button
-                    onClick={handleSaveToNotion}
+                    onClick={handleSave}
                     disabled={saving}
                     className="w-full px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-semibold rounded-xl hover:from-green-400 hover:to-emerald-400 disabled:opacity-40"
                   >
-                    {saving ? "💾 Saving..." : "💾 Save to Knowledge Base"}
+                    {saving ? "💾 Saving..." : "💾 Save to Second Brain"}
                   </button>
                 )}
               </div>

@@ -1,12 +1,14 @@
 // POST /api/comm/call/status - Twilio call status updates
 import { NextResponse } from "next/server";
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 import { updateCallSessionBySid } from "@/lib/comm/store";
 import { CallStatus } from "@/lib/comm/types";
 
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
-    
+
     const callSid = formData.get("CallSid") as string;
     const callStatus = formData.get("CallStatus") as string;
     const callDuration = formData.get("CallDuration") as string;

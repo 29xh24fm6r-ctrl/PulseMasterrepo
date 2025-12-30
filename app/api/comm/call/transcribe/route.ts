@@ -1,5 +1,7 @@
 // POST /api/comm/call/transcribe - Transcribe and analyze call, save to Second Brain
 import { NextResponse } from "next/server";
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 import OpenAI from "openai";
 import { triggerAutoFollowupForCall } from "@/lib/delegation/auto-followup";
 import { getCallSession, updateCallSession } from "@/lib/comm/store";
@@ -66,9 +68,9 @@ export async function POST(request: Request) {
     // Auto-save to Second Brain if contact was identified
     let savedToBrain = false;
     const contactId = session.contactId;
-    const contactName = session.tags?.find((t: string) => t.startsWith("contact:"))?.replace("contact:", "") || 
-                        analysis.speakerIdentification?.detectedName;
-    
+    const contactName = session.tags?.find((t: string) => t.startsWith("contact:"))?.replace("contact:", "") ||
+      analysis.speakerIdentification?.detectedName;
+
     if (contactId) {
       try {
         const baseUrl = process.env.APP_BASE_URL || "https://pulselifeos.com";
@@ -151,7 +153,7 @@ export async function POST(request: Request) {
 
 async function analyzeCall(session: any, transcript: string) {
   const contactName = session.tags?.find((t: string) => t.startsWith("contact:"))?.replace("contact:", "");
-  
+
   const prompt = `Analyze this phone call transcript.
 
 CALL INFO:
@@ -191,7 +193,7 @@ Only respond with valid JSON.`;
   });
 
   const responseText = completion.choices[0]?.message?.content || "{}";
-  
+
   try {
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
     return jsonMatch ? JSON.parse(jsonMatch[0]) : {};

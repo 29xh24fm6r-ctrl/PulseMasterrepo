@@ -29,10 +29,11 @@ const NAV_GROUPS = [
     label: 'Work',
     href: '/work',
     links: [
-      { href: "/work", label: "Command Center", icon: "💼" },
+      { href: "/work", label: "Work Queue", icon: "💼" },
       { href: "/deals", label: "Deals", icon: "💰" },
       { href: "/contacts", label: "Contacts", icon: "👥" },
       { href: "/follow-ups", label: "Follow-ups", icon: "📧" },
+      { href: "/inbox", label: "Inbox", icon: "📥" },
     ],
   },
   {
@@ -87,6 +88,7 @@ const NAV_GROUPS = [
       { href: "/xp", label: "XP", icon: "⚡" },
       { href: "/frontier", label: "Frontier", icon: "🚀" },
       { href: "/vault", label: "Vault", icon: "🔒" },
+      { href: "/features", label: "Atlas", icon: "🗺️" },
       { href: "/settings", label: "Settings", icon: "⚙️" },
     ],
   },
@@ -106,7 +108,7 @@ export function GlobalNav() {
           setIsPlusUser(true);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   if (pathname?.startsWith("/sign-in") || pathname?.startsWith("/sign-up") || pathname === "/jarvis") {
@@ -136,11 +138,10 @@ export function GlobalNav() {
                   <Link
                     key={group.id}
                     href={group.href || '/'}
-                    className={`flex items-center gap-1 px-3 py-2 text-sm transition-colors rounded-lg ${
-                      isActive(group.href || '')
-                        ? "bg-violet-600/20 text-violet-300"
-                        : "text-zinc-400 hover:text-white hover:bg-zinc-800"
-                    }`}
+                    className={`flex items-center gap-1 px-3 py-2 text-sm transition-colors rounded-lg ${isActive(group.href || '')
+                      ? "bg-violet-600/20 text-violet-300"
+                      : "text-zinc-400 hover:text-white hover:bg-zinc-800"
+                      }`}
                   >
                     {group.label}
                   </Link>
@@ -151,26 +152,23 @@ export function GlobalNav() {
                     onMouseEnter={() => setOpenDropdown(group.id)}
                     onMouseLeave={() => setOpenDropdown(null)}
                   >
-                    <div className={`flex items-center rounded-lg ${
-                      isActive(group.href || '') || group.links.some((l) => isActive(l.href))
-                        ? "bg-violet-600/20"
-                        : "hover:bg-zinc-800"
-                    }`}>
+                    <div className={`flex items-center rounded-lg ${isActive(group.href || '') || group.links.some((l) => isActive(l.href))
+                      ? "bg-violet-600/20"
+                      : "hover:bg-zinc-800"
+                      }`}>
                       <Link
                         href={group.href || group.links[0]?.href || '/'}
-                        className={`px-3 py-2 text-sm transition-colors ${
-                          isActive(group.href || '') || group.links.some((l) => isActive(l.href))
-                            ? "text-violet-300"
-                            : "text-zinc-400 hover:text-white"
-                        }`}
+                        className={`px-3 py-2 text-sm transition-colors ${isActive(group.href || '') || group.links.some((l) => isActive(l.href))
+                          ? "text-violet-300"
+                          : "text-zinc-400 hover:text-white"
+                          }`}
                       >
                         {group.label}
                       </Link>
-                      <button className={`pr-2 py-2 ${
-                        isActive(group.href || '') || group.links.some((l) => isActive(l.href))
-                          ? "text-violet-300"
-                          : "text-zinc-400 hover:text-white"
-                      }`}>
+                      <button className={`pr-2 py-2 ${isActive(group.href || '') || group.links.some((l) => isActive(l.href))
+                        ? "text-violet-300"
+                        : "text-zinc-400 hover:text-white"
+                        }`}>
                         <ChevronDown className="w-3 h-3" />
                       </button>
                     </div>
@@ -181,11 +179,10 @@ export function GlobalNav() {
                           <Link
                             key={link.href}
                             href={link.href}
-                            className={`flex items-center gap-3 px-4 py-2 text-sm transition-colors ${
-                              isActive(link.href)
-                                ? "bg-violet-600/20 text-violet-300"
-                                : "text-zinc-400 hover:text-white hover:bg-zinc-800"
-                            }`}
+                            className={`flex items-center gap-3 px-4 py-2 text-sm transition-colors ${isActive(link.href)
+                              ? "bg-violet-600/20 text-violet-300"
+                              : "text-zinc-400 hover:text-white hover:bg-zinc-800"
+                              }`}
                           >
                             <span>{link.icon}</span>
                             <span>{link.label}</span>
@@ -277,11 +274,10 @@ export function GlobalNav() {
                         key={link.href}
                         href={link.href}
                         onClick={() => setMobileOpen(false)}
-                        className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                          isActive(link.href)
-                            ? "bg-violet-600/20 text-violet-300 border border-violet-500/30"
-                            : "bg-zinc-900 text-zinc-400 hover:text-white"
-                        }`}
+                        className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm transition-colors ${isActive(link.href)
+                          ? "bg-violet-600/20 text-violet-300 border border-violet-500/30"
+                          : "bg-zinc-900 text-zinc-400 hover:text-white"
+                          }`}
                       >
                         <span>{link.icon}</span>
                         <span className="truncate">{link.label}</span>

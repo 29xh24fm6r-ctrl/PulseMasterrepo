@@ -1,5 +1,7 @@
 // POST /api/comm/call/recording-complete - Handle completed recording
 import { NextResponse } from "next/server";
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 import { updateCallSessionBySid, updateCallSession } from "@/lib/comm/store";
 
 export async function POST(request: Request) {
@@ -7,7 +9,7 @@ export async function POST(request: Request) {
     const url = new URL(request.url);
     const sessionId = url.searchParams.get("sessionId");
     const formData = await request.formData();
-    
+
     const callSid = formData.get("CallSid") as string;
     const recordingUrl = formData.get("RecordingUrl") as string;
     const recordingDuration = formData.get("RecordingDuration") as string;
@@ -41,15 +43,15 @@ export async function POST(request: Request) {
 async function triggerTranscription(sessionId: string, recordingUrl: string) {
   try {
     const baseUrl = process.env.APP_BASE_URL || "http://localhost:3000";
-    
+
     console.log(`🎤 Triggering transcription for ${sessionId}`);
-    
+
     fetch(`${baseUrl}/api/comm/call/transcribe`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sessionId, recordingUrl }),
     }).catch(err => console.error("Transcription request failed:", err));
-    
+
   } catch (error) {
     console.error("Failed to trigger transcription:", error);
   }

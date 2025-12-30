@@ -1,5 +1,7 @@
 // POST /api/comm/call/outbound - Initiate outbound call with user's caller ID
 import { NextResponse } from "next/server";
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 import { auth } from "@clerk/nextjs/server";
 import { createCallSession, updateCallSession } from "@/lib/comm/store";
 import { twilioClient, APP_BASE_URL, TWILIO_VOICE_NUMBER } from "@/lib/comm/twilio";
@@ -12,7 +14,7 @@ export async function POST(request: Request) {
     }
 
     const { toNumber, userPhone, contactId, contactName, dealId, useCallerIdSpoof } = await request.json();
-    
+
     if (!toNumber) {
       return NextResponse.json({ error: "toNumber is required" }, { status: 400 });
     }
@@ -49,10 +51,10 @@ export async function POST(request: Request) {
 
     if (formattedUserPhone) {
       // BRIDGE MODE: Call user first, then connect to target
-      const callerIdParam = useCallerIdSpoof && formattedUserPhone 
+      const callerIdParam = useCallerIdSpoof && formattedUserPhone
         ? `&callerId=${encodeURIComponent(formattedUserPhone)}`
         : '';
-      
+
       const call = await client.calls.create({
         to: formattedUserPhone,
         from: TWILIO_VOICE_NUMBER,

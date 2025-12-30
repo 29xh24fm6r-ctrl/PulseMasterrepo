@@ -1,5 +1,7 @@
 // POST /api/comm/call/postprocess - AI summarization of call transcript
 import { NextResponse } from "next/server";
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 import OpenAI from "openai";
 import { getCallSession, updateCallSession } from "@/lib/comm/store";
 
@@ -20,7 +22,7 @@ export async function POST(request: Request) {
 
     // Use provided transcript or existing one
     const transcript = transcriptText || session.transcriptText;
-    
+
     if (!transcript || transcript.includes("not yet implemented")) {
       return NextResponse.json(
         { error: "No transcript available to process" },
@@ -50,7 +52,7 @@ Only respond with valid JSON, no other text.`;
     });
 
     const responseText = completion.choices[0]?.message?.content || "{}";
-    
+
     // Parse the JSON response
     let analysis;
     try {

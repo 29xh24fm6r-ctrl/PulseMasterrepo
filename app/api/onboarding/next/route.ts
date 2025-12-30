@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Get or create conversation
-    let { data: conversation } = await supabase
+    const { data: conversation } = await supabase
       .from("onboarding_conversations")
       .select("*")
       .eq("user_id", userId)

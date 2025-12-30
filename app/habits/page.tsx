@@ -29,7 +29,7 @@ export default function HabitsPage() {
   async function loadHabits() {
     try {
       setLoading(true);
-      const res = await fetch("/api/notion/habits");
+      const res = await fetch("/api/habits");
       if (!res.ok) throw new Error("Failed to load habits");
       const data = await res.json();
       setHabits(data.habits ?? []);
@@ -49,7 +49,7 @@ export default function HabitsPage() {
       const res = await fetch("/api/habits/log", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           habitId,
           date: new Date().toISOString().split('T')[0]
         }),
@@ -57,7 +57,8 @@ export default function HabitsPage() {
 
       if (res.ok) {
         const data = await res.json();
-        const newStreak = data.newStreak || (habit.streak + 1);
+        // Fallback to local increment if API doesn't return streak, but new API should return 'habit' object
+        const newStreak = data.habit?.streak || (habit.streak + 1);
 
         // Update local state
         setHabits(prev => prev.map(h =>
@@ -168,7 +169,7 @@ export default function HabitsPage() {
             Streaks at Risk!
           </div>
           <p className="text-sm text-slate-300">
-            {atRiskHabits.map(h => `${h.icon} ${h.name} (${h.streak} days)`).join(", ")} 
+            {atRiskHabits.map(h => `${h.icon} ${h.name} (${h.streak} days)`).join(", ")}
             — complete now to keep your streaks alive!
           </p>
         </div>
@@ -191,28 +192,26 @@ export default function HabitsPage() {
         <div className="space-y-3">
           {habits.map((habit) => {
             const isAtRisk = habit.streak >= 3 && !habit.completedToday;
-            
+
             return (
               <div
                 key={habit.id}
-                className={`bg-slate-900/70 border rounded-xl p-4 transition-all ${
-                  habit.completedToday
-                    ? 'border-green-500/30 bg-green-900/10'
-                    : isAtRisk
+                className={`bg-slate-900/70 border rounded-xl p-4 transition-all ${habit.completedToday
+                  ? 'border-green-500/30 bg-green-900/10'
+                  : isAtRisk
                     ? 'border-red-500/50 bg-red-900/10'
                     : 'border-slate-800 hover:border-slate-700'
-                }`}
+                  }`}
               >
                 <div className="flex items-center gap-4">
                   {/* Log Button */}
                   <button
                     onClick={() => logHabit(habit.id)}
                     disabled={habit.completedToday || logging === habit.id}
-                    className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center text-2xl transition-all ${
-                      habit.completedToday
-                        ? 'bg-green-500/20 cursor-default'
-                        : 'bg-slate-800 hover:bg-green-500/20 hover:scale-105 cursor-pointer'
-                    }`}
+                    className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center text-2xl transition-all ${habit.completedToday
+                      ? 'bg-green-500/20 cursor-default'
+                      : 'bg-slate-800 hover:bg-green-500/20 hover:scale-105 cursor-pointer'
+                      }`}
                   >
                     {logging === habit.id ? (
                       <div className="w-6 h-6 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
@@ -244,13 +243,12 @@ export default function HabitsPage() {
                   </div>
 
                   {/* Streak Badge */}
-                  <div className={`flex items-center gap-2 px-3 py-2 rounded-xl ${
-                    habit.streak >= 7
-                      ? 'bg-orange-500/20 text-orange-400'
-                      : habit.streak >= 3
+                  <div className={`flex items-center gap-2 px-3 py-2 rounded-xl ${habit.streak >= 7
+                    ? 'bg-orange-500/20 text-orange-400'
+                    : habit.streak >= 3
                       ? 'bg-yellow-500/20 text-yellow-400'
                       : 'bg-slate-800 text-slate-400'
-                  }`}>
+                    }`}>
                     <Flame className={`w-4 h-4 ${habit.streak >= 7 ? 'animate-pulse' : ''}`} />
                     <span className="font-bold">{habit.streak}</span>
                     <span className="text-xs opacity-70">day{habit.streak !== 1 ? 's' : ''}</span>
@@ -267,16 +265,15 @@ export default function HabitsPage() {
                       </span>
                     </div>
                     <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                      <div 
+                      <div
                         className="h-full bg-gradient-to-r from-orange-500 to-red-500 transition-all"
-                        style={{ 
-                          width: `${
-                            habit.streak < 7 
-                              ? (habit.streak / 7) * 100 
-                              : habit.streak < 14 
-                              ? ((habit.streak - 7) / 7) * 100 
+                        style={{
+                          width: `${habit.streak < 7
+                            ? (habit.streak / 7) * 100
+                            : habit.streak < 14
+                              ? ((habit.streak - 7) / 7) * 100
                               : ((habit.streak - 14) / 16) * 100
-                          }%` 
+                            }%`
                         }}
                       />
                     </div>

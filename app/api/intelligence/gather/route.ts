@@ -1,33 +1,22 @@
-import { canMakeAICall, trackAIUsage } from "@/lib/services/usage";
 import { NextResponse } from "next/server";
-import { Client } from "@notionhq/client";
-import { normalizeDatabaseId } from "@/app/lib/notion";
+import { auth } from "@clerk/nextjs/server";
+import { getContact, updateContact } from "@/lib/data/journal";
 import OpenAI from "openai";
 
-const NOTION_API_KEY = process.env.NOTION_API_KEY;
-const SECOND_BRAIN_DB_RAW = process.env.NOTION_DATABASE_SECOND_BRAIN;
+export const maxDuration = 60; // 1 minute timeout
+
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
-if (!NOTION_API_KEY || !OPENAI_API_KEY || !SECOND_BRAIN_DB_RAW) {
+if (!OPENAI_API_KEY) {
   throw new Error("Missing required environment variables");
 }
 
-const notion = new Client({ auth: NOTION_API_KEY });
-const SECOND_BRAIN_DB = normalizeDatabaseId(SECOND_BRAIN_DB_RAW);
 const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
-
-function getTitle(props: any, field: string = "Name"): string {
-  const titleProp = props[field]?.title?.[0]?.plain_text;
-  return titleProp || "Untitled";
-}
-
-function getText(props: any, field: string): string {
-  return props[field]?.rich_text?.[0]?.plain_text || "";
-}
 
 async function searchWeb(query: string): Promise<any> {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/web-search`, {
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const response = await fetch(`${baseUrl}/api/web-search`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ query }),
@@ -42,6 +31,11 @@ async function searchWeb(query: string): Promise<any> {
 
 export async function POST(req: Request) {
   try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await req.json();
     const { personId } = body;
 
@@ -52,19 +46,13 @@ export async function POST(req: Request) {
       );
     }
 
-    const page = await notion.pages.retrieve({ page_id: personId });
-    const props = (page as any).properties || {};
-
-    const name = getTitle(props, "Name");
-    const company = getText(props, "Company");
-    const existingRawData = getText(props, "Raw Data");
-
-    if (!name) {
-      return NextResponse.json(
-        { ok: false, error: "Person has no name" },
-        { status: 400 }
-      );
+    const contact = await getContact(userId, personId);
+    if (!contact) {
+      return NextResponse.json({ ok: false, error: "Contact not found" }, { status: 404 });
     }
+
+    const name = contact.name;
+    const company = contact.company || "";
 
     console.log(`🕵️ Intelligence Agent activated for: ${name} @ ${company}`);
 
@@ -93,30 +81,22 @@ export async function POST(req: Request) {
     }
 
     console.log("🔍 Searching for company news...");
-    const companySearch = await searchWeb(`${company} news recent updates`);
-    if (companySearch?.results) {
-      intelligence.searches.push({
-        query: "Company News",
-        results: companySearch.results.slice(0, 3),
-      });
-    }
+    if (company) {
+      const companySearch = await searchWeb(`${company} news recent updates`);
+      if (companySearch?.results) {
+        intelligence.searches.push({
+          query: "Company News",
+          results: companySearch.results.slice(0, 3),
+        });
+      }
 
-    console.log("🔍 Searching for industry context...");
-    const industrySearch = await searchWeb(`${company} industry trends challenges`);
-    if (industrySearch?.results) {
-      intelligence.searches.push({
-        query: "Industry Context",
-        results: industrySearch.results.slice(0, 3),
-      });
-    }
-
-    console.log("🔍 Searching for social media...");
-    const socialSearch = await searchWeb(`${name} Twitter X social media`);
-    if (socialSearch?.results) {
-      intelligence.searches.push({
-        query: "Social Media",
-        results: socialSearch.results.slice(0, 2),
-      });
+      const industrySearch = await searchWeb(`${company} industry trends challenges`);
+      if (industrySearch?.results) {
+        intelligence.searches.push({
+          query: "Industry Context",
+          results: industrySearch.results.slice(0, 3),
+        });
+      }
     }
 
     console.log("🧠 AI analyzing gathered intelligence...");
@@ -139,7 +119,7 @@ export async function POST(req: Request) {
 **GATHERED INTELLIGENCE:**
 ${intelligenceSummary}
 
-**EXTRACT (keep responses CONCISE for Notion field limits):**
+**EXTRACT (keep responses CONCISE):**
 
 1. **Current Role** (1-2 sentences max)
 2. **Recent Activity** (3 bullet points max, 10 words each)
@@ -180,42 +160,25 @@ ${intelligenceSummary}
 
     console.log("💾 Updating Second Brain with fresh intelligence...");
 
-    // Create COMPACT summary under 1900 chars
-    const compactSummary = `
-🕵️ ${new Date().toLocaleDateString()}
-
-ROLE: ${(analysis.currentRole || "Unknown").substring(0, 150)}
-
-RECENT: ${(analysis.recentActivity || []).slice(0, 2).join("; ").substring(0, 150)}
-
-PAINS: ${(analysis.painPoints || []).slice(0, 2).join("; ").substring(0, 150)}
-
-OPPS: ${(analysis.opportunities || []).slice(0, 2).join("; ").substring(0, 150)}
-
-STYLE: ${(analysis.communicationStyle || "Unknown").substring(0, 100)}
-
-STARTERS:
-${(analysis.conversationStarters || []).slice(0, 3).map((s: string) => `• ${s.substring(0, 80)}`).join("\n")}
-
-${(analysis.redFlags || []).length > 0 ? `⚠️ FLAGS: ${analysis.redFlags.slice(0, 2).join("; ").substring(0, 100)}` : ""}
-
-APPROACH: ${(analysis.bestApproach || "TBD").substring(0, 150)}
-
-💡 KEY: ${(analysis.keyInsight || "None").substring(0, 200)}
-
-CONF: ${analysis.confidenceScore}%
-`.trim().substring(0, 1900);
-
-    await notion.pages.update({
-      page_id: personId,
-      properties: {
-        "Raw Data": {
-          rich_text: [{ text: { content: compactSummary } }],
-        },
-        "Last Intelligence Gather": {
-          date: { start: new Date().toISOString() },
-        },
-      },
+    // Update context in Supabase contact
+    await updateContact(userId, personId, {
+      context: {
+        // Merge with existing context handling is done in updateContact if generic, 
+        // but updateContact might overwrite keys.
+        // We pass the new fields we want to merge.
+        currentRole: analysis.currentRole,
+        recentActivity: analysis.recentActivity,
+        painPoints: analysis.painPoints,
+        opportunities: analysis.opportunities,
+        communicationStyle: analysis.communicationStyle,
+        conversationStarters: analysis.conversationStarters,
+        redFlags: analysis.redFlags,
+        bestApproach: analysis.bestApproach,
+        keyInsight: analysis.keyInsight,
+        confidenceScore: analysis.confidenceScore,
+        lastIntelligenceGather: new Date().toISOString(),
+        rawData: intelligenceSummary // Optional: store raw summaries
+      }
     });
 
     console.log("✅ Intelligence gathering complete!");

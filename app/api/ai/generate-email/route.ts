@@ -1,30 +1,16 @@
 import { auth } from "@clerk/nextjs/server";
-import { canMakeAICall, trackAIUsage } from "@/lib/services/usage";
+import { canMakeAICall } from "@/lib/services/usage";
 import { NextResponse } from "next/server";
-import { Client } from "@notionhq/client";
-import { normalizeDatabaseId } from "@/app/lib/notion";
+import { getContacts } from "@/lib/data/journal";
 import OpenAI from "openai";
 
-const NOTION_API_KEY = process.env.NOTION_API_KEY;
-const SECOND_BRAIN_DB_RAW = process.env.NOTION_DATABASE_SECOND_BRAIN;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
-if (!NOTION_API_KEY || !OPENAI_API_KEY) {
-  throw new Error("Missing API keys");
+if (!OPENAI_API_KEY) {
+  throw new Error("OPENAI_API_KEY is not set");
 }
 
-const notion = new Client({ auth: NOTION_API_KEY });
-const SECOND_BRAIN_DB = SECOND_BRAIN_DB_RAW ? normalizeDatabaseId(SECOND_BRAIN_DB_RAW) : null;
 const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
-
-function getTitle(props: any, field: string = "Name"): string {
-  const titleProp = props[field]?.title?.[0]?.plain_text;
-  return titleProp || "Untitled";
-}
-
-function getText(props: any, field: string): string {
-  return props[field]?.rich_text?.[0]?.plain_text || "";
-}
 
 export async function POST(req: Request) {
   try {
@@ -34,7 +20,7 @@ export async function POST(req: Request) {
     if (!usageCheck.allowed) return NextResponse.json({ error: usageCheck.reason, requiresUpgrade: usageCheck.requiresUpgrade }, { status: 402 });
 
     const body = await req.json();
-    const { dealName, dealStage, dealAmount, purpose } = body;
+    const { dealName, dealStage, dealAmount, purpose, personName: inputName } = body;
 
     if (!dealName) {
       return NextResponse.json(
@@ -43,55 +29,40 @@ export async function POST(req: Request) {
       );
     }
 
-    // Search Second Brain for related people
+    // Search Second Brain (Supabase Contacts) for related people
     let personIntel = "";
-    let personName = "there";
-    
-    if (SECOND_BRAIN_DB) {
-      try {
-        const brainResponse = await notion.databases.query({
-          database_id: SECOND_BRAIN_DB,
-        });
+    let personName = inputName || "there";
 
-        const relatedPeople = (brainResponse.results || []).filter((page: any) => {
-          const props = page.properties || {};
-          const name = getTitle(props, "Name");
-          const company = getText(props, "Company");
-          const rawData = getText(props, "Raw Data");
-          
-          return (
-            dealName.toLowerCase().includes(name.toLowerCase()) ||
-            dealName.toLowerCase().includes(company.toLowerCase()) ||
-            rawData.toLowerCase().includes(dealName.toLowerCase())
-          );
-        });
+    try {
+      const contacts = await getContacts(userId);
 
-        if (relatedPeople.length > 0) {
-          const person = relatedPeople[0];
-          const props = (person as any).properties || {};
-          
-          personName = getTitle(props, "Name");
-          const communicationStyle = getText(props, "Communication Style");
-          const painPoints = getText(props, "Pain Points");
-          const goals = getText(props, "Goals");
-          const objections = getText(props, "Objection History");
-          const nextActions = getText(props, "Next Best Actions");
-          const keyInsights = getText(props, "Key Insights");
+      // Fuzzy match logic - finding related contact
+      const relatedPerson = contacts.find(c => {
+        const nameMatch = c.name?.toLowerCase().includes(dealName.toLowerCase());
+        const companyMatch = c.company?.toLowerCase() && dealName.toLowerCase().includes(c.company.toLowerCase());
+        return nameMatch || companyMatch;
+      });
 
-          personIntel = `
-**PERSON INTELLIGENCE:**
-Name: ${personName}
-Communication Style: ${communicationStyle}
-Pain Points: ${painPoints}
-Goals: ${goals}
-Key Insights: ${keyInsights}
-Objections They've Raised: ${objections}
-Recommended Next Actions: ${nextActions}
-`;
-        }
-      } catch (err) {
-        console.error("Second Brain lookup error:", err);
+      if (relatedPerson) {
+        personName = relatedPerson.name;
+        const context = relatedPerson.context || {};
+
+        const communicationStyle = context.communicationStyle || "Unknown";
+        const painPoints = Array.isArray(context.painPoints) ? context.painPoints.join(", ") : (context.painPoints || "None detected");
+        const goals = Array.isArray(context.goals) ? context.goals.join(", ") : (context.goals || "None detected");
+        const objections = Array.isArray(context.objectionHistory) ? context.objectionHistory.join(", ") : (context.objectionHistory || "None");
+
+        personIntel = `
+            **PERSON INTELLIGENCE:**
+            Name: ${personName}
+            Communication Style: ${communicationStyle}
+            Pain Points: ${painPoints}
+            Goals: ${goals}
+            Objections They've Raised: ${objections}
+            `;
       }
+    } catch (err) {
+      console.error("Second Brain lookup error:", err);
     }
 
     const prompt = `You are an elite sales communication expert. Write a highly personalized, effective email.
@@ -111,21 +82,6 @@ Write an email that:
 3. References THEIR goals and motivations
 4. Handles THEIR objections proactively
 5. Proposes clear next steps
-6. Feels authentic and personal (NOT sales-y or generic)
-7. Is concise but complete
-
-**TONE GUIDELINES:**
-- If they're analytical: Lead with data and ROI
-- If they're relationship-focused: Be warm and conversational
-- If they're direct: Get to the point fast
-- If they're risk-averse: Address concerns upfront
-
-**EMAIL STRUCTURE:**
-- Subject line that grabs attention (based on their style)
-- Opening that shows you understand them
-- Body that addresses their needs
-- Clear call-to-action
-- Professional but friendly close
 
 **FORMAT AS JSON:**
 {
@@ -133,8 +89,6 @@ Write an email that:
   "body": "...",
   "reasoning": "2-3 sentences explaining why this approach will work for THEM"
 }
-
-**CRITICAL:** Make it feel like it was written specifically for them, not a template. Use their name. Reference their specific situation. Be authentic.
 
 Respond ONLY with valid JSON.`;
 

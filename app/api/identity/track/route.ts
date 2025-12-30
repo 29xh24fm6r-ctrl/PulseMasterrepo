@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Client } from '@notionhq/client';
 import { applyIdentityAction, createInitialIdentityState } from '@/lib/identity/engine';
 import { IDENTITY_ACTIONS, IdentityState } from '@/lib/identity/types';
+import { createJournalEntry, getJournalEntries } from '@/lib/data/journal'; // Use journal for logging
+import { auth } from '@clerk/nextjs/server';
 
-const notion = new Client({ auth: process.env.NOTION_API_KEY });
-const IDENTITY_DB = process.env.NOTION_DATABASE_IDENTITY;
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
+    const { userId } = await auth();
+    if (!userId) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+
     const { actionId, notes, currentState } = await request.json();
 
     if (!actionId) {
@@ -15,8 +18,8 @@ export async function POST(request: NextRequest) {
     }
 
     if (!IDENTITY_ACTIONS[actionId]) {
-      return NextResponse.json({ 
-        ok: false, 
+      return NextResponse.json({
+        ok: false,
         error: `Unknown action: ${actionId}`,
         validActions: Object.keys(IDENTITY_ACTIONS),
       }, { status: 400 });
@@ -28,24 +31,17 @@ export async function POST(request: NextRequest) {
     // Apply the action
     const result = applyIdentityAction(state, actionId, { notes });
 
-    // Log to Notion if configured
-    if (IDENTITY_DB) {
-      try {
-        const action = IDENTITY_ACTIONS[actionId];
-        await notion.pages.create({
-          parent: { database_id: IDENTITY_DB.replace(/-/g, '') },
-          properties: {
-            Name: { title: [{ text: { content: action.name } }] },
-            Date: { date: { start: new Date().toISOString() } },
-            Action: { select: { name: actionId } },
-            XP: { number: result.xpAwarded.amount },
-            Category: { select: { name: result.xpAwarded.category } },
-            ...(notes && { Notes: { rich_text: [{ text: { content: notes } }] } }),
-          },
-        });
-      } catch (e) {
-        console.error('Failed to log to Notion:', e);
-      }
+    // Log to Supabase Journal
+    try {
+      const action = IDENTITY_ACTIONS[actionId];
+      await createJournalEntry(userId, {
+        title: `Identity Action: ${action.name}`,
+        content: `Completed ${action.name}. ${notes ? `Notes: ${notes}` : ''}`,
+        tags: ['Identity', actionId, result.xpAwarded.category],
+        xp_awarded: result.xpAwarded.amount
+      });
+    } catch (e) {
+      console.error('Failed to log identity action to journal:', e);
     }
 
     return NextResponse.json({
@@ -57,10 +53,9 @@ export async function POST(request: NextRequest) {
       newState: result.newState,
     });
 
-  } catch (error: unknown) {
+  } catch (error: any) {
     console.error('Identity track error:', error);
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+    return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   }
 }
 

@@ -1,16 +1,14 @@
+import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { Client } from "@notionhq/client";
-
-const NOTION_API_KEY = process.env.NOTION_API_KEY;
-
-if (!NOTION_API_KEY) {
-  throw new Error("NOTION_API_KEY is not set in environment");
-}
-
-const notion = new Client({ auth: NOTION_API_KEY });
+import { updateDeal } from "@/lib/data/deals";
 
 export async function POST(req: Request) {
   try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await req.json();
     const { dealId, properties } = body;
 
@@ -24,10 +22,17 @@ export async function POST(req: Request) {
       );
     }
 
-    await notion.pages.update({
-      page_id: dealId,
-      properties,
-    });
+    // Map properties from potential Notion-style keys if frontend sends them, or just accept partial Deal object
+    // Assuming frontend might send 'Stage' or 'Value' capitalized, but updateDeal expects lowercase 'stage', 'value'
+    // Let's normalize some common ones or expect standard keys.
+    const updates: any = {};
+    if (properties.Stage) updates.stage = properties.Stage;
+    if (properties.Value) updates.value = properties.Value;
+    if (properties.stage) updates.stage = properties.stage;
+    if (properties.value) updates.value = properties.value;
+    // Add more mappings as needed, or assume clean input.
+
+    await updateDeal(userId, dealId, updates);
 
     return NextResponse.json({
       ok: true,

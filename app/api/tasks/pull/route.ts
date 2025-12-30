@@ -1,43 +1,28 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { getTasks } from "@/lib/data/tasks";
 
 export async function GET() {
   try {
     const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
-    }
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { data: tasks, error } = await supabase
-      .from("tasks")
-      .select("*")
-      .eq("user_id", userId)
-      .order("due_date", { ascending: true, nullsFirst: false });
-
-    if (error) throw error;
-
+    const tasks = await getTasks(userId);
     return NextResponse.json({
       ok: true,
       tasks: tasks.map(t => ({
         id: t.id,
-        name: t.name,
+        name: t.title, // Map title to name for UI compatibility
         description: t.description,
-        status: t.status === 'done' ? 'Done' : t.status === 'in_progress' ? 'In Progress' : 'Todo',
+        status: t.status === 'done' ? 'Done' : t.status === 'active' ? 'In Progress' : 'Todo',
         priority: t.priority,
-        dueDate: t.due_date,
+        dueDate: t.due_at,
         project: t.project,
         xp: t.xp,
         completedAt: t.completed_at,
       })),
     });
   } catch (err: any) {
-    console.error("Tasks pull error:", err?.message ?? err);
-    return NextResponse.json({ ok: false, error: "Failed to pull tasks" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
   }
 }

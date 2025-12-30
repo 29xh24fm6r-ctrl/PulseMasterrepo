@@ -1,19 +1,14 @@
+import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { Client } from "@notionhq/client";
-import { normalizeDatabaseId } from "@/app/lib/notion";
-
-const NOTION_API_KEY = process.env.NOTION_API_KEY;
-const KNOWLEDGE_BASE_DB_RAW = process.env.NOTION_DATABASE_KNOWLEDGE_BASE;
-
-if (!NOTION_API_KEY || !KNOWLEDGE_BASE_DB_RAW) {
-  throw new Error("Missing Notion configuration");
-}
-
-const notion = new Client({ auth: NOTION_API_KEY });
-const KNOWLEDGE_BASE_DB = normalizeDatabaseId(KNOWLEDGE_BASE_DB_RAW);
+import { createJournalEntry } from "@/lib/data/journal";
 
 export async function POST(req: Request) {
   try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await req.json();
     const { title, type, sourceUrl, summary, keyInsights, actionableItems, quotes, tags, transcript, duration, relatedTo } = body;
 
@@ -24,100 +19,59 @@ export async function POST(req: Request) {
       );
     }
 
-    console.log("💾 Saving to Knowledge Base...");
+    console.log("💾 Saving to Journal (Knowledge Base)...");
 
-    // Format insights as bullet points
-    const insightsBullets = (keyInsights || []).map((i: string) => `• ${i}`).join("\n");
-    const actionsBullets = (actionableItems || []).map((i: string) => `• ${i}`).join("\n");
-    const quotesBullets = (quotes || []).map((q: string) => `"${q}"`).join("\n\n");
+    // Format content block for the journal entry
+    let content = summary || "";
 
-    const properties: any = {
-      Title: {
-        title: [{ text: { content: title.substring(0, 2000) } }],
-      },
-    };
+    if (keyInsights && keyInsights.length > 0) {
+      content += `\n\n**Key Insights:**\n${keyInsights.map((i: string) => `• ${i}`).join("\n")}`;
+    }
 
-    if (type) {
-      properties["Type"] = {
-        select: { name: type },
-      };
+    if (actionableItems && actionableItems.length > 0) {
+      content += `\n\n**Action Items:**\n${actionableItems.map((i: string) => `• ${i}`).join("\n")}`;
+    }
+
+    if (quotes && quotes.length > 0) {
+      content += `\n\n**Quotes:**\n${quotes.map((q: string) => `> "${q}"`).join("\n\n")}`;
     }
 
     if (sourceUrl) {
-      properties["Source URL"] = {
-        url: sourceUrl,
-      };
-    }
-
-    if (summary) {
-      properties["Summary"] = {
-        rich_text: [{ text: { content: summary.substring(0, 2000) } }],
-      };
-    }
-
-    if (insightsBullets) {
-      properties["Key Insights"] = {
-        rich_text: [{ text: { content: insightsBullets.substring(0, 2000) } }],
-      };
-    }
-
-    if (actionsBullets) {
-      properties["Actionable Items"] = {
-        rich_text: [{ text: { content: actionsBullets.substring(0, 2000) } }],
-      };
-    }
-
-    if (quotesBullets) {
-      properties["Quotes"] = {
-        rich_text: [{ text: { content: quotesBullets.substring(0, 2000) } }],
-      };
-    }
-
-    if (tags && tags.length > 0) {
-      properties["Tags"] = {
-        multi_select: tags.slice(0, 10).map((tag: string) => ({ name: tag })),
-      };
+      content += `\n\n**Source:** ${sourceUrl}`;
     }
 
     if (transcript) {
-      properties["Transcript"] = {
-        rich_text: [{ text: { content: transcript.substring(0, 2000) } }],
-      };
-    }
-
-    if (duration) {
-      properties["Duration"] = {
-        number: duration,
-      };
+      content += `\n\n**Transcript:**\n${transcript.substring(0, 5000)}... (truncated)`;
     }
 
     if (relatedTo) {
-      properties["Related To"] = {
-        rich_text: [{ text: { content: relatedTo.substring(0, 2000) } }],
-      };
+      content += `\n\n*Related to: ${relatedTo}*`;
     }
 
-    properties["Date Added"] = {
-      date: { start: new Date().toISOString() },
-    };
+    // Combine tags and type
+    const allTags = [...(tags || [])];
+    if (type) allTags.push(`type:${type}`);
+    allTags.push("capture"); // Add a 'capture' tag to distinguish from daily reflections
 
-    const page = await notion.pages.create({
-      parent: { database_id: KNOWLEDGE_BASE_DB },
-      properties,
+    const entry = await createJournalEntry(userId, {
+      title,
+      content,
+      tags: allTags,
+      mood: "neutral" // Default
     });
 
-    console.log("✅ Saved to Knowledge Base!");
+    console.log("✅ Saved to Journal!");
 
     return NextResponse.json({
       ok: true,
-      pageId: page.id,
+      pageId: entry.id,
     });
   } catch (err: any) {
-    console.error("Save to Notion error:", err?.message ?? err);
+    console.error("Save to Supabase error:", err?.message ?? err);
     return NextResponse.json(
       {
         ok: false,
-        error: err?.message || "Failed to save to Notion",
+        error: err?.message || "Failed to save capture",
       },
       { status: 500 }
     );

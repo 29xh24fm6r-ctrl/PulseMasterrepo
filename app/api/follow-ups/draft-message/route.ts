@@ -1,16 +1,12 @@
 import { NextResponse } from "next/server";
-import { Client } from "@notionhq/client";
-
-const NOTION_API_KEY = process.env.NOTION_API_KEY;
-
-if (!NOTION_API_KEY) {
-  throw new Error("NOTION_API_KEY is not set");
-}
-
-const notion = new Client({ auth: NOTION_API_KEY });
+import { updateFollowUp } from "@/lib/data/followups";
+import { auth } from "@clerk/nextjs/server";
 
 export async function POST(req: Request) {
   try {
+    const { userId } = await auth();
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     const body = await req.json();
     const { followUpId, status } = body;
 
@@ -23,20 +19,13 @@ export async function POST(req: Request) {
 
     console.log(`📝 Updating follow-up ${followUpId} to ${status}`);
 
-    await notion.pages.update({
-      page_id: followUpId,
-      properties: {
-        Status: {
-          select: { name: status },
-        },
-      },
-    });
+    const updated = await updateFollowUp(userId, followUpId, { status });
 
     console.log("✅ Status updated!");
 
     return NextResponse.json({
       ok: true,
-      status,
+      status: updated.status,
     });
   } catch (err: any) {
     console.error("Update status error:", err?.message ?? err);

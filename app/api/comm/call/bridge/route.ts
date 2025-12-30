@@ -1,5 +1,7 @@
 // GET/POST /api/comm/call/bridge - Bridge user to target number with their caller ID
 import { NextResponse } from "next/server";
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 import { VoiceResponse } from "@/lib/comm/twilio";
 import { APP_BASE_URL, TWILIO_VOICE_NUMBER } from "@/lib/comm/twilio";
 
@@ -30,9 +32,9 @@ async function handleBridge(request: Request) {
     }
 
     const twiml = new VoiceResponse();
-    
+
     // Brief message
-    
+
     // Dial with optimized quality settings
     const dial = twiml.dial({
       callerId: callerId || TWILIO_VOICE_NUMBER,
@@ -45,7 +47,7 @@ async function handleBridge(request: Request) {
       recordingStatusCallbackEvent: ["completed"],
       action: `${APP_BASE_URL}/api/comm/call/complete?sessionId=${sessionId}`,
     });
-    
+
     // Add the target number with quality hints
     dial.number({
       statusCallbackEvent: ["initiated", "ringing", "answered", "completed"],
@@ -60,7 +62,7 @@ async function handleBridge(request: Request) {
     });
   } catch (error: any) {
     console.error("Bridge error:", error);
-    
+
     const twiml = new VoiceResponse();
     twiml.say({ voice: "Polly.Matthew" }, "Sorry, there was an error connecting your call.");
     twiml.hangup();

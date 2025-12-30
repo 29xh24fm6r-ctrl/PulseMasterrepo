@@ -1,40 +1,22 @@
 import { NextResponse } from "next/server";
-import { Client } from "@notionhq/client";
-import { normalizeDatabaseId } from "@/app/lib/notion";
+import { getJournalEntries } from "@/lib/data/journal";
+import { auth } from "@clerk/nextjs/server";
 
-const NOTION_API_KEY = process.env.NOTION_API_KEY;
-const XP_DB_RAW = process.env.NOTION_DATABASE_XP;
-
-if (!NOTION_API_KEY) {
-  throw new Error("NOTION_API_KEY is not set");
-}
-
-const notion = new Client({ auth: NOTION_API_KEY });
-const XP_DB = XP_DB_RAW ? normalizeDatabaseId(XP_DB_RAW) : null;
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    if (!XP_DB) {
-      return NextResponse.json({
-        ok: true,
-        alignment: {},
-        totalXp: 0,
-      });
-    }
+    const { userId } = await auth();
+    if (!userId) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
 
-    // Get today's XP entries
+    // Get today's journal entries (where XP is logged for identity actions)
+    // We fetch last 100 entries to be safe for "today"
+    const entries = await getJournalEntries(userId, 100);
+
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
-    const response = await notion.databases.query({
-      database_id: XP_DB,
-      filter: {
-        timestamp: "created_time",
-        created_time: {
-          on_or_after: todayStart.toISOString(),
-        },
-      },
-    });
+    const todayEntries = entries.filter(e => new Date(e.created_at) >= todayStart);
 
     // Count XP by identity dimension
     const alignment: Record<string, number> = {
@@ -48,21 +30,28 @@ export async function GET() {
 
     let totalXp = 0;
 
-    (response.results || []).forEach((page: any) => {
-      const props = page.properties || {};
-      const xp = props["XP"]?.number || 0;
-      const source = props["Source"]?.rich_text?.[0]?.plain_text || "";
+    for (const entry of todayEntries) {
+      const xp = entry.xp_awarded || 0;
+      if (xp === 0) continue;
 
       totalXp += xp;
 
-      // Parse identity from source string
-      if (source.includes("Executor")) alignment.executor += xp;
-      if (source.includes("Creator")) alignment.creator += xp;
-      if (source.includes("Connector")) alignment.connector += xp;
-      if (source.includes("Strategist")) alignment.strategist += xp;
-      if (source.includes("Warrior")) alignment.warrior += xp;
-      if (source.includes("Grower")) alignment.grower += xp;
-    });
+      // Infer alignment from tags or title
+      // In track/route.ts we save tags: ['Identity', actionId, category]
+      const tags = entry.tags || [];
+      const content = (entry.content || "").toLowerCase();
+
+      // Simple keyword matching based on Identity Categories
+      // Categories: Health (Warrior), Wealth (Strategist), Wisdom (Grower), Relationships (Connector), Craft (Creator), Order (Executor)
+      // Adjust mappings as needed based on lib/identity/types
+
+      if (tags.some(t => t.toLowerCase() === 'health') || content.includes('health')) alignment.warrior += xp;
+      if (tags.some(t => t.toLowerCase() === 'wealth') || content.includes('wealth')) alignment.strategist += xp;
+      if (tags.some(t => t.toLowerCase() === 'wisdom') || content.includes('wisdom')) alignment.grower += xp;
+      if (tags.some(t => t.toLowerCase() === 'relationships') || content.includes('relationship')) alignment.connector += xp;
+      if (tags.some(t => t.toLowerCase() === 'craft') || content.includes('create')) alignment.creator += xp;
+      if (tags.some(t => t.toLowerCase() === 'order') || content.includes('task') || content.includes('plan')) alignment.executor += xp;
+    }
 
     // Calculate percentages
     const percentages: Record<string, number> = {};

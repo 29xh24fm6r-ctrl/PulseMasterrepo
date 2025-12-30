@@ -1,19 +1,13 @@
 import { canMakeAICall, trackAIUsage } from "@/lib/services/usage";
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import { google } from "googleapis";
-import { Client } from "@notionhq/client";
 import OpenAI from "openai";
 import { refreshAccessToken } from "@/app/lib/gmail-utils";
+import { getContacts } from "@/lib/data/journal";
 
-const NOTION_API_KEY = process.env.NOTION_API_KEY;
-const SECOND_BRAIN_DB = process.env.NOTION_DATABASE_SECOND_BRAIN;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
-if (!NOTION_API_KEY) {
-  throw new Error("Missing NOTION_API_KEY");
-}
-
-const notion = new Client({ auth: NOTION_API_KEY });
 const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
 function normalizeDatabaseId(id: string): string {
@@ -120,13 +114,13 @@ function getNameParts(name: string): { first: string; last: string; full: string
 function stringSimilarity(str1: string, str2: string): number {
   const s1 = str1.toLowerCase();
   const s2 = str2.toLowerCase();
-  
+
   if (s1 === s2) return 1;
   if (s1.length === 0 || s2.length === 0) return 0;
-  
+
   // Check if one contains the other
   if (s1.includes(s2) || s2.includes(s1)) return 0.8;
-  
+
   // Levenshtein distance based similarity
   const matrix: number[][] = [];
   for (let i = 0; i <= s1.length; i++) {
@@ -154,12 +148,12 @@ function stringSimilarity(str1: string, str2: string): number {
 function areNamesSimilar(name1: string, name2: string): { similar: boolean; confidence: number; reason: string } {
   const parts1 = getNameParts(name1);
   const parts2 = getNameParts(name2);
-  
+
   // Exact match
   if (parts1.full === parts2.full) {
     return { similar: true, confidence: 1, reason: "Exact name match" };
   }
-  
+
   // Same last name + similar first name (Matt vs Matthew)
   if (parts1.last === parts2.last && parts1.last.length > 1) {
     const firstSimilarity = stringSimilarity(parts1.first, parts2.first);
@@ -175,13 +169,13 @@ function areNamesSimilar(name1: string, name2: string): { similar: boolean; conf
       }
     }
   }
-  
+
   // High overall similarity
   const fullSimilarity = stringSimilarity(parts1.full, parts2.full);
   if (fullSimilarity > 0.85) {
     return { similar: true, confidence: fullSimilarity, reason: "Very similar names" };
   }
-  
+
   return { similar: false, confidence: 0, reason: "" };
 }
 
@@ -189,12 +183,12 @@ function areNamesSimilar(name1: string, name2: string): { similar: boolean; conf
 function areEmailsSamePerson(email1: string, email2: string): { similar: boolean; confidence: number; reason: string } {
   const [local1, domain1] = email1.toLowerCase().split("@");
   const [local2, domain2] = email2.toLowerCase().split("@");
-  
+
   // Same email
   if (email1.toLowerCase() === email2.toLowerCase()) {
     return { similar: true, confidence: 1, reason: "Same email" };
   }
-  
+
   // Same domain (likely same company/person)
   if (domain1 === domain2) {
     const localSimilarity = stringSimilarity(local1, local2);
@@ -202,13 +196,13 @@ function areEmailsSamePerson(email1: string, email2: string): { similar: boolean
       return { similar: true, confidence: 0.9, reason: "Same domain, similar username" };
     }
   }
-  
+
   // Similar local parts across domains (mpaller@gmail.com vs mpaller@work.com)
   const localSimilarity = stringSimilarity(local1, local2);
   if (localSimilarity > 0.85) {
     return { similar: true, confidence: 0.8, reason: "Very similar email usernames" };
   }
-  
+
   return { similar: false, confidence: 0, reason: "" };
 }
 
@@ -218,15 +212,15 @@ function findDuplicates(
   existingContacts: ExistingContact[]
 ): Map<string, { type: "existing" | "scan"; matches: Array<{ name: string; email: string; confidence: number; reason: string; existingId?: string }> }> {
   const duplicates = new Map<string, { type: "existing" | "scan"; matches: any[] }>();
-  
+
   // Check against existing contacts in Second Brain
   for (const newContact of newContacts) {
     const matches: any[] = [];
-    
+
     for (const existing of existingContacts) {
       // Check name similarity
       const nameSim = areNamesSimilar(newContact.name, existing.name);
-      
+
       // Check email similarity
       let emailSim = { similar: false, confidence: 0, reason: "" };
       if (existing.email) {
@@ -238,7 +232,7 @@ function findDuplicates(
           emailSim = sim;
         }
       }
-      
+
       // If either name or email matches strongly
       if (nameSim.similar || emailSim.similar) {
         const confidence = Math.max(nameSim.confidence, emailSim.confidence);
@@ -252,25 +246,25 @@ function findDuplicates(
         });
       }
     }
-    
+
     if (matches.length > 0) {
       duplicates.set(newContact.email, { type: "existing", matches });
     }
   }
-  
+
   // Check for duplicates within the scan itself
   for (let i = 0; i < newContacts.length; i++) {
     for (let j = i + 1; j < newContacts.length; j++) {
       const contact1 = newContacts[i];
       const contact2 = newContacts[j];
-      
+
       const nameSim = areNamesSimilar(contact1.name, contact2.name);
       const emailSim = areEmailsSamePerson(contact1.email, contact2.email);
-      
+
       if (nameSim.similar || emailSim.similar) {
         const confidence = Math.max(nameSim.confidence, emailSim.confidence);
         const reason = nameSim.confidence > emailSim.confidence ? nameSim.reason : emailSim.reason;
-        
+
         // Add to both contacts' duplicate lists
         if (!duplicates.has(contact1.email)) {
           duplicates.set(contact1.email, { type: "scan", matches: [] });
@@ -281,7 +275,7 @@ function findDuplicates(
           confidence,
           reason,
         });
-        
+
         if (!duplicates.has(contact2.email)) {
           duplicates.set(contact2.email, { type: "scan", matches: [] });
         }
@@ -294,7 +288,7 @@ function findDuplicates(
       }
     }
   }
-  
+
   return duplicates;
 }
 
@@ -304,14 +298,14 @@ function findDuplicates(
 function isBlockedByPatterns(email: string, name: string): boolean {
   const emailLower = email.toLowerCase();
   const nameLower = name.toLowerCase();
-  
+
   for (const pattern of BLOCKED_EMAIL_PATTERNS) {
     if (pattern.test(emailLower)) return true;
   }
-  
+
   const domain = emailLower.split("@")[1];
   if (domain && BLOCKED_DOMAINS.has(domain)) return true;
-  
+
   // Check for marketing subdomains
   if (domain && (
     domain.startsWith("mail.") || domain.startsWith("email.") ||
@@ -325,7 +319,7 @@ function isBlockedByPatterns(email: string, name: string): boolean {
     domain.startsWith("offers.") || domain.startsWith("deals.") ||
     domain.startsWith("mailcenter.") || domain.startsWith("messages.")
   )) return true;
-  
+
   // Check if the root domain (without subdomain) is blocked
   if (domain) {
     const domainParts = domain.split(".");
@@ -334,14 +328,14 @@ function isBlockedByPatterns(email: string, name: string): boolean {
       if (BLOCKED_DOMAINS.has(rootDomain)) return true;
     }
   }
-  
+
   if (
     nameLower.includes("newsletter") || nameLower.includes("no reply") ||
     nameLower.includes("noreply") || nameLower.includes("do not reply") ||
     nameLower.includes("notification") || nameLower.includes("automated") ||
     nameLower.includes("auto-") || nameLower.includes("mailer")
   ) return true;
-  
+
   return false;
 }
 
@@ -363,13 +357,13 @@ async function classifyContactsWithAI(contacts: Array<{
   reason: string;
 }>> {
   if (contacts.length === 0) return [];
-  
+
   const batchSize = 20;
   const results: any[] = [];
-  
+
   for (let i = 0; i < contacts.length; i += batchSize) {
     const batch = contacts.slice(i, i + batchSize);
-    
+
     const prompt = `You are an intelligent email contact classifier. Analyze each email sender and classify them.
 
 For each contact, determine if they are:
@@ -395,9 +389,9 @@ Respond ONLY with the JSON array.`;
 
       let responseText = completion.choices[0].message.content || "[]";
       responseText = responseText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-      
+
       const classifications = JSON.parse(responseText);
-      
+
       for (const classification of classifications) {
         const contact = batch[classification.index - 1];
         if (contact) {
@@ -421,7 +415,7 @@ Respond ONLY with the JSON array.`;
       }
     }
   }
-  
+
   return results;
 }
 
@@ -454,49 +448,19 @@ function parseFromField(from: string): { name: string; email: string } {
   return { name: from, email: from.toLowerCase() };
 }
 
-async function getAllExistingContacts(): Promise<ExistingContact[]> {
-  if (!SECOND_BRAIN_DB) return [];
-  const contacts: ExistingContact[] = [];
-  
+async function getAllExistingContacts(userId: string): Promise<ExistingContact[]> {
   try {
-    let hasMore = true;
-    let startCursor: string | undefined;
-    
-    while (hasMore) {
-      const response: any = await notion.databases.query({
-        database_id: normalizeDatabaseId(SECOND_BRAIN_DB),
-        start_cursor: startCursor,
-        page_size: 100,
-      });
-      
-      for (const page of response.results) {
-        const props = (page as any).properties || {};
-        const name = props.Name?.title?.[0]?.plain_text || "";
-        const email = props.Email?.email || null;
-        
-        // Also check for additional emails in a multi-email field if it exists
-        const additionalEmails: string[] = [];
-        if (props["Additional Emails"]?.rich_text?.[0]?.plain_text) {
-          const emailsText = props["Additional Emails"].rich_text[0].plain_text;
-          additionalEmails.push(...emailsText.split(",").map((e: string) => e.trim().toLowerCase()));
-        }
-        
-        contacts.push({
-          id: page.id,
-          name,
-          email,
-          emails: email ? [email.toLowerCase(), ...additionalEmails] : additionalEmails,
-        });
-      }
-      
-      hasMore = response.has_more;
-      startCursor = response.next_cursor;
-    }
+    const contacts = await getContacts(userId);
+    return contacts.map(c => ({
+      id: c.id,
+      name: c.name,
+      email: c.email || null,
+      emails: c.email ? [c.email.toLowerCase()] : []
+    }));
   } catch (err) {
     console.error("Error fetching existing contacts:", err);
+    return [];
   }
-  
-  return contacts;
 }
 
 async function fetchEmailsWithToken(
@@ -521,8 +485,13 @@ async function fetchEmailsWithToken(
 // ============================================
 export async function POST(req: NextRequest) {
   try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await req.json();
-    let { accessToken, refreshToken, maxResults = 50 } = body;
+    const { accessToken, refreshToken, maxResults = 50 } = body;
 
     if (!accessToken) {
       return NextResponse.json(
@@ -562,9 +531,9 @@ export async function POST(req: NextRequest) {
     console.log(`📬 Found ${messages.length} messages`);
 
     // Get existing contacts for duplicate detection
-    const existingContacts = await getAllExistingContacts();
+    const existingContacts = await getAllExistingContacts(userId);
     const existingEmails = new Set(existingContacts.flatMap((c) => c.emails));
-    console.log(`📇 Found ${existingContacts.length} existing contacts in Second Brain`);
+    console.log(`📇 Found ${existingContacts.length} existing contacts in Supabase`);
 
     const workingToken = newAccessToken || accessToken;
     const oauth2Client = new google.auth.OAuth2();
@@ -635,7 +604,7 @@ export async function POST(req: NextRequest) {
 
     // AI Classification
     let classifiedContacts: any[] = [];
-    
+
     if (potentialContacts.length > 0 && OPENAI_API_KEY) {
       console.log("🧠 Running AI classification...");
       classifiedContacts = await classifyContactsWithAI(potentialContacts);

@@ -1,97 +1,56 @@
 import { NextResponse } from "next/server";
-import { Client } from "@notionhq/client";
-import { normalizeDatabaseId } from "@/app/lib/notion";
+import { auth } from "@clerk/nextjs/server";
+import { getHabits } from "@/lib/data/habits";
+import { awardHabitXP } from "@/lib/xp/award";
+import { supabaseAdmin } from "@/lib/supabase";
 
-const NOTION_API_KEY = process.env.NOTION_API_KEY;
-const HABITS_DB_RAW = process.env.NOTION_DATABASE_HABITS;
-const XP_DB_RAW = process.env.NOTION_DATABASE_XP;
-
-if (!NOTION_API_KEY) {
-  throw new Error("NOTION_API_KEY is not set in environment");
-}
-if (!HABITS_DB_RAW) {
-  throw new Error("NOTION_DATABASE_HABITS is not set in environment");
-}
-
-const notion = new Client({ auth: NOTION_API_KEY });
-const HABITS_DB = normalizeDatabaseId(HABITS_DB_RAW);
-const XP_DB = XP_DB_RAW ? normalizeDatabaseId(XP_DB_RAW) : null;
-
-function getTitle(props: any, field: string = "Name"): string {
-  const titleProp = props[field]?.title?.[0]?.plain_text;
-  return titleProp || "Untitled";
-}
-
-export async function POST() {
+export async function POST(req: Request) {
   try {
-    if (!XP_DB) {
-      return NextResponse.json({
-        ok: false,
-        error: "XP database not configured",
-      });
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const habitsResponse = await notion.databases.query({
-      database_id: HABITS_DB,
-    });
+    const habits = await getHabits(userId);
+    const today = new Date().toISOString().split("T")[0];
 
-    const habits = (habitsResponse.results || []).filter((page: any) => {
-      const props = page.properties || {};
-      const xp = props["XP"]?.number || 0;
-      return xp > 0;
-    });
+    // Filter habits completed today
+    const completedToday = habits.filter(h =>
+      h.last_completed_at && h.last_completed_at.startsWith(today)
+    );
 
-    let totalXp = 0;
     let matched = 0;
+    let totalXp = 0;
 
-    for (const habit of habits) {
-      const props = (habit as any).properties || {};
-      const xp = props["XP"]?.number || 0;
-      const habitName = getTitle(props);
+    for (const habit of completedToday) {
+      // Check if already awarded today
+      const { data: existing } = await supabaseAdmin
+        .from("xp_logs")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("source_id", habit.id)
+        .gte("created_at", `${today}T00:00:00.000Z`)
+        .maybeSingle();
 
-      await notion.pages.create({
-        parent: { database_id: XP_DB },
-        properties: {
-          Name: {
-            title: [
-              {
-                text: {
-                  content: `Habit: ${habitName}`,
-                },
-              },
-            ],
-          },
-          XP: {
-            number: xp,
-          },
-          Source: {
-            rich_text: [
-              {
-                text: {
-                  content: "Habit Completion",
-                },
-              },
-            ],
-          },
-        },
-      });
-
-      totalXp += xp;
-      matched += 1;
+      if (!existing) {
+        // Award XP
+        const result = await awardHabitXP(userId, habit.id, habit.name);
+        totalXp += result.amount;
+        matched++;
+      }
     }
 
     return NextResponse.json({
       ok: true,
       matched,
       totalXp,
+      message: `Swept ${matched} habits, awarded ${totalXp} XP`
     });
+
   } catch (err: any) {
     console.error("Habit XP sweep error:", err?.message ?? err);
     return NextResponse.json(
-      {
-        ok: false,
-        error: "Failed to sweep habit XP",
-      },
+      { ok: false, error: "Failed to sweep habit XP" },
       { status: 500 }
     );
   }
