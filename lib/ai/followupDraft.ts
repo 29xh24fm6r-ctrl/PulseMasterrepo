@@ -2,6 +2,7 @@ import crypto from "crypto";
 import OpenAI from "openai";
 import type { VoiceProfile } from "./voiceProfiles";
 import type { CrmContactContext } from "./crmEnrich";
+import type { OpenThreadContext } from "./openThreads";
 
 export type FollowupDraftInput = {
     sender_email: string;
@@ -11,8 +12,9 @@ export type FollowupDraftInput = {
 
     voice?: VoiceProfile;
     crm?: CrmContactContext | null;
+    open_thread?: OpenThreadContext | null;
 
-    prompt_version?: string; // bump when you change prompt structure
+    prompt_version?: string;
 };
 
 export type FollowupDraftOutput = {
@@ -68,7 +70,7 @@ function extractJson(text: string): any | null {
 }
 
 function formatVoice(voice?: VoiceProfile) {
-    if (!voice) return "Default: concise, professional, friendly follow-up.";
+    if (!voice) return "Voice: concise, friendly follow-up.";
     const sig = voice.signature;
     const sigLines = [
         sig.name,
@@ -90,14 +92,27 @@ function formatVoice(voice?: VoiceProfile) {
 function formatCrm(crm?: CrmContactContext | null) {
     if (!crm) return "CRM: no match found.";
     return [
-        "CRM contact context (use only if relevant; do not invent facts):",
+        "CRM context (use only if relevant; do not invent facts):",
         `- name: ${crm.full_name ?? crm.first_name ?? "(unknown)"}`,
         `- first_name: ${crm.first_name ?? "(unknown)"}`,
         `- company: ${crm.company ?? "(unknown)"}`,
         `- title: ${crm.title ?? "(unknown)"}`,
-        `- account_stage: ${crm.account_stage ?? "(unknown)"}`,
         `- last_interaction_at: ${crm.last_interaction_at ?? "(unknown)"}`,
-        `- notes: ${crm.relationship_notes ? safeString(crm.relationship_notes, 500) : "(none)"}`,
+        `- notes: ${crm.relationship_notes ? safeString(crm.relationship_notes, 400) : "(none)"}`,
+    ].join("\n");
+}
+
+function formatThread(thread?: OpenThreadContext | null) {
+    if (!thread) return "Open Thread: none.";
+    const ctx = thread.context ?? {};
+    return [
+        "Open Thread context (use only if relevant; do not invent facts):",
+        `- status: ${thread.status}`,
+        `- topic: ${safeString(ctx.topic ?? "", 140) || "(unknown)"}`,
+        `- last_discussed: ${safeString(ctx.last_discussed ?? "", 200) || "(unknown)"}`,
+        `- waiting_on: ${safeString(ctx.waiting_on ?? "", 80) || "(unknown)"}`, // "them" | "me" | "unknown"
+        `- last_outgoing_at: ${thread.last_outgoing_at ?? "(unknown)"}`,
+        `- last_incoming_at: ${thread.last_incoming_at ?? "(unknown)"}`,
     ].join("\n");
 }
 
@@ -107,7 +122,7 @@ export async function generateAiFollowupDraft(input: FollowupDraftInput): Promis
 
     const model = process.env.FOLLOWUP_AI_MODEL || "gpt-4o-mini";
     const timeoutMs = Number(process.env.FOLLOWUP_AI_TIMEOUT_MS || 12000);
-    const prompt_version = input.prompt_version ?? "followup_v1_voice_crm";
+    const prompt_version = input.prompt_version ?? "followup_v3_voice_crm_threads";
 
     const sender_email = safeString(input.sender_email, 320);
     const sender_name = safeString(input.sender_name ?? "", 120);
@@ -116,24 +131,27 @@ export async function generateAiFollowupDraft(input: FollowupDraftInput): Promis
 
     const voiceBlock = formatVoice(input.voice);
     const crmBlock = formatCrm(input.crm);
+    const threadBlock = formatThread(input.open_thread);
 
     const prompt = [
-        "You write concise, professional email follow-ups.",
+        "You write concise, human email follow-ups.",
         "Return ONLY valid JSON with keys: subject, body_text.",
         "",
         "Hard constraints:",
-        "- body_text must be plain text, no markdown.",
+        "- Plain text only. No markdown.",
         "- <= 120 words.",
-        "- Friendly, confident, competent; not salesy.",
-        "- Do not hallucinate facts; reference only the provided context.",
-        "- Include ONE clear next step (question or proposed call).",
-        "- If original_subject is empty, make a sensible 'Re: ...' subject.",
+        "- Friendly, confident, not salesy.",
+        "- Do not invent facts; use only provided snippet/context.",
+        "- Include ONE clear next step (a question OR a proposed time).",
+        "- Give an easy out if they’re busy (one short sentence).",
         "",
         voiceBlock,
         "",
         crmBlock,
         "",
-        "Thread context:",
+        threadBlock,
+        "",
+        "Latest email context:",
         `sender_email: ${sender_email}`,
         `sender_name: ${sender_name || "(unknown)"}`,
         `original_subject: ${subject || "(none)"}`,
@@ -149,7 +167,7 @@ export async function generateAiFollowupDraft(input: FollowupDraftInput): Promis
 
     const req = client.chat.completions.create({
         model,
-        temperature: 0.3,
+        temperature: 0.35,
         messages: [
             { role: "system", content: "You write email drafts and must output JSON only." },
             { role: "user", content: prompt },

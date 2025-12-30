@@ -87,6 +87,34 @@ export async function questGenerateHandler(payload: JobPayload, ctx: JobContext)
         meta: {},
     }));
 
+    // Pull up to 3 open threads where waiting_on = "them" and last_outgoing_at exists
+    const { data: threads, error: thErr } = await supabaseAdmin
+        .from("open_threads")
+        .select("id, counterpart_name, counterpart_email, context, last_outgoing_at")
+        .eq("user_id_uuid", payload.user_id_uuid)
+        .eq("status", "open")
+        .not("last_outgoing_at", "is", null)
+        .order("last_outgoing_at", { ascending: true })
+        .limit(3);
+
+    if (!thErr && threads && threads.length > 0) {
+        for (const t of threads) {
+            const name = t.counterpart_name || t.counterpart_email || "someone";
+            const topic = (t.context?.topic ? String(t.context.topic) : "").slice(0, 60);
+            rows.push({
+                [USER_COL]: userIdText,
+                [DAY_COL]: day,
+                [KEY_COL]: `followup_${t.id.slice(0, 8)}`,
+                [TITLE_COL]: `Close the loop with ${name}`,
+                [DESC_COL]: topic ? `Send a quick follow-up on: ${topic}` : "Send a quick follow-up and confirm next step.",
+                [TARGET_COL]: 1,
+                [REWARD_COL]: 50, // Bonus for relationship work
+                is_completed: false,
+                meta: { kind: "open_thread", thread_id: t.id },
+            } as any);
+        }
+    }
+
     // 3) Insert
     const { error: insErr } = await supabaseAdmin.from(QUESTS_TABLE).insert(rows);
 

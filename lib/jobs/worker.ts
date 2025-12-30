@@ -58,13 +58,40 @@ export async function runWorker(opts?: { lanes?: any; maxEmptySleepsMs?: number 
             jobHeartbeat(job!.id, workerId).catch(() => { });
         }, 30_000);
 
+        // Execution Logging: Start
+        let runPk: string | null = null; // internal PK of execution_runs
+        const executionId = crypto.randomUUID(); // logical trace ID
+        const supabase = (await import("@/lib/supabase/admin")).supabaseAdmin();
+
+        try {
+            const { data: runData, error: runErr } = await supabase
+                .from("execution_runs")
+                .insert({
+                    execution_id: executionId,
+                    status: "running",
+                    started_at: new Date().toISOString(),
+                    owner_user_id: job.owner_user_id ?? null,
+                    user_id_uuid: job.user_id_uuid ?? null,
+                })
+                .select("id")
+                .single();
+
+            if (runErr) {
+                await ctx.log("warn", "Failed to create execution_run", { err: runErr });
+            } else if (runData) {
+                runPk = runData.id;
+            }
+        } catch (e) {
+            await ctx.log("warn", "Failed to insert execution_run (exception)", { err: normalizeError(e) });
+        }
+
         try {
             await ctx.log("info", "Job start", { job_type: job.job_type, lane: job.lane, attempts: job.attempts });
 
             const handler = handlers[job.job_type] ?? handlers.noop;
             // Adapt DB JobRow to payload + ctx
             const result = await handler(job.payload, {
-                supabaseAdmin: (await import("@/lib/supabase/admin")).supabaseAdmin(),
+                supabaseAdmin: supabase,
                 now: () => new Date(),
                 logger: ctx
             });
@@ -75,6 +102,22 @@ export async function runWorker(opts?: { lanes?: any; maxEmptySleepsMs?: number 
                 status: "succeeded",
                 result,
             });
+
+            // Execution Logging: Success
+            if (runPk) {
+                await supabase
+                    .from("execution_runs")
+                    .update({
+                        status: "succeeded",
+                        finished_at: new Date().toISOString(),
+                        output: {
+                            job_type: job.job_type,
+                            payload: job.payload,
+                            result: result ?? null,
+                        }
+                    })
+                    .eq("id", runPk);
+            }
 
             await ctx.log("info", "Job succeeded", { result_preview: result ? JSON.stringify(result).slice(0, 500) : null });
         } catch (e) {
@@ -87,6 +130,18 @@ export async function runWorker(opts?: { lanes?: any; maxEmptySleepsMs?: number 
                 status: "failed",
                 error: err,
             });
+
+            // Execution Logging: Failure
+            if (runPk) {
+                await supabase
+                    .from("execution_runs")
+                    .update({
+                        status: "failed",
+                        finished_at: new Date().toISOString(),
+                        error: JSON.stringify(err),
+                    })
+                    .eq("id", runPk);
+            }
         } finally {
             clearInterval(hb);
         }

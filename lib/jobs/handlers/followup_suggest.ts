@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { generateAiFollowupDraft } from "@/lib/ai/followupDraft";
 import { VOICE_PROFILES } from "@/lib/ai/voiceProfiles";
 import { crmLookupByEmail } from "@/lib/ai/crmEnrich";
+import { upsertOpenThread, logThreadEvent } from "@/lib/ai/openThreads";
 
 type JobContext = {
     supabaseAdmin: SupabaseClient;
@@ -65,6 +66,14 @@ function buildDraft(opts: {
         snippetLine;
 
     return { subject, body_text };
+}
+
+function pickVoiceFromCrm(crm: any | null) {
+    const rel = String(crm?.relationship_type ?? crm?.relationship ?? crm?.type ?? "").toLowerCase();
+    if (rel.includes("family")) return VOICE_PROFILES.pulse_matt_family;
+    if (rel.includes("friend")) return VOICE_PROFILES.pulse_matt_friend;
+    if (rel.includes("client") || rel.includes("customer")) return VOICE_PROFILES.pulse_matt_client;
+    return VOICE_PROFILES.pulse_matt_default;
 }
 
 /**
@@ -209,7 +218,7 @@ export async function followupSuggestHandler(ctx: JobContext, payload: JobPayloa
             if (INBOX_FOLLOWUP_STATUS_COL) patch[INBOX_FOLLOWUP_STATUS_COL] = "suggested";
 
             // We swallow error here in case column doesn't exist
-            await supabaseAdmin.from(INBOX_TABLE).update(patch).eq("id", inboxItemId).then(() => { }).catch(() => { });
+            await supabaseAdmin.from(INBOX_TABLE).update(patch).eq("id", inboxItemId);
             continue;
         }
 
@@ -224,11 +233,35 @@ export async function followupSuggestHandler(ctx: JobContext, payload: JobPayloa
         const subj = item?.[INBOX_SUBJECT_COL] ?? null;
         const snip = item?.[INBOX_SNIPPET_COL] ?? null;
 
+        const thread_key = `email:${inboxItemId}`;
+        const thread = await upsertOpenThread({
+            supabaseAdmin,
+            user_id_uuid: payload.user_id_uuid,
+            thread_key,
+            counterpart_email: senderEmail,
+            counterpart_name: senderName ? String(senderName) : null,
+            contextPatch: {
+                topic: subj ? String(subj).slice(0, 140) : null,
+                last_discussed: snip ? String(snip).slice(0, 200) : null,
+                waiting_on: "them",
+            },
+            // This is a follow-up suggestion, so it's an outgoing intent
+            last_outgoing_at: now().toISOString(),
+        });
+
+        await logThreadEvent({
+            supabaseAdmin,
+            user_id_uuid: payload.user_id_uuid,
+            thread_id: thread.thread_id,
+            event_type: "draft_suggested",
+            meta: { source_inbox_item_id: inboxItemId },
+        });
+
         let draftSubject: string;
         let draftBody: string;
         let aiMeta: any = null;
         let crm: any = null;
-        const voice = VOICE_PROFILES.ogb_banker_matt;
+        let voice = VOICE_PROFILES.pulse_matt_default;
 
         if (aiEnabled) {
             try {
@@ -239,6 +272,7 @@ export async function followupSuggestHandler(ctx: JobContext, payload: JobPayloa
                         user_id_uuid: payload.user_id_uuid,
                         email: senderEmail,
                     });
+                    voice = pickVoiceFromCrm(crm);
                 } catch (e: any) {
                     logger.warn("[followup_suggest] CRM enrich failed (non-fatal)", { inboxItemId, err: e?.message ?? String(e) });
                 }
@@ -250,7 +284,8 @@ export async function followupSuggestHandler(ctx: JobContext, payload: JobPayloa
                     snippet: snip ? String(snip) : null,
                     voice,
                     crm,
-                    prompt_version: "followup_v1_voice_crm",
+                    open_thread: thread,
+                    prompt_version: "followup_v3_voice_crm_threads",
                 });
 
                 draftSubject = ai.subject;
@@ -295,7 +330,8 @@ export async function followupSuggestHandler(ctx: JobContext, payload: JobPayloa
                 source_inbox_item_id: inboxItemId,
                 source_inbox_created_at: item?.[INBOX_CREATED_COL] ?? null,
                 source_inbox_subject: subj ?? null,
-                voice: voice ? { id: voice.id, name: voice.name } : null,
+                thread: { id: thread.thread_id, key: thread.thread_key, status: thread.status },
+                voice: { id: voice.id, name: voice.name },
                 crm: crm
                     ? {
                         contact_id: crm.contact_id ?? null,
@@ -328,9 +364,10 @@ export async function followupSuggestHandler(ctx: JobContext, payload: JobPayloa
         if (INBOX_FOLLOWUP_STATUS_COL) updatePatch[INBOX_FOLLOWUP_STATUS_COL] = "suggested";
 
         // Swallow error if columns missing
-        await supabaseAdmin.from(INBOX_TABLE).update(updatePatch).eq("id", inboxItemId).catch(err => {
-            logger.warn("[followup_suggest] failed to mark inbox item suggested (non-fatal)", err);
-        });
+        const { error: markErr } = await supabaseAdmin.from(INBOX_TABLE).update(updatePatch).eq("id", inboxItemId);
+        if (markErr) {
+            logger.warn("[followup_suggest] failed to mark inbox item suggested (non-fatal)", markErr);
+        }
 
         suggested++;
     }
