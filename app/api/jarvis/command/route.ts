@@ -41,7 +41,7 @@ Return JSON:
   const intent = classification.intent;
 
   let response = "";
-  let data: any = {};
+  const data: any = {};
 
   try {
     switch (intent) {

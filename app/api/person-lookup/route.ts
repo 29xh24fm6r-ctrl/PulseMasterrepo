@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Client } from "@notionhq/client";
+import { auth } from "@clerk/nextjs/server";
+import { supabaseAdmin } from "@/lib/supabase";
 
-const notion = new Client({ auth: process.env.NOTION_API_KEY });
-const SECOND_BRAIN_DB = process.env.NOTION_DATABASE_SECOND_BRAIN;
+export const dynamic = 'force-dynamic';
 
 interface PersonResult {
   id: string;
@@ -11,55 +11,57 @@ interface PersonResult {
   email?: string;
   phone?: string;
   type?: string;
-  lastContact?: string;
   relationshipStatus?: string;
   notes?: string;
   rawData?: string;
   winProbability?: number;
 }
 
-/**
- * GET - Get all contacts or search by name
- * Query params: ?q=name (optional - if empty, returns all)
- */
 export async function GET(request: NextRequest) {
   try {
-    if (!SECOND_BRAIN_DB) {
-      return NextResponse.json({
-        ok: false,
-        error: "Second Brain database not configured",
-      }, { status: 500 });
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
-    
+
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('q')?.trim() || '';
-    
-    // Build filter - if query provided, search by name/company
-    let filter: any = undefined;
+
+    let queryBuilder = supabaseAdmin
+      .from("contacts")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(50);
+
     if (query.length >= 1) {
-      filter = {
-        or: [
-          { property: 'Name', title: { contains: query } },
-          { property: 'Company', rich_text: { contains: query } },
-        ],
-      };
+      // Simple OR search on name or company
+      queryBuilder = queryBuilder.or(`name.ilike.%${query}%,company.ilike.%${query}%`);
     }
-    
-    const response = await notion.databases.query({
-      database_id: SECOND_BRAIN_DB.replace(/-/g, ''),
-      filter,
-      page_size: 50,
-      sorts: [{ property: 'Name', direction: 'ascending' }],
-    });
-    
-    const people: PersonResult[] = response.results.map((page: any) => extractPersonData(page));
-    
+
+    const { data: contacts, error } = await queryBuilder;
+
+    if (error) throw error;
+
+    const people: PersonResult[] = contacts.map((c: any) => ({
+      id: c.id,
+      name: c.name,
+      company: c.company || '',
+      email: c.email || '',
+      phone: c.phone || '',
+      type: 'Contact', // Standard type
+      relationshipStatus: c.relationship || 'unknown',
+      notes: c.notes || '',
+      rawData: JSON.stringify(c.context || {}), // Flatten context for legacy frontend compat if needed
+      winProbability: undefined
+    }));
+
     return NextResponse.json({
       ok: true,
       people,
       count: people.length,
     });
-    
+
   } catch (error: any) {
     console.error("Person lookup error:", error);
     return NextResponse.json(
@@ -69,61 +71,42 @@ export async function GET(request: NextRequest) {
   }
 }
 
-function extractPersonData(page: any): PersonResult {
-  const props = page.properties || {};
-  const today = new Date();
-  
-  const name = props.Name?.title?.[0]?.plain_text || 
-               props.Title?.title?.[0]?.plain_text || 'Unknown';
-  const company = props.Company?.rich_text?.[0]?.plain_text || 
-                  props.Company?.select?.name || '';
-  const email = props.Email?.email || 
-                props.Email?.rich_text?.[0]?.plain_text || '';
-  const phone = props.Phone?.phone_number || 
-                props.Phone?.rich_text?.[0]?.plain_text || '';
-  const type = props.Type?.select?.name || '';
-  const lastContact = props['Last Contact']?.date?.start || null;
-  
-  let relationshipStatus = 'unknown';
-  if (lastContact) {
-    const lastDate = new Date(lastContact);
-    const daysSince = Math.floor((today.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
-    if (daysSince <= 7) relationshipStatus = 'hot';
-    else if (daysSince <= 14) relationshipStatus = 'warm';
-    else if (daysSince <= 30) relationshipStatus = 'cooling';
-    else relationshipStatus = 'cold';
-  }
-  
-  const notes = props.Notes?.rich_text?.[0]?.plain_text || '';
-  const rawData = props['Raw Data']?.rich_text?.[0]?.plain_text || 
-                  props['AI Analysis']?.rich_text?.[0]?.plain_text || '';
-  const winProbability = props['Win Probability']?.number || undefined;
-  
-  return {
-    id: page.id,
-    name,
-    company,
-    email,
-    phone,
-    type,
-    lastContact,
-    relationshipStatus,
-    notes,
-    rawData,
-    winProbability,
-  };
-}
-
 export async function POST(request: NextRequest) {
   try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    }
+
     const { personId } = await request.json();
     if (!personId) {
       return NextResponse.json({ ok: false, error: "personId required" }, { status: 400 });
     }
-    
-    const page = await notion.pages.retrieve({ page_id: personId }) as any;
-    const person = extractPersonData(page);
-    
+
+    const { data: contact, error } = await supabaseAdmin
+      .from("contacts")
+      .select("*")
+      .eq("id", personId)
+      .eq("user_id", userId)
+      .single();
+
+    if (error || !contact) {
+      return NextResponse.json({ ok: false, error: "Contact not found" }, { status: 404 });
+    }
+
+    const person: PersonResult = {
+      id: contact.id,
+      name: contact.name,
+      company: contact.company || '',
+      email: contact.email || '',
+      phone: contact.phone || '',
+      type: 'Contact',
+      relationshipStatus: contact.relationship || 'unknown',
+      notes: contact.notes || '',
+      rawData: JSON.stringify(contact.context || {}),
+      winProbability: undefined
+    };
+
     return NextResponse.json({ ok: true, person });
   } catch (error: any) {
     console.error("Person detail error:", error);

@@ -1,41 +1,23 @@
-/**
- * Agents API
- * app/api/agents/route.ts
- */
+// app/api/agents/route.ts
+import { NextResponse } from "next/server";
+import { AgentRunInputSchema, listAgents, runAgent } from "@/lib/agents";
 
-import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
-import { listAgents, runAgent, getUserRuns } from "@/lib/agents";
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 /**
  * GET /api/agents
- * List available agents and optionally user's runs
+ * Returns available agents.
  */
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const url = new URL(req.url);
-    const includeRuns = url.searchParams.get("includeRuns") === "true";
-
-    const agents = listAgents();
-
-    let runs: any[] = [];
-    if (includeRuns) {
-      runs = await getUserRuns({ userId, status: "active", limit: 10 });
-    }
-
     return NextResponse.json({
-      agents,
-      runs: includeRuns ? runs : undefined,
+      ok: true,
+      agents: listAgents(),
     });
-  } catch (error: any) {
-    console.error("[Agents API] GET Error:", error);
+  } catch (err: any) {
     return NextResponse.json(
-      { error: error.message || "Failed to fetch agents" },
+      { ok: false, error: "AGENTS_LIST_FAILED", detail: err?.message ?? String(err) },
       { status: 500 }
     );
   }
@@ -43,50 +25,26 @@ export async function GET(req: NextRequest) {
 
 /**
  * POST /api/agents
- * Start a new agent run
+ * Body: { agent_id, input, context? }
+ * Runs an agent and returns output.
  */
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const body = await req.json().catch(() => null);
+    const parsed = AgentRunInputSchema.safeParse(body);
 
-    const body = await req.json();
-    const { agent_key, message, payload, topic } = body;
-
-    if (!agent_key) {
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "Missing required field: agent_key" },
+        { ok: false, error: "INVALID_BODY", issues: parsed.error.flatten() },
         { status: 400 }
       );
     }
 
-    if (!message) {
-      return NextResponse.json(
-        { error: "Missing required field: message" },
-        { status: 400 }
-      );
-    }
-
-    const result = await runAgent({
-      userId,
-      agentKey: agent_key,
-      message,
-      payload,
-      topic,
-      caller: "ui",
-    });
-
-    return NextResponse.json({
-      run_id: result.runId,
-      response: result.response,
-      messages: result.messages,
-    });
-  } catch (error: any) {
-    console.error("[Agents API] POST Error:", error);
+    const result = await runAgent(parsed.data);
+    return NextResponse.json(result, { status: result.ok ? 200 : 404 });
+  } catch (err: any) {
     return NextResponse.json(
-      { error: error.message || "Failed to run agent" },
+      { ok: false, error: "AGENT_RUN_FAILED", detail: err?.message ?? String(err) },
       { status: 500 }
     );
   }

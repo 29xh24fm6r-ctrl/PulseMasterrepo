@@ -1,5 +1,7 @@
 // POST /api/comm/call/complete - Handle call completion
 import { NextResponse } from "next/server";
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 import { updateCallSession } from "@/lib/comm/store";
 import { VoiceResponse } from "@/lib/comm/twilio";
 
@@ -8,7 +10,7 @@ export async function POST(request: Request) {
     const url = new URL(request.url);
     const sessionId = url.searchParams.get("sessionId");
     const formData = await request.formData();
-    
+
     const dialCallStatus = formData.get("DialCallStatus") as string;
     const dialCallDuration = formData.get("DialCallDuration") as string;
 

@@ -58,7 +58,7 @@ export async function POST(req: Request) {
     console.log(`⏱️ Duration: ~${durationMinutes} minutes`);
 
     // Try to get video title from URL (basic)
-    let title = `YouTube Video - ${videoId}`;
+    const title = `YouTube Video - ${videoId}`;
     
     return NextResponse.json({
       ok: true,

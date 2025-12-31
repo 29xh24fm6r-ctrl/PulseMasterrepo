@@ -1,4 +1,8 @@
 import type { Metadata, Viewport } from "next";
+import { assertServerEnv } from "@/lib/env/guard";
+
+assertServerEnv();
+
 import { ClerkProvider } from "@clerk/nextjs";
 import { CommandPalette } from "./components/command-palette";
 import { Inter } from "next/font/google";

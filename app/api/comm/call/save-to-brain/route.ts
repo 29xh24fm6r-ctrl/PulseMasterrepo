@@ -1,5 +1,7 @@
 // POST /api/comm/call/save-to-brain - Save call transcript and analysis to Second Brain (interactions)
 import { NextResponse } from "next/server";
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 import { getCallSession } from "@/lib/comm/store";
 import { createClient } from "@supabase/supabase-js";
 
@@ -94,7 +96,7 @@ export async function POST(request: Request) {
     if (finalContactId) {
       await supabase
         .from("contacts")
-        .update({ 
+        .update({
           last_contact: new Date().toISOString(),
           last_interaction_type: "call",
         })

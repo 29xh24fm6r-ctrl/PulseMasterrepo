@@ -1,11 +1,9 @@
 import { auth } from '@clerk/nextjs/server';
 import { canMakeAICall, trackAIUsage } from '@/lib/services/usage';
 import { NextRequest, NextResponse } from 'next/server';
-import { Client } from '@notionhq/client';
 import OpenAI from 'openai';
 import { loadKernel, loadRelevantModules, detectRelevantModules } from '../../../lib/brain-loader';
 
-const notion = new Client({ auth: process.env.NOTION_API_KEY });
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // Message type for conversation history
@@ -14,116 +12,40 @@ interface Message {
   content: string;
 }
 
-// Fetch tasks from Notion
-async function getTasks() {
-  try {
-    const response = await notion.databases.query({
-      database_id: process.env.NOTION_TASKS_DB!,
-      filter: {
-        property: 'Status',
-        status: {
-          does_not_equal: 'Done',
-        },
-      },
-      sorts: [{ property: 'Due Date', direction: 'ascending' }],
-      page_size: 20,
-    });
+import { getTasks } from '@/lib/data/tasks';
+import { getDeals } from '@/lib/data/deals';
+import { getContacts } from '@/lib/data/journal';
 
-    return response.results.map((page: any) => ({
-      id: page.id,
-      title: page.properties['Task Name']?.title?.[0]?.plain_text || 'Untitled',
-      status: page.properties['Status']?.status?.name || 'Unknown',
-      priority: page.properties['Priority']?.select?.name || 'Medium',
-      dueDate: page.properties['Due Date']?.date?.start || null,
-      category: page.properties['Category']?.multi_select?.map((c: any) => c.name) || [],
-    }));
-  } catch (error) {
-    console.error('Error fetching tasks:', error);
-    return [];
-  }
-}
-
-// Fetch deals from Notion
-async function getDeals() {
-  try {
-    const response = await notion.databases.query({
-      database_id: process.env.NOTION_DEALS_DB!,
-      filter: {
-        property: 'Stage',
-        select: {
-          does_not_equal: 'Closed Lost',
-        },
-      },
-      sorts: [{ property: 'Expected Close', direction: 'ascending' }],
-      page_size: 20,
-    });
-
-    return response.results.map((page: any) => ({
-      id: page.id,
-      name: page.properties['Deal Name']?.title?.[0]?.plain_text || 'Untitled',
-      company: page.properties['Company']?.rich_text?.[0]?.plain_text || '',
-      amount: page.properties['Amount']?.number || 0,
-      stage: page.properties['Stage']?.select?.name || 'Unknown',
-      expectedClose: page.properties['Expected Close']?.date?.start || null,
-      nextStep: page.properties['Next Step']?.rich_text?.[0]?.plain_text || '',
-    }));
-  } catch (error) {
-    console.error('Error fetching deals:', error);
-    return [];
-  }
-}
-
-// Fetch contacts from Notion
-async function getContacts() {
-  try {
-    const response = await notion.databases.query({
-      database_id: process.env.NOTION_CONTACTS_DB!,
-      sorts: [{ property: 'Last Contact', direction: 'descending' }],
-      page_size: 20,
-    });
-
-    return response.results.map((page: any) => ({
-      id: page.id,
-      name: page.properties['Name']?.title?.[0]?.plain_text || 'Unknown',
-      company: page.properties['Company']?.rich_text?.[0]?.plain_text || '',
-      email: page.properties['Email']?.email || '',
-      phone: page.properties['Phone']?.phone_number || '',
-      type: page.properties['Type']?.select?.name || '',
-      lastContact: page.properties['Last Contact']?.date?.start || null,
-    }));
-  } catch (error) {
-    console.error('Error fetching contacts:', error);
-    return [];
-  }
-}
-
-// Build context about user's current state
-async function buildUserContext() {
+// Helper to bridge data types
+async function buildUserContext(userId: string) {
   const [tasks, deals, contacts] = await Promise.all([
-    getTasks(),
-    getDeals(),
-    getContacts(),
+    getTasks(userId),
+    getDeals(userId),
+    getContacts(userId),
   ]);
 
   const today = new Date().toISOString().split('T')[0];
-  
-  // Filter relevant data
-  const overdueTasks = tasks.filter(t => t.dueDate && t.dueDate < today);
-  const todayTasks = tasks.filter(t => t.dueDate === today);
-  const highPriorityTasks = tasks.filter(t => t.priority === 'High');
+
+  // Tasks mapping
+  const overdueTasks = tasks.filter(t => t.due_at && t.due_at < today && t.status !== 'done');
+  const todayTasks = tasks.filter(t => t.due_at?.startsWith(today) && t.status !== 'done');
+  const highPriorityTasks = tasks.filter(t => t.priority === 'High' && t.status !== 'done'); // Assuming priority string match
+
+  // Deals mapping
+  // Assuming deals has 'stage', 'value' from lib/data/deals
   const activeDeals = deals.filter(d => !['Closed Won', 'Closed Lost'].includes(d.stage));
-  
+
   return `
-## YOUR CURRENT STATE (Live from Notion)
+## YOUR CURRENT STATE (Live from Supabase)
 
 ### Tasks Overview
-- Total Active Tasks: ${tasks.length}
+- Total Active Tasks: ${tasks.filter(t => t.status !== 'done').length}
 - Overdue: ${overdueTasks.length}
 - Due Today: ${todayTasks.length}
 - High Priority: ${highPriorityTasks.length}
 
 ${overdueTasks.length > 0 ? `### Overdue Tasks (URGENT)
-${overdueTasks.map(t => `- "${t.title}" (Due: ${t.dueDate}, Priority: ${t.priority})`).join('\n')}
+${overdueTasks.map(t => `- "${t.title}" (Due: ${t.due_at?.split('T')[0]}, Priority: ${t.priority})`).join('\n')}
 ` : ''}
 
 ${todayTasks.length > 0 ? `### Due Today
@@ -131,15 +53,15 @@ ${todayTasks.map(t => `- "${t.title}" (Priority: ${t.priority})`).join('\n')}
 ` : ''}
 
 ${highPriorityTasks.length > 0 ? `### High Priority Tasks
-${highPriorityTasks.slice(0, 5).map(t => `- "${t.title}" (Due: ${t.dueDate || 'No date'})`).join('\n')}
+${highPriorityTasks.slice(0, 5).map(t => `- "${t.title}" (Due: ${t.due_at?.split('T')[0] || 'No date'})`).join('\n')}
 ` : ''}
 
 ### Deals Pipeline
 - Active Deals: ${activeDeals.length}
-- Total Pipeline Value: $${activeDeals.reduce((sum, d) => sum + (d.amount || 0), 0).toLocaleString()}
+- Total Pipeline Value: $${activeDeals.reduce((sum, d) => sum + (d.value || 0), 0).toLocaleString()}
 
 ${activeDeals.length > 0 ? `### Active Deals
-${activeDeals.slice(0, 5).map(d => `- "${d.name}" - ${d.company} - $${d.amount?.toLocaleString() || 0} - Stage: ${d.stage}${d.nextStep ? ` - Next: ${d.nextStep}` : ''}`).join('\n')}
+${activeDeals.slice(0, 5).map(d => `- "${d.title}" - ${d.company} - $${d.value?.toLocaleString() || 0} - Stage: ${d.stage}`).join('\n')}
 ` : ''}
 
 ### Contacts
@@ -155,25 +77,25 @@ export async function POST(request: NextRequest) {
   if (!usageCheck.allowed) return NextResponse.json({ error: usageCheck.reason, requiresUpgrade: usageCheck.requiresUpgrade }, { status: 402 });
   try {
     const { messages }: { messages: Message[] } = await request.json();
-    
+
     if (!messages || messages.length === 0) {
       return NextResponse.json({ error: 'No messages provided' }, { status: 400 });
     }
 
     const lastUserMessage = messages.filter(m => m.role === 'user').pop()?.content || '';
-    
+
     // Load relevant brain modules based on the conversation
     console.log('Loading brain modules...');
     const relevantModules = detectRelevantModules(lastUserMessage);
     console.log('Detected relevant modules:', relevantModules);
-    
+
     const brainContent = await loadRelevantModules(lastUserMessage);
     console.log('Brain content loaded, length:', brainContent.length);
-    
-    // Get user's current context from Notion
-    console.log('Fetching user context from Notion...');
-    const userContext = await buildUserContext();
-    
+
+    // Get user's current context from Supabase
+    console.log('Fetching user context...');
+    const userContext = await buildUserContext(userId);
+
     // Build the system prompt
     const systemPrompt = `${brainContent}
 
@@ -194,7 +116,7 @@ You are Pulse, having a natural conversation. Follow the Kernel operating loop:
 
 IMPORTANT RULES:
 - Be warm, clear, and concise
-- Use the user's actual data from Notion when relevant
+- Use the user's actual data from Supabase when relevant
 - Never overwhelm - one thing at a time
 - If they seem stressed, shift to Calming Guide mode
 - If they accomplished something, celebrate it
@@ -255,10 +177,10 @@ Current date: ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 
     });
 
     let response = completion.choices[0]?.message?.content || 'I apologize, but I couldn\'t generate a response. Please try again.';
-    
+
     // Parse options from response
-    let options: Array<{id: string; label: string; value: string}> | null = null;
-    
+    let options: Array<{ id: string; label: string; value: string }> | null = null;
+
     const optionsMatch = response.match(/```options\s*([\s\S]*?)\s*```/);
     if (optionsMatch) {
       try {

@@ -1,12 +1,14 @@
 // POST /api/comm/call/inbound - Twilio webhook for incoming calls
 import { NextResponse } from "next/server";
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 import { supabaseAdmin } from "@/lib/supabase";
 import { VoiceResponse, APP_BASE_URL } from "@/lib/comm/twilio";
 
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
-    
+
     const callSid = formData.get("CallSid") as string;
     const from = formData.get("From") as string;
     const to = formData.get("To") as string;
@@ -37,12 +39,12 @@ export async function POST(request: Request) {
 
     // Return TwiML voicemail per spec
     const twiml = new VoiceResponse();
-    
+
     twiml.say(
       { voice: "alice" },
       "Hi, this is Pulse. The human is not available. Please leave a message after the tone."
     );
-    
+
     twiml.record({
       maxLength: 60,
       playBeep: true,
@@ -54,7 +56,7 @@ export async function POST(request: Request) {
     });
   } catch (error: any) {
     console.error("Inbound call error:", error);
-    
+
     const twiml = new VoiceResponse();
     twiml.say({ voice: "alice" }, "Sorry, we're experiencing technical difficulties.");
     twiml.hangup();

@@ -1,5 +1,7 @@
 // POST /api/comm/call/voicemail-complete - Handle voicemail recording complete
 import { NextResponse } from "next/server";
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 import { updateCallSession, updateCallSessionBySid } from "@/lib/comm/store";
 import { VoiceResponse } from "@/lib/comm/twilio";
 
@@ -7,7 +9,7 @@ export async function POST(request: Request) {
   try {
     const url = new URL(request.url);
     const formData = await request.formData();
-    
+
     const callSessionId = url.searchParams.get("callSessionId");
     const callSid = formData.get("CallSid") as string;
     const recordingUrl = formData.get("RecordingUrl") as string;
@@ -40,7 +42,7 @@ export async function POST(request: Request) {
     });
   } catch (error: any) {
     console.error("Voicemail complete error:", error);
-    
+
     const twiml = new VoiceResponse();
     twiml.say({ voice: "alice" }, "Thank you.");
     twiml.hangup();

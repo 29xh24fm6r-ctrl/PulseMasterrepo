@@ -1,24 +1,17 @@
 import { canMakeAICall, trackAIUsage } from "@/lib/services/usage";
 import { NextRequest, NextResponse } from "next/server";
 import { google } from "googleapis";
-import { Client } from "@notionhq/client";
 import OpenAI from "openai";
 import { refreshAccessToken } from "@/app/lib/gmail-utils";
+import { auth } from '@clerk/nextjs/server';
 
-const NOTION_API_KEY = process.env.NOTION_API_KEY;
-const SECOND_BRAIN_DB = process.env.NOTION_DATABASE_SECOND_BRAIN;
-const TASKS_DB = process.env.NOTION_DATABASE_TASKS;
-const FOLLOW_UPS_DB = process.env.NOTION_DATABASE_FOLLOW_UPS;
+// Supabase Data Layers
+import { createTask, getTasks } from '@/lib/data/tasks';
+import { createFollowUp, getFollowUps } from '@/lib/data/followups';
+import { createContact, getContacts } from '@/lib/data/journal';
+
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-
-if (!NOTION_API_KEY) throw new Error("Missing NOTION_API_KEY");
-
-const notion = new Client({ auth: NOTION_API_KEY });
 const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
-
-function normalizeDatabaseId(id: string): string {
-  return id.replace(/-/g, "");
-}
 
 // ============================================
 // BLOCKED DOMAINS & PATTERNS
@@ -51,17 +44,17 @@ const BLOCKED_DOMAINS = new Set([
   "airbnb.com", "booking.com", "expedia.com", "tripadvisor.com",
   // Newsletters
   "substack.com", "beehiiv.com", "canva.com", "medium.com",
-  // JOB SITES - these send automated listings, not real requests
+  // JOB SITES
   "linkedin.com", "indeed.com", "glassdoor.com", "ziprecruiter.com",
   "monster.com", "careerbuilder.com", "dice.com", "hired.com",
   "lever.co", "greenhouse.io", "workday.com", "icims.com",
-  // REAL ESTATE - automated listings
+  // REAL ESTATE
   "redfin.com", "zillow.com", "realtor.com", "trulia.com",
   "compass.com", "coldwellbanker.com", "remax.com", "kw.com",
-  // HR & Training platforms
+  // HR & Training
   "workday.com", "adp.com", "paychex.com", "gusto.com",
   "knowbe4.com", "cornerstonelearning.com", "linkedin.com",
-  // Recruiting platforms
+  // Recruiting
   "jobvite.com", "smartrecruiters.com", "breezy.hr",
 ]);
 
@@ -99,12 +92,12 @@ function isBlockedEmail(email: string, name: string): boolean {
       if (BLOCKED_DOMAINS.has(rootDomain)) return true;
     }
     if (domain.startsWith("mail.") || domain.startsWith("email.") ||
-        domain.startsWith("e.") || domain.startsWith("m.") ||
-        domain.startsWith("notifications.")) return true;
+      domain.startsWith("e.") || domain.startsWith("m.") ||
+      domain.startsWith("notifications.")) return true;
   }
 
   if (nameLower.includes("no reply") || nameLower.includes("noreply") ||
-      nameLower.includes("notification") || nameLower.includes("automated")) return true;
+    nameLower.includes("notification") || nameLower.includes("automated")) return true;
 
   return false;
 }
@@ -176,48 +169,26 @@ function stringSimilarity(s1: string, s2: string): number {
   return 1 - matrix[s1.length][s2.length] / Math.max(s1.length, s2.length);
 }
 
-async function getExistingActions(): Promise<Set<string>> {
+async function getExistingActions(userId: string): Promise<Set<string>> {
   const existing = new Set<string>();
-  const databases = [TASKS_DB, FOLLOW_UPS_DB].filter(Boolean) as string[];
 
-  for (const dbId of databases) {
-    try {
-      const response = await notion.databases.query({
-        database_id: normalizeDatabaseId(dbId),
-        page_size: 100,
-      });
-      for (const page of response.results) {
-        const name = (page as any).properties?.Name?.title?.[0]?.plain_text || "";
-        if (name) {
-          existing.add(name.replace(/^[📋📅📤⏳]\s*/, "").toLowerCase().trim());
-        }
-      }
-    } catch (err) {
-      console.error(`Error fetching ${dbId}:`, err);
-    }
-  }
+  const tasks = await getTasks(userId);
+  const followups = await getFollowUps(userId);
+
+  for (const t of tasks) existing.add(t.title.replace(/^[📋📅📤⏳]\s*/, "").toLowerCase().trim());
+  for (const f of followups) existing.add(f.name.replace(/^[📋📅📤⏳]\s*/, "").toLowerCase().trim());
+
   return existing;
 }
 
-async function getExistingContacts(): Promise<Map<string, string>> {
-  const contacts = new Map<string, string>();
-  if (!SECOND_BRAIN_DB) return contacts;
+async function getExistingContacts(userId: string): Promise<Map<string, string>> {
+  const contactsMap = new Map<string, string>();
+  const contacts = await getContacts(userId);
 
-  try {
-    const response = await notion.databases.query({
-      database_id: normalizeDatabaseId(SECOND_BRAIN_DB),
-      page_size: 100,
-    });
-    for (const page of response.results) {
-      const props = (page as any).properties || {};
-      const email = props.Email?.email?.toLowerCase();
-      const name = props.Name?.title?.[0]?.plain_text;
-      if (email) contacts.set(email, name || "Unknown");
-    }
-  } catch (err) {
-    console.error("Error fetching contacts:", err);
+  for (const c of contacts) {
+    if (c.email) contactsMap.set(c.email.toLowerCase(), c.name);
   }
-  return contacts;
+  return contactsMap;
 }
 
 // ============================================
@@ -343,26 +314,26 @@ Respond ONLY with valid JSON.`;
         // Add actions only if not automated
         if (!emailResult.isAutomated) {
           for (const action of emailResult.actions || []) {
-          // Calculate due date if not provided
-          let dueDate = action.dueDate;
-          if (!dueDate) {
-            const now = new Date();
-            if (action.priority === "high") now.setDate(now.getDate() + 1);
-            else if (action.priority === "medium") now.setDate(now.getDate() + 3);
-            else now.setDate(now.getDate() + 7);
-            dueDate = now.toISOString().split("T")[0];
-          }
+            // Calculate due date if not provided
+            let dueDate = action.dueDate;
+            if (!dueDate) {
+              const now = new Date();
+              if (action.priority === "high") now.setDate(now.getDate() + 1);
+              else if (action.priority === "medium") now.setDate(now.getDate() + 3);
+              else now.setDate(now.getDate() + 7);
+              dueDate = now.toISOString().split("T")[0];
+            }
 
-          allActions.push({
-            type: action.type,
-            priority: action.priority,
-            description: action.description,
-            dueDate,
-            context: action.context,
-            fromName: email.fromName,
-            fromEmail: email.fromEmail,
-            subject: email.subject,
-            messageId: email.id,
+            allActions.push({
+              type: action.type,
+              priority: action.priority,
+              description: action.description,
+              dueDate,
+              context: action.context,
+              fromName: email.fromName,
+              fromEmail: email.fromEmail,
+              subject: email.subject,
+              messageId: email.id,
             });
           }
         }
@@ -379,10 +350,7 @@ Respond ONLY with valid JSON.`;
 // Auto-Create Functions
 // ============================================
 
-async function createTask(action: ActionItem): Promise<{ ok: boolean; id?: string; error?: string }> {
-  const targetDb = TASKS_DB || FOLLOW_UPS_DB;
-  if (!targetDb) return { ok: false, error: "No database configured" };
-
+async function createTaskWrapper(userId: string, action: ActionItem): Promise<{ ok: boolean; id?: string; error?: string }> {
   const prefix = action.type === "commitment" ? "📤" : "📋";
   const name = `${prefix} ${action.description}`;
 
@@ -392,86 +360,52 @@ Context: ${action.context}
 Auto-created by Pulse AI`;
 
   try {
-    const response = await notion.pages.create({
-      parent: { database_id: normalizeDatabaseId(targetDb) },
-      properties: {
-        Name: { title: [{ text: { content: name } }] },
-        Status: { select: { name: "Not Started" } },
-        Priority: { select: { name: action.priority.charAt(0).toUpperCase() + action.priority.slice(1) } },
-        "Due Date": { date: { start: action.dueDate || new Date().toISOString().split("T")[0] } },
-      },
+    const newTask = await createTask(userId, {
+      title: name,
+      status: 'todo',
+      priority: action.priority.charAt(0).toUpperCase() + action.priority.slice(1),
+      due_at: action.dueDate || new Date().toISOString().split("T")[0],
+      // Note: We might be losing 'contextNote' here as Supabase Tasks table might not have body/description yet.
+      // If we need it, we should add 'description' col to tasks. 
+      // For now, appending to title or ignoring is best effort.
     });
 
-    // Add context block
-    try {
-      await notion.blocks.children.append({
-        block_id: response.id,
-        children: [{
-          object: "block",
-          type: "callout",
-          callout: {
-            icon: { emoji: "🤖" },
-            rich_text: [{ type: "text", text: { content: contextNote } }],
-          },
-        }],
-      });
-    } catch {}
-
-    return { ok: true, id: response.id };
+    return { ok: true, id: newTask.id };
   } catch (err: any) {
     return { ok: false, error: err.message };
   }
 }
 
-async function createFollowUp(action: ActionItem): Promise<{ ok: boolean; id?: string; error?: string }> {
-  if (!FOLLOW_UPS_DB) return { ok: false, error: "No Follow-Ups database" };
-
+async function createFollowUpWrapper(userId: string, action: ActionItem): Promise<{ ok: boolean; id?: string; error?: string }> {
   const prefix = action.type === "waiting_on" ? "⏳" : "📅";
   const name = `${prefix} ${action.description}`;
   const typeLabel = action.type === "waiting_on" ? "Check-in" : "Follow-up";
 
-  const contextNote = `From: ${action.fromName} (${action.fromEmail})
-Subject: ${action.subject}
-Context: ${action.context}
-Auto-created by Pulse AI`;
-
   try {
-    const response = await notion.pages.create({
-      parent: { database_id: normalizeDatabaseId(FOLLOW_UPS_DB) },
-      properties: {
-        Name: { title: [{ text: { content: name } }] },
-        Status: { select: { name: "Pending" } },
-        Priority: { select: { name: action.priority.charAt(0).toUpperCase() + action.priority.slice(1) } },
-        "Due Date": { date: { start: action.dueDate || new Date().toISOString().split("T")[0] } },
-        Type: { select: { name: typeLabel } },
-        Channel: { select: { name: "Email" } },
-        Context: { rich_text: [{ text: { content: contextNote } }] },
-      },
+    const followup = await createFollowUp(userId, {
+      name: name,
+      status: 'pending',
+      priority: action.priority.charAt(0).toUpperCase() + action.priority.slice(1),
+      due_date: action.dueDate || new Date().toISOString().split("T")[0],
+      type: typeLabel,
     });
 
-    return { ok: true, id: response.id };
+    return { ok: true, id: followup.id };
   } catch (err: any) {
     return { ok: false, error: err.message };
   }
 }
 
-async function createContact(contact: ContactItem): Promise<{ ok: boolean; id?: string; error?: string }> {
-  if (!SECOND_BRAIN_DB) return { ok: false, error: "No Second Brain database" };
-
+async function createContactWrapper(userId: string, contact: ContactItem): Promise<{ ok: boolean; id?: string; error?: string }> {
   try {
-    const response = await notion.pages.create({
-      parent: { database_id: normalizeDatabaseId(SECOND_BRAIN_DB) },
-      properties: {
-        Name: { title: [{ text: { content: contact.name } }] },
-        Type: { select: { name: "Person" } },
-        Company: { rich_text: [{ text: { content: contact.company || "" } }] },
-        "Raw Data": { rich_text: [{ text: { content: `Email: ${contact.email}\nAuto-added by Pulse AI from: "${contact.subject}"` } }] },
-        "Last Contact": { date: { start: new Date().toISOString().split("T")[0] } },
-        "Relationship Strength": { select: { name: "New" } },
-      },
+    const newContact = await createContact(userId, {
+      name: contact.name,
+      email: contact.email,
+      company: contact.company,
+      // tags: ['Auto-Added'], // if supported
     });
 
-    return { ok: true, id: response.id };
+    return { ok: true, id: newContact.id };
   } catch (err: any) {
     return { ok: false, error: err.message };
   }
@@ -483,8 +417,11 @@ async function createContact(contact: ContactItem): Promise<{ ok: boolean; id?: 
 
 export async function POST(req: NextRequest) {
   try {
+    const { userId } = await auth();
+    if (!userId) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+
     const body = await req.json();
-    let { accessToken, refreshToken, maxResults = 100, daysBack = 7 } = body;
+    const { accessToken, refreshToken, maxResults = 100, daysBack = 7 } = body;
 
     if (!accessToken) {
       return NextResponse.json({ ok: false, error: "Missing access token" }, { status: 401 });
@@ -551,8 +488,8 @@ export async function POST(req: NextRequest) {
     console.log(`📧 Found ${messages.length} messages`);
 
     // Get existing data for duplicate detection
-    const existingActions = await getExistingActions();
-    const existingContacts = await getExistingContacts();
+    const existingActions = await getExistingActions(userId);
+    const existingContacts = await getExistingContacts(userId);
     console.log(`📋 Checking against ${existingActions.size} existing actions, ${existingContacts.size} contacts`);
 
     // Fetch and filter emails
@@ -625,13 +562,13 @@ export async function POST(req: NextRequest) {
       // Create based on type
       let result;
       if (action.type === "task" || action.type === "commitment") {
-        result = await createTask(action);
+        result = await createTaskWrapper(userId, action);
         if (result.ok) {
           results.created.tasks.push(action.description);
           existingActions.add(normalized); // Prevent duplicates in same run
         }
       } else {
-        result = await createFollowUp(action);
+        result = await createFollowUpWrapper(userId, action);
         if (result.ok) {
           results.created.followUps.push(action.description);
           existingActions.add(normalized);
@@ -662,7 +599,7 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      const result = await createContact(contact);
+      const result = await createContactWrapper(userId, contact);
       if (result.ok) {
         results.contactsCreated++;
         results.created.contacts.push(contact.name);

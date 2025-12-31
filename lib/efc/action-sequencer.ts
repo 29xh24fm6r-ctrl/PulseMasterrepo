@@ -254,7 +254,7 @@ export function generateFocusBlockSequence(
   const { durationMinutes, energy, focusArea } = options;
 
   // Filter to focus-appropriate actions
-  let filtered = actions.filter(
+  const filtered = actions.filter(
     (a) =>
       a.estimated_minutes <= durationMinutes &&
       (a.energy_required === energy ||

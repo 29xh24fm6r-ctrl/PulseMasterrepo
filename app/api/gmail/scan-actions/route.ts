@@ -1,24 +1,13 @@
 import { canMakeAICall, trackAIUsage } from "@/lib/services/usage";
 import { NextRequest, NextResponse } from "next/server";
 import { google } from "googleapis";
-import { Client } from "@notionhq/client";
+import { auth } from "@clerk/nextjs/server";
 import OpenAI from "openai";
 import { refreshAccessToken } from "@/app/lib/gmail-utils";
+import { getContactByEmail } from "@/lib/data/journal";
 
-const NOTION_API_KEY = process.env.NOTION_API_KEY;
-const SECOND_BRAIN_DB = process.env.NOTION_DATABASE_SECOND_BRAIN;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-
-if (!NOTION_API_KEY) {
-  throw new Error("Missing NOTION_API_KEY");
-}
-
-const notion = new Client({ auth: NOTION_API_KEY });
 const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
-
-function normalizeDatabaseId(id: string): string {
-  return id.replace(/-/g, "");
-}
 
 // ============================================
 // BLOCKED DOMAINS - Skip entirely
@@ -85,16 +74,16 @@ const BULK_EMAIL_KEYWORDS = [
 function isBlockedEmail(email: string, name: string): boolean {
   const emailLower = email.toLowerCase();
   const nameLower = name.toLowerCase();
-  
+
   // Check blocked patterns
   for (const pattern of BLOCKED_EMAIL_PATTERNS) {
     if (pattern.test(emailLower)) return true;
   }
-  
+
   // Check blocked domains
   const domain = emailLower.split("@")[1];
   if (domain && BLOCKED_DOMAINS.has(domain)) return true;
-  
+
   // Check subdomains of blocked domains
   if (domain) {
     const parts = domain.split(".");
@@ -112,20 +101,20 @@ function isBlockedEmail(email: string, name: string): boolean {
       domain.startsWith("messages.") || domain.startsWith("notifications.")
     ) return true;
   }
-  
+
   // Check name patterns
   if (
     nameLower.includes("no reply") || nameLower.includes("noreply") ||
     nameLower.includes("do not reply") || nameLower.includes("notification") ||
     nameLower.includes("automated") || nameLower.includes("customer service")
   ) return true;
-  
+
   return false;
 }
 
 function isBulkEmailByContent(subject: string, body: string): boolean {
   const combined = (subject + " " + body).toLowerCase();
-  
+
   // Check for bulk email keywords
   let keywordMatches = 0;
   for (const keyword of BULK_EMAIL_KEYWORDS) {
@@ -133,10 +122,10 @@ function isBulkEmailByContent(subject: string, body: string): boolean {
       keywordMatches++;
     }
   }
-  
+
   // If 2+ bulk keywords, likely bulk email
   if (keywordMatches >= 2) return true;
-  
+
   // Check for common transactional patterns
   if (
     combined.includes("your statement") ||
@@ -147,7 +136,7 @@ function isBulkEmailByContent(subject: string, body: string): boolean {
     combined.includes("log in to") && combined.includes("view") ||
     combined.includes("sign in to") && combined.includes("view")
   ) return true;
-  
+
   return false;
 }
 
@@ -417,30 +406,18 @@ Respond ONLY with the JSON array.`;
 }
 
 // ============================================
-// Find person in Second Brain
+// Find person in Second Brain (Supabase Contacts)
 // ============================================
 
-async function findPersonByEmail(email: string): Promise<{ id: string; name: string } | null> {
-  if (!SECOND_BRAIN_DB) return null;
-
+async function findPersonByEmail(userId: string, email: string): Promise<{ id: string; name: string } | null> {
   try {
-    const response = await notion.databases.query({
-      database_id: normalizeDatabaseId(SECOND_BRAIN_DB),
-      filter: {
-        property: "Email",
-        email: { equals: email.toLowerCase() },
-      },
-    });
-
-    if (response.results.length > 0) {
-      const page = response.results[0] as any;
-      const name = page.properties?.Name?.title?.[0]?.plain_text || "Unknown";
-      return { id: page.id, name };
+    const contact = await getContactByEmail(userId, email);
+    if (contact) {
+      return { id: contact.id, name: contact.name };
     }
   } catch (err) {
     console.error("Error finding person:", err);
   }
-
   return null;
 }
 
@@ -450,8 +427,13 @@ async function findPersonByEmail(email: string): Promise<{ id: string; name: str
 
 export async function POST(req: NextRequest) {
   try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await req.json();
-    let { accessToken, refreshToken, maxResults = 50, daysBack = 7 } = body;
+    const { accessToken, refreshToken, maxResults = 50, daysBack = 7 } = body;
 
     if (!accessToken) {
       return NextResponse.json({ ok: false, error: "Missing access token" }, { status: 401 });
@@ -575,9 +557,9 @@ export async function POST(req: NextRequest) {
     const detectedActions = await detectActionsInEmails(actionableEmails);
     console.log(`✅ Found ${detectedActions.length} actionable items`);
 
-    // Enrich with Second Brain data
+    // Enrich with Second Brain data (Supabase Contacts)
     for (const action of detectedActions) {
-      const person = await findPersonByEmail(action.fromEmail);
+      const person = await findPersonByEmail(userId, action.fromEmail);
       if (person) {
         (action as any).personId = person.id;
         (action as any).personName = person.name;

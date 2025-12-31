@@ -1,0 +1,1032 @@
+{
+  "counts": {
+    "pages": 0,
+    "apis": 0,
+    "referencedApis": 155,
+    "missingApis": 155
+  },
+  "pages": [],
+  "apis": [],
+  "missingApis": [
+    {
+      "endpoint": "/api/achievements",
+      "referencedBy": [
+        "app\\achievements\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/achievements?limit=5",
+      "referencedBy": [
+        "app\\growth\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/activity/recent?limit=10",
+      "referencedBy": [
+        "app\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/admin/stats",
+      "referencedBy": [
+        "app\\admin\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/autonomy/actions?status=suggested&limit=3",
+      "referencedBy": [
+        "app\\components\\AutonomyWidget.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/campaigns",
+      "referencedBy": [
+        "app\\campaigns\\page.tsx",
+        "app\\campaigns\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/campaigns?mode=templates",
+      "referencedBy": [
+        "app\\campaigns\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/capture",
+      "referencedBy": [
+        "app\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/career/advancement",
+      "referencedBy": [
+        "app\\career-coach\\advancement\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/career/chat",
+      "referencedBy": [
+        "app\\career-coach\\chat\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/career/deep-dive",
+      "referencedBy": [
+        "app\\career-coach\\deep-dive\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/career/job-model",
+      "referencedBy": [
+        "app\\career-coach\\advancement\\page.tsx",
+        "app\\career-coach\\chat\\page.tsx",
+        "app\\career-coach\\deep-dive\\page.tsx",
+        "app\\career-coach\\deep-dive\\page.tsx",
+        "app\\career-coach\\page.tsx",
+        "app\\career-coach\\page.tsx",
+        "app\\career-coach\\page.tsx",
+        "app\\career-coach\\roleplay\\page.tsx",
+        "app\\career-coach\\skills\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/career/roleplay",
+      "referencedBy": [
+        "app\\career-coach\\roleplay\\page.tsx",
+        "app\\career-coach\\roleplay\\page.tsx",
+        "app\\career-coach\\roleplay\\page.tsx",
+        "app\\career-coach\\roleplay\\page.tsx",
+        "app\\career-coach\\roleplay\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/career/roleplay?action=categories",
+      "referencedBy": [
+        "app\\career-coach\\roleplay\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/career/skills",
+      "referencedBy": [
+        "app\\career-coach\\skills\\page.tsx",
+        "app\\career-coach\\skills\\page.tsx",
+        "app\\career-coach\\skills\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/career/stats",
+      "referencedBy": [
+        "app\\career-coach\\chat\\page.tsx",
+        "app\\career-coach\\page.tsx",
+        "app\\career-coach\\roleplay\\page.tsx",
+        "app\\career-coach\\skills\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/coach/chat",
+      "referencedBy": [
+        "app\\components\\coach-interface.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/coach/suggestions",
+      "referencedBy": [
+        "app\\components\\coach-interface.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/comm/call/list",
+      "referencedBy": [
+        "app\\calls\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/comm/call/outbound",
+      "referencedBy": [
+        "app\\calls\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/comm/call/save-to-brain",
+      "referencedBy": [
+        "app\\calls\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/comm/caller-id",
+      "referencedBy": [
+        "app\\calls\\page.tsx",
+        "app\\calls\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/contacts",
+      "referencedBy": [
+        "app\\oracle\\page.tsx",
+        "app\\second-brain\\page.tsx",
+        "app\\second-brain\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/contacts/scoring",
+      "referencedBy": [
+        "app\\contacts\\scoring\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/contacts/scoring?limit=5&sortBy=score",
+      "referencedBy": [
+        "app\\components\\contact-score-widget.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/cron",
+      "referencedBy": [
+        "app\\setup\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/cron/proactive",
+      "referencedBy": [
+        "app\\hooks\\use-proactive-nudges.ts"
+      ]
+    },
+    {
+      "endpoint": "/api/dashboard/v3",
+      "referencedBy": [
+        "app\\home\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/deals/create",
+      "referencedBy": [
+        "app\\components\\quick-actions-fab.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/deals/pull",
+      "referencedBy": [
+        "app\\components\\deal-pipeline-widget.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/deals/update-status",
+      "referencedBy": [
+        "app\\deals\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/deals?limit=10",
+      "referencedBy": [
+        "app\\home\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/deals?limit=20",
+      "referencedBy": [
+        "app\\work\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/delegation/drafts?status=pending&limit=3",
+      "referencedBy": [
+        "app\\components\\DelegationWidget.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/email/outbox/action",
+      "referencedBy": [
+        "app\\email\\queue\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/email/outbox/pending",
+      "referencedBy": [
+        "app\\email\\queue\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/emotion",
+      "referencedBy": [
+        "app\\emotions\\page.tsx",
+        "app\\emotions\\page.tsx",
+        "app\\wellness\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/emotion?limit=3",
+      "referencedBy": [
+        "app\\productivity\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/emotion?limit=30",
+      "referencedBy": [
+        "app\\wellness\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/emotional/checkin",
+      "referencedBy": [
+        "app\\components\\EmotionalCheckInWidget.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/emotional/checkin?mode=state",
+      "referencedBy": [
+        "app\\components\\EmotionalCheckInWidget.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/emotional/checkin?mode=today",
+      "referencedBy": [
+        "app\\components\\EmotionalCheckInWidget.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/executive/summary",
+      "referencedBy": [
+        "app\\components\\ExecutiveWidget.tsx",
+        "app\\components\\ExecutiveWidget.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/follow-ups/create",
+      "referencedBy": [
+        "app\\live-coach\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/follow-ups/draft-message",
+      "referencedBy": [
+        "app\\follow-ups\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/follow-ups/pull",
+      "referencedBy": [
+        "app\\follow-ups\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/follow-ups/update-status",
+      "referencedBy": [
+        "app\\follow-ups\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/follow-ups?status=pending&limit=10",
+      "referencedBy": [
+        "app\\home\\page.tsx",
+        "app\\work\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/frontier/dashboard",
+      "referencedBy": [
+        "app\\frontier\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/gmail/auth",
+      "referencedBy": [
+        "app\\follow-ups\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/gmail/create-action",
+      "referencedBy": [
+        "app\\action-scanner\\page.tsx",
+        "app\\email-intelligence\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/gmail/email-intelligence",
+      "referencedBy": [
+        "app\\email-intelligence\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/gmail/scan-actions",
+      "referencedBy": [
+        "app\\action-scanner\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/gmail/scan-contacts",
+      "referencedBy": [
+        "app\\contact-scanner\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/gmail/send",
+      "referencedBy": [
+        "app\\follow-ups\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/goals",
+      "referencedBy": [
+        "app\\components\\goals-widget.tsx",
+        "app\\goals\\page.tsx",
+        "app\\goals\\page.tsx",
+        "app\\goals\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/goals?limit=10",
+      "referencedBy": [
+        "app\\strategy\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/habits",
+      "referencedBy": [
+        "app\\growth\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/habits/log",
+      "referencedBy": [
+        "app\\components\\habit-streak-widget.tsx",
+        "app\\habits\\page.tsx",
+        "app\\hooks\\use-identity-xp.ts"
+      ]
+    },
+    {
+      "endpoint": "/api/habits/pull",
+      "referencedBy": [
+        "app\\components\\habit-streak-widget.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/identity/activate",
+      "referencedBy": [
+        "app\\identity\\dashboard\\page.tsx",
+        "app\\identity\\dashboard\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/identity/momentum",
+      "referencedBy": [
+        "app\\growth\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/identity/north-star",
+      "referencedBy": [
+        "app\\identity\\dashboard\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/identity/profile",
+      "referencedBy": [
+        "app\\components\\identity-widget.tsx",
+        "app\\identity\\dashboard\\page.tsx",
+        "app\\identity\\dashboard\\page.tsx",
+        "app\\identity\\graphs\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/identity/track",
+      "referencedBy": [
+        "app\\identity\\dashboard\\page.tsx",
+        "app\\identity\\dashboard\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/intelligence",
+      "referencedBy": [
+        "app\\intelligence\\page.tsx",
+        "app\\intelligence\\page.tsx",
+        "app\\intelligence\\page.tsx",
+        "app\\intelligence\\page.tsx",
+        "app\\intelligence\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/jarvis/command",
+      "referencedBy": [
+        "app\\jarvis\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/jobs",
+      "referencedBy": [
+        "app\\settings\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/journal/chat",
+      "referencedBy": [
+        "app\\journal\\page.tsx",
+        "app\\journal\\page.tsx",
+        "app\\journal\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/journal/save",
+      "referencedBy": [
+        "app\\hooks\\use-identity-xp.ts"
+      ]
+    },
+    {
+      "endpoint": "/api/live-coach/analyze",
+      "referencedBy": [
+        "app\\live-coach\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/live-coach/quick-coach",
+      "referencedBy": [
+        "app\\live-coach\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/live-coach/summary",
+      "referencedBy": [
+        "app\\live-coach\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/longitudinal",
+      "referencedBy": [
+        "app\\life\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/longitudinal?type=chapter",
+      "referencedBy": [
+        "app\\life\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/morning-brief",
+      "referencedBy": [
+        "app\\morning-brief\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/morning-briefing",
+      "referencedBy": [
+        "app\\morning\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/motivation",
+      "referencedBy": [
+        "app\\motivation\\page.tsx",
+        "app\\motivation\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/nightly-shutdown",
+      "referencedBy": [
+        "app\\shutdown\\page.tsx",
+        "app\\shutdown\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/notifications",
+      "referencedBy": [
+        "app\\components\\SmartNotifications.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/notifications/center",
+      "referencedBy": [
+        "app\\notifications\\center\\page.tsx",
+        "app\\notifications\\center\\page.tsx",
+        "app\\notifications\\center\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/notion/deals",
+      "referencedBy": [
+        "app\\deals\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/notion/habits",
+      "referencedBy": [
+        "app\\habits\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/onboarding/next",
+      "referencedBy": [
+        "app\\onboarding\\page.tsx",
+        "app\\onboarding\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/onboarding/skip",
+      "referencedBy": [
+        "app\\onboarding\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/oracle/ask",
+      "referencedBy": [
+        "app\\oracle\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/oracle/intel",
+      "referencedBy": [
+        "app\\oracle\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/packs",
+      "referencedBy": [
+        "app\\packs\\page.tsx",
+        "app\\packs\\page.tsx",
+        "app\\packs\\page.tsx",
+        "app\\setup\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/packs?mode=installed",
+      "referencedBy": [
+        "app\\packs\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/packs?mode=recommendations",
+      "referencedBy": [
+        "app\\packs\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/personas",
+      "referencedBy": [
+        "app\\settings\\personas\\page.tsx",
+        "app\\settings\\personas\\page.tsx",
+        "app\\settings\\personas\\page.tsx",
+        "app\\settings\\personas\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/personas?mode=templates",
+      "referencedBy": [
+        "app\\settings\\personas\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/philosophy/achievements",
+      "referencedBy": [
+        "app\\components\\PhilosophyDojoWidget.tsx",
+        "app\\philosophy-dojo\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/philosophy/achievements?check=true",
+      "referencedBy": [
+        "app\\philosophy-dojo\\achievements\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/philosophy/daily-challenge?count=1",
+      "referencedBy": [
+        "app\\components\\PhilosophyDojoWidget.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/philosophy/daily-challenge?count=3",
+      "referencedBy": [
+        "app\\philosophy-dojo\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/philosophy/mentor-session",
+      "referencedBy": [
+        "app\\philosophy-dojo\\mentor\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/philosophy/skills",
+      "referencedBy": [
+        "app\\philosophy-dojo\\skill-tree\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/philosophy/skills?all=true",
+      "referencedBy": [
+        "app\\components\\PhilosophyDojoWidget.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/philosophy/streaks",
+      "referencedBy": [
+        "app\\components\\PhilosophyDojoWidget.tsx",
+        "app\\philosophy-dojo\\page.tsx",
+        "app\\philosophy-dojo\\skill-tree\\page.tsx",
+        "app\\philosophy-dojo\\skill-tree\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/philosophy/training",
+      "referencedBy": [
+        "app\\philosophy-dojo\\skill-tree\\page.tsx",
+        "app\\philosophy-dojo\\training\\page.tsx",
+        "app\\philosophy-dojo\\training\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/planner",
+      "referencedBy": [
+        "app\\components\\TodaysPlanWidget.tsx",
+        "app\\components\\TodaysPlanWidget.tsx",
+        "app\\planner\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/plugins",
+      "referencedBy": [
+        "app\\plugins\\page.tsx",
+        "app\\plugins\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/plugins?type=available",
+      "referencedBy": [
+        "app\\plugins\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/proactive/interventions",
+      "referencedBy": [
+        "app\\components\\ProactiveWidget.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/proactive/interventions?refresh=true",
+      "referencedBy": [
+        "app\\components\\ProactiveWidget.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/profile",
+      "referencedBy": [
+        "app\\settings\\billing\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/pulse-capture/analyze",
+      "referencedBy": [
+        "app\\pulse-capture\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/pulse-capture/save",
+      "referencedBy": [
+        "app\\pulse-capture\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/pulse-capture/youtube",
+      "referencedBy": [
+        "app\\pulse-capture\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/pulse-capture/youtube-transcript",
+      "referencedBy": [
+        "app\\pulse-capture\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/pulse-listen/analyze",
+      "referencedBy": [
+        "app\\call-coach\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/pulse-listen/transcribe",
+      "referencedBy": [
+        "app\\call-coach\\page.tsx",
+        "app\\live-coach\\page.tsx",
+        "app\\live-coach\\page.tsx",
+        "app\\pulse-capture\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/pulse/actions",
+      "referencedBy": [
+        "app\\components\\global-voice-button.tsx",
+        "app\\components\\pulse-insights-widget.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/pulse/autonomous",
+      "referencedBy": [
+        "app\\pulse-ai\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/pulse/chat",
+      "referencedBy": [
+        "app\\pulse\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/pulse/proactive",
+      "referencedBy": [
+        "app\\components\\global-voice-button.tsx",
+        "app\\components\\proactive-insights-widget.tsx",
+        "app\\components\\proactive-insights.tsx",
+        "app\\components\\pulse-insights-widget.tsx",
+        "app\\components\\pulse-insights-widget.tsx",
+        "app\\components\\pulse-notifications-widget.tsx",
+        "app\\notifications\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/realtime/session",
+      "referencedBy": [
+        "app\\components\\global-voice-button.tsx",
+        "app\\journal\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/relationships",
+      "referencedBy": [
+        "app\\relationships\\page.tsx",
+        "app\\relationships\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/relationships?mode=insights",
+      "referencedBy": [
+        "app\\relationships\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/relationships?mode=recalculate",
+      "referencedBy": [
+        "app\\relationships\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/roleplay-coach",
+      "referencedBy": [
+        "app\\roleplay-coach\\page.tsx",
+        "app\\roleplay-coach\\page.tsx",
+        "app\\roleplay-coach\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/second-brain/create",
+      "referencedBy": [
+        "app\\components\\quick-actions-fab.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/second-brain/create-from-email",
+      "referencedBy": [
+        "app\\contact-scanner\\page.tsx",
+        "app\\email-intelligence\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/second-brain/pull",
+      "referencedBy": [
+        "app\\call-coach\\page.tsx",
+        "app\\live-coach\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/simulation",
+      "referencedBy": [
+        "app\\life\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/simulation/scenarios",
+      "referencedBy": [
+        "app\\life-intelligence\\simulation\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/simulations/create",
+      "referencedBy": [
+        "app\\strategy\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/simulations?limit=5",
+      "referencedBy": [
+        "app\\strategy\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/stripe/checkout",
+      "referencedBy": [
+        "app\\settings\\billing\\page.tsx",
+        "app\\settings\\billing\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/stripe/portal",
+      "referencedBy": [
+        "app\\settings\\billing\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/tasks/complete",
+      "referencedBy": [
+        "app\\components\\tasks-widget.tsx",
+        "app\\hooks\\use-identity-xp.ts",
+        "app\\tasks\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/tasks/create",
+      "referencedBy": [
+        "app\\components\\quick-actions-fab.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/tasks/pull",
+      "referencedBy": [
+        "app\\components\\tasks-widget.tsx",
+        "app\\tasks\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/tasks?status=pending&limit=10",
+      "referencedBy": [
+        "app\\home\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/tasks?status=pending,in_progress&limit=30",
+      "referencedBy": [
+        "app\\productivity\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/teaching",
+      "referencedBy": [
+        "app\\settings\\teaching\\page.tsx",
+        "app\\settings\\teaching\\page.tsx",
+        "app\\settings\\teaching\\page.tsx",
+        "app\\settings\\teaching\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/teaching?all=true",
+      "referencedBy": [
+        "app\\settings\\teaching\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/teaching?mode=analytics",
+      "referencedBy": [
+        "app\\settings\\teaching\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/teaching?mode=feedback",
+      "referencedBy": [
+        "app\\settings\\teaching\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/third-brain/insights?limit=6",
+      "referencedBy": [
+        "app\\strategy\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/third-brain/insights?status=open&limit=3",
+      "referencedBy": [
+        "app\\components\\ThirdBrainWidget.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/today",
+      "referencedBy": [
+        "app\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/user/profile",
+      "referencedBy": [
+        "app\\settings\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/user/settings",
+      "referencedBy": [
+        "app\\voice-settings\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/user/sync",
+      "referencedBy": [
+        "app\\providers\\user-provider.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/voice/session",
+      "referencedBy": [
+        "app\\components\\voice-chat.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/voice/simulate",
+      "referencedBy": [
+        "app\\life-intelligence\\simulation\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/weekly-plan",
+      "referencedBy": [
+        "app\\weekly-plan\\page.tsx",
+        "app\\weekly-plan\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/weekly-plan?mode=suggestions",
+      "referencedBy": [
+        "app\\weekly-plan\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/xp",
+      "referencedBy": [
+        "app\\dojo\\page.tsx",
+        "app\\growth\\page.tsx",
+        "app\\home\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/xp/log",
+      "referencedBy": [
+        "app\\components\\pomodoro-timer.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/xp/log?period=all",
+      "referencedBy": [
+        "app\\components\\xp-ascension-widget.tsx",
+        "app\\morning\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/xp/log?period=today",
+      "referencedBy": [
+        "app\\components\\xp-ascension-widget.tsx",
+        "app\\morning\\page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/xp?history=true",
+      "referencedBy": [
+        "app\\xp\\page.tsx"
+      ]
+    }
+  ]
+}

@@ -1,214 +1,140 @@
 import { NextResponse } from 'next/server';
-import { Client } from '@notionhq/client';
-
-const notion = new Client({ auth: process.env.NOTION_API_KEY });
-
-// Database IDs from environment
-const TASKS_DB = process.env.NOTION_DATABASE_TASKS;
-const HABITS_DB = process.env.NOTION_DATABASE_HABITS;
-const DEALS_DB = process.env.NOTION_DATABASE_DEALS;
-const SECOND_BRAIN_DB = process.env.NOTION_DATABASE_SECOND_BRAIN;
-const FOLLOW_UPS_DB = process.env.NOTION_DATABASE_FOLLOW_UPS;
+import { auth } from "@clerk/nextjs/server";
+import { createTask, completeTask, getTasks, Task } from '@/lib/data/tasks';
+import { getHabits, logHabitCompletion } from '@/lib/data/habits';
+import { getDeals } from '@/lib/data/deals';
+import { createFollowUp } from '@/lib/data/followups';
 
 export async function POST(request: Request) {
   try {
+    const { userId } = await auth();
+    if (!userId) return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+
     const { action, args } = await request.json();
-    
+
     console.log('Executing action:', action, args);
-    
+
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
-    
+
     switch (action) {
       // ============================================
       // CREATE TASK
       // ============================================
       case 'create_task': {
-        if (!TASKS_DB) {
-          return NextResponse.json({ success: false, error: 'Tasks database not configured' });
-        }
-        
-        const properties: any = {
-          Name: { title: [{ text: { content: args.title || args.task_name || 'New Task' } }] },
-          Status: { select: { name: 'Not Started' } },
-        };
-        
-        if (args.priority) {
-          properties.Priority = { select: { name: args.priority } };
-        }
-        
-        if (args.due_date) {
-          properties['Due Date'] = { date: { start: args.due_date } };
-        }
-        
-        await notion.pages.create({
-          parent: { database_id: TASKS_DB },
-          properties,
+        const task = await createTask(userId, {
+          title: args.title || args.task_name || 'New Task',
+          status: 'pending',
+          priority: args.priority || 'Medium',
+          due_at: args.due_date,
+          description: args.description
         });
-        
-        return NextResponse.json({ 
-          success: true, 
-          message: `Created task: ${args.title || args.task_name}`,
-          task: args.title || args.task_name
+
+        return NextResponse.json({
+          success: true,
+          message: `Created task: ${task.title}`,
+          task: task.title
         });
       }
-      
+
       // ============================================
-      // COMPLETE TASK
+      // COMPLETE TASK (Search by name)
       // ============================================
       case 'complete_task': {
-        if (!TASKS_DB) {
-          return NextResponse.json({ success: false, error: 'Tasks database not configured' });
+        const searchTerm = (args.task_name || args.task_search || '').toLowerCase();
+        if (!searchTerm) {
+          return NextResponse.json({ success: false, error: "Task name required" });
         }
-        
-        const searchTerm = args.task_name || args.task_search || '';
-        
-        const searchResponse = await notion.databases.query({
-          database_id: TASKS_DB,
-          filter: {
-            and: [
-              { property: 'Name', title: { contains: searchTerm } },
-              { property: 'Status', select: { does_not_equal: 'Done' } }
-            ]
-          },
-          page_size: 1
-        });
-        
-        if (searchResponse.results.length === 0) {
-          return NextResponse.json({ success: false, error: `No task found matching "${searchTerm}"` });
+
+        const tasks = await getTasks(userId);
+        const match = tasks.find(t => t.title.toLowerCase().includes(searchTerm) && t.status !== 'done');
+
+        if (!match) {
+          return NextResponse.json({ success: false, error: `No active task found matching "${searchTerm}"` });
         }
-        
-        const task = searchResponse.results[0] as any;
-        const taskName = task.properties.Name?.title?.[0]?.text?.content || searchTerm;
-        
-        await notion.pages.update({
-          page_id: task.id,
-          properties: { Status: { select: { name: 'Done' } } }
-        });
-        
-        return NextResponse.json({ success: true, message: `Completed: ${taskName}`, task: taskName });
+
+        const completed = await completeTask(userId, match.id);
+
+        return NextResponse.json({ success: true, message: `Completed: ${completed.title}`, task: completed.title });
       }
-      
+
       // ============================================
-      // LOG HABIT
+      // LOG HABIT (Search by name)
       // ============================================
       case 'log_habit': {
-        if (!HABITS_DB) {
-          return NextResponse.json({ success: false, error: 'Habits database not configured' });
+        const habitSearch = (args.habit_name || args.habit_search || '').toLowerCase();
+        if (!habitSearch) {
+          return NextResponse.json({ success: false, error: "Habit name required" });
         }
-        
-        const habitSearch = args.habit_name || args.habit_search || '';
-        
-        const searchResponse = await notion.databases.query({
-          database_id: HABITS_DB,
-          filter: { property: 'Name', title: { contains: habitSearch } },
-          page_size: 1
-        });
-        
-        if (searchResponse.results.length === 0) {
+
+        const habits = await getHabits(userId);
+        const match = habits.find(h => h.name.toLowerCase().includes(habitSearch));
+
+        if (!match) {
           return NextResponse.json({ success: false, error: `No habit found matching "${habitSearch}"` });
         }
-        
-        const habit = searchResponse.results[0] as any;
-        const habitName = habit.properties.Name?.title?.[0]?.text?.content || habitSearch;
-        const currentStreak = habit.properties.Streak?.number || 0;
-        
-        await notion.pages.update({
-          page_id: habit.id,
-          properties: {
-            'Last Completed': { date: { start: todayStr } },
-            'Streak': { number: currentStreak + 1 }
-          }
-        });
-        
-        return NextResponse.json({ 
-          success: true, 
-          message: `Logged ${habitName} - ${currentStreak + 1} day streak!`,
-          habit: habitName,
-          streak: currentStreak + 1
+
+        // Default XP 15 if not set
+        const updated = await logHabitCompletion(userId, match.id, match.xp_reward || 15);
+
+        return NextResponse.json({
+          success: true,
+          message: `Logged ${match.name} - ${updated.streak} day streak!`,
+          habit: match.name,
+          streak: updated.streak
         });
       }
-      
+
       // ============================================
       // GET TASKS
       // ============================================
       case 'get_tasks': {
-        if (!TASKS_DB) {
-          return NextResponse.json({ success: false, error: 'Tasks database not configured' });
-        }
-        
-        let filter: any = { property: 'Status', select: { does_not_equal: 'Done' } };
-        
+        const tasks = await getTasks(userId);
+        let filtered = tasks.filter(t => t.status !== 'done');
+
         if (args.filter === 'today') {
-          filter = {
-            and: [
-              { property: 'Due Date', date: { equals: todayStr } },
-              { property: 'Status', select: { does_not_equal: 'Done' } }
-            ]
-          };
+          filtered = filtered.filter(t => t.due_at && t.due_at.startsWith(todayStr));
         } else if (args.filter === 'overdue') {
-          filter = {
-            and: [
-              { property: 'Due Date', date: { before: todayStr } },
-              { property: 'Status', select: { does_not_equal: 'Done' } }
-            ]
-          };
+          filtered = filtered.filter(t => t.due_at && t.due_at < todayStr);
         }
-        
-        const response = await notion.databases.query({
-          database_id: TASKS_DB,
-          filter,
-          page_size: 10
-        });
-        
-        const tasks = response.results.map((page: any) => ({
-          name: page.properties.Name?.title?.[0]?.text?.content || 'Untitled',
-          priority: page.properties.Priority?.select?.name || 'Medium',
-          due_date: page.properties['Due Date']?.date?.start || null,
-        }));
-        
-        return NextResponse.json({ 
-          success: true, 
-          count: tasks.length,
-          tasks 
+
+        return NextResponse.json({
+          success: true,
+          count: filtered.length,
+          tasks: filtered.map(t => ({
+            name: t.title,
+            priority: t.priority,
+            due_date: t.due_at
+          }))
         });
       }
-      
+
       // ============================================
       // GET DEAL INFO
       // ============================================
       case 'get_deal_info': {
-        if (!DEALS_DB) {
-          return NextResponse.json({ success: false, error: 'Deals database not configured' });
-        }
-        
-        const dealSearch = args.search || args.deal_search || '';
-        
-        const response = await notion.databases.query({
-          database_id: DEALS_DB,
-          filter: {
-            or: [
-              { property: 'Name', title: { contains: dealSearch } },
-              { property: 'Company', rich_text: { contains: dealSearch } }
-            ]
-          },
-          page_size: 3
-        });
-        
-        if (response.results.length === 0) {
+        const dealSearch = (args.search || args.deal_search || '').toLowerCase();
+        const deals = await getDeals(userId);
+
+        const filtered = deals.filter(d =>
+          d.title.toLowerCase().includes(dealSearch) ||
+          (d.company && d.company.toLowerCase().includes(dealSearch))
+        ).slice(0, 3);
+
+        if (filtered.length === 0) {
           return NextResponse.json({ success: false, error: `No deals found matching "${dealSearch}"` });
         }
-        
-        const deals = response.results.map((page: any) => ({
-          name: page.properties.Name?.title?.[0]?.text?.content || 'Untitled',
-          company: page.properties.Company?.rich_text?.[0]?.text?.content || '',
-          stage: page.properties.Stage?.select?.name || 'Unknown',
-          value: page.properties.Value?.number || 0,
-        }));
-        
-        return NextResponse.json({ success: true, deals });
+
+        return NextResponse.json({
+          success: true, deals: filtered.map(d => ({
+            name: d.title,
+            company: d.company,
+            stage: d.stage,
+            value: d.value
+          }))
+        });
       }
-      
+
       // ============================================
       // NAVIGATE
       // ============================================
@@ -223,86 +149,71 @@ export async function POST(request: Request) {
           'morning-brief': '/morning-brief',
           'follow-ups': '/follow-ups',
         };
-        
+
         const url = routes[args.page] || '/';
-        
-        return NextResponse.json({ 
-          success: true, 
+
+        return NextResponse.json({
+          success: true,
           navigate: url,
           message: `Opening ${args.page}`
         });
       }
-      
+
       // ============================================
       // GET HABITS STATUS
       // ============================================
       case 'get_habits_status':
       case 'get_habits': {
-        if (!HABITS_DB) {
-          return NextResponse.json({ success: false, error: 'Habits database not configured' });
-        }
-        
-        const response = await notion.databases.query({
-          database_id: HABITS_DB,
-          page_size: 10
-        });
-        
-        const habits = response.results.map((page: any) => {
-          const lastCompleted = page.properties['Last Completed']?.date?.start;
+        const habits = await getHabits(userId);
+
+        const habitStatuses = habits.map(h => {
+          // Check if completed today using last_completed_at
+          const completedToday = h.last_completed_at ? h.last_completed_at.startsWith(todayStr) : false;
           return {
-            name: page.properties.Name?.title?.[0]?.text?.content || 'Untitled',
-            streak: page.properties.Streak?.number || 0,
-            completed_today: lastCompleted === todayStr
+            name: h.name,
+            streak: h.streak,
+            completed_today: completedToday
           };
         });
-        
-        return NextResponse.json({ 
-          success: true, 
+
+        return NextResponse.json({
+          success: true,
           total: habits.length,
-          completed_today: habits.filter(h => h.completed_today).length,
-          habits 
+          completed_today: habitStatuses.filter(h => h.completed_today).length,
+          habits: habitStatuses
         });
       }
-      
+
       // ============================================
       // CREATE FOLLOW UP
       // ============================================
       case 'create_follow_up': {
-        if (!FOLLOW_UPS_DB) {
-          return NextResponse.json({ success: false, error: 'Follow-ups database not configured' });
-        }
-        
-        const properties: any = {
-          Name: { title: [{ text: { content: `Follow up with ${args.person_name}: ${args.reason}` } }] },
-          Status: { select: { name: 'Pending' } },
-        };
-        
-        if (args.due_date) {
-          properties['Due Date'] = { date: { start: args.due_date } };
-        }
-        
-        await notion.pages.create({
-          parent: { database_id: FOLLOW_UPS_DB },
-          properties,
+        await createFollowUp(userId, {
+          name: `Follow up with ${args.person_name}: ${args.reason}`,
+          status: 'pending',
+          due_date: args.due_date,
+          priority: 'Medium',
+          type: 'general',
+          person_name: args.person_name
         });
-        
-        return NextResponse.json({ 
-          success: true, 
+
+        return NextResponse.json({
+          success: true,
           message: `Created follow-up for ${args.person_name}`
         });
       }
-      
+
       // ============================================
       // DEFAULT
       // ============================================
       default:
         console.log('Unknown action:', action);
-        return NextResponse.json({ 
-          success: false, 
-          error: `Unknown action: ${action}` 
+        return NextResponse.json({
+          success: false,
+          error: `Unknown action: ${action}`
         });
     }
-    
+
   } catch (error) {
     console.error('Action execution error:', error);
     return NextResponse.json(

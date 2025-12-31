@@ -28,7 +28,7 @@ function buildRoleplaySystemPrompt(config: RoleplaySessionConfig, internalState:
   const difficulty = config.difficulty;
   
   let personaDescription = "";
-  let behaviorGuidelines = "";
+  const behaviorGuidelines = "";
   
   if (profile) {
     // Use relationship profile

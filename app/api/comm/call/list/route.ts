@@ -1,5 +1,7 @@
 // GET /api/comm/call/list - List all call sessions
 import { NextResponse } from "next/server";
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 import { auth } from "@clerk/nextjs/server";
 import { listCallSessionsForUser, getCallStats } from "@/lib/comm/store";
 
