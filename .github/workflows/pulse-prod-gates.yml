@@ -8,14 +8,18 @@ on:
   workflow_dispatch:
 
 jobs:
-  canon-gate:
+  ci:
+    name: ci
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
+          cache: "npm"
 
       - name: Install deps
         run: npm ci
@@ -27,7 +31,7 @@ jobs:
 
   prod-smoke:
     runs-on: ubuntu-latest
-    needs: [canon-gate]
+    needs: [ci]
     if: github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
