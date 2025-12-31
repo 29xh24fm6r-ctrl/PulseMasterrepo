@@ -29,11 +29,16 @@ async function main() {
     const dbUrl = process.env.SUPABASE_DB_URL || process.env.DATABASE_URL;
 
     const isCi = process.env.CI === "true" || process.env.GITHUB_ACTIONS === "true";
-    const allowNoDb = isCi; // only allow no-db fallback in CI
+    const requireDb = process.env.CANON_REQUIRE_DB === "true";
 
     if (!dbUrl) {
-        if (!allowNoDb) {
-            console.error("❌ Missing required env var: SUPABASE_DB_URL (or DATABASE_URL)");
+        if (requireDb) {
+            console.error("✖ Missing required env var: SUPABASE_DB_URL (or DATABASE_URL) (CANON_REQUIRE_DB=true)");
+            process.exit(1);
+        }
+
+        if (!isCi) {
+            console.error("✖ Missing required env var: SUPABASE_DB_URL (or DATABASE_URL) (not CI)");
             process.exit(1);
         }
 
