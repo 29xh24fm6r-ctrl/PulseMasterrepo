@@ -1,4 +1,4 @@
-name: Pulse Production Gates
+name: ci
 
 on:
   push:
