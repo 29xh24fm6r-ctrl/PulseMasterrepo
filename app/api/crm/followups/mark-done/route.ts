@@ -14,7 +14,10 @@ type Body = {
 
 export async function POST(req: Request) {
     try {
-        const auth = await requireOpsAuth(req);
+        const auth = await requireOpsAuth();
+        if (!auth.ok || !auth.userId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
         const owner_user_id = auth.userId;
 
         const body = (await req.json()) as Body;
