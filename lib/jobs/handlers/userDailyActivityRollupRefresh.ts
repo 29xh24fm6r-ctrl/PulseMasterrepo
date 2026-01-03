@@ -79,18 +79,22 @@ export const handleUserDailyActivityRollupRefresh: JobHandler<"user_daily_activi
             // 4) Chain signals compute
             // We already have a valid job structure, so let's queue the next step
             // to ensure signals (XP, Score) are fresh immediately after rollups.
-            const { error: enqueueErr } = await supabase.rpc("enqueue_job", {
-                p_job_type: "user_daily_signals_compute",
-                p_payload: {
-                    owner_user_id: ownerUserId,
-                    day: day, // same day
-                    force: true,
-                },
-            }).catch(e => {
+            try {
+                const { error: enqueueErr } = await supabase.rpc("enqueue_job", {
+                    p_job_type: "user_daily_signals_compute",
+                    p_payload: {
+                        owner_user_id: ownerUserId,
+                        day: day, // same day
+                        force: true,
+                    },
+                });
+
+                if (enqueueErr) throw enqueueErr;
+            } catch (e) {
                 // Non-blocking failure for chaining, but log it
                 Sentry.captureException(e, { tags: { source: "chain_signals" } });
                 console.error("Failed to chain signal compute", e);
-            });
+            }
 
             // Optional breadcrumb for successful completion
             Sentry.addBreadcrumb({
