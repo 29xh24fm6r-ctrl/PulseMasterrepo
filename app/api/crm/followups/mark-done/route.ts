@@ -5,9 +5,9 @@ import { requireOpsAuth } from "@/lib/auth/opsAuth";
 import { crmContactTag, crmFollowupsTag } from "@/lib/crm/cacheTags";
 
 type Body = {
-    followup_id: string;        // uuid
-    contact_id: string;         // 🔥 required so we can revalidate the correct Person Detail cache
-    done_at?: string | null;    // ISO
+    followup_id: string; // uuid
+    contact_id: string; // required so we can revalidate the correct Person Detail cache
+    done_at?: string | null; // ISO
     outcome?: string | null;
     notes?: string | null;
 };
@@ -40,15 +40,13 @@ export async function POST(req: Request) {
         });
 
         if (error) {
-            return NextResponse.json(
-                { error: "rpc_failed", details: error.message },
-                { status: 500 }
-            );
+            return NextResponse.json({ error: "rpc_failed", details: error.message }, { status: 500 });
         }
 
-        // 🔥 Live refresh for Followups + Person Detail
-        // revalidateTag(crmContactTag(body.contact_id));
-        // revalidateTag(crmFollowupsTag(body.contact_id));
+        // Live refresh for Followups + Person Detail
+        // NOTE: In this repo, revalidateTag requires a second "profile" argument.
+        revalidateTag(crmContactTag(body.contact_id), "default");
+        revalidateTag(crmFollowupsTag(body.contact_id), "default");
 
         return NextResponse.json({ ok: true }, { status: 200 });
     } catch (e: any) {
