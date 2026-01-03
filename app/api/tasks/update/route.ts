@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 
 export async function PATCH(req: Request) {
     const gate = await requireOpsAuth(req as any);
+    if (!gate.ok || !gate.gate) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
     return withCompatTelemetry({
         req: req as any,

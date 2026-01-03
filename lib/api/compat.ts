@@ -11,9 +11,12 @@ export async function proxyTo(req: NextRequest, targetPath: string) {
 
     const method = req.method.toUpperCase();
 
+    const headers = new Headers(req.headers);
+    headers.delete("host"); // Avoid infinite loops
+
     const init: RequestInit = {
         method,
-        headers: new Headers(req.headers),
+        headers,
     };
 
     // Body forwarding for non-GET/HEAD
@@ -21,9 +24,6 @@ export async function proxyTo(req: NextRequest, targetPath: string) {
         const buf = await req.arrayBuffer();
         init.body = buf.byteLength ? Buffer.from(buf) : undefined;
     }
-
-    // Avoid infinite loops
-    init.headers.delete("host");
 
     const res = await fetch(target.toString(), init);
     const data = await res.arrayBuffer();

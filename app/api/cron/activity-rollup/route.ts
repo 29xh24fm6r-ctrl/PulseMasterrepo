@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 
 export async function GET(req: Request) {
     // Simple shared secret so only Vercel Cron can call it
@@ -10,7 +10,7 @@ export async function GET(req: Request) {
         return NextResponse.json({ ok: false }, { status: 401 });
     }
 
-    const supabase = await createClient();
+    const supabase = supabaseAdmin;
     const { error } = await supabase.rpc("user_daily_activity_rollup_refresh");
 
     if (error) {

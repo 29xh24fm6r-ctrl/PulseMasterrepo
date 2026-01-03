@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { jobClaimNext, jobComplete } from "@/lib/jobs/db";
-import { handlers } from "@/lib/jobs/handlers";
+import { getJobHandler } from "@/lib/jobs/handlers";
 import { jobLog } from "@/lib/jobs/logger";
 
 function normalizeError(err: any) {
@@ -46,14 +46,20 @@ export async function POST(req: Request) {
         try {
             await log("info", "Tick job start", { job_type: job.job_type, lane: job.lane, attempts: job.attempts });
 
-            const handler = handlers[job.job_type] ?? handlers.noop;
-            const result = await handler(job.payload, {
-                supabaseAdmin: (await import("@/lib/supabase/admin")).supabaseAdmin(),
-                now: () => new Date(),
-                logger: {
-                    info: (msg, meta) => log("info", msg, meta),
-                    warn: (msg, meta) => log("warn", msg, meta),
-                    error: (msg, meta) => log("error", msg, meta)
+            const handler = getJobHandler(job.job_type as any);
+            const result = await handler({
+                job_id: job.id,
+                name: job.job_type as any,
+                payload: job.payload,
+                ctx: {
+                    supabaseAdmin: (await import("@/lib/supabase/admin")).supabaseAdmin,
+                    now: () => new Date(),
+                    logger: {
+                        info: (msg: string, ...args: any[]) => log("info", msg, { args }),
+                        warn: (msg: string, ...args: any[]) => log("warn", msg, { args }),
+                        error: (msg: string, ...args: any[]) => log("error", msg, { args })
+                    },
+                    user_id: job.user_id_uuid || job.owner_user_id || "system"
                 }
             });
 

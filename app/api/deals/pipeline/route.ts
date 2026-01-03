@@ -1,3 +1,4 @@
+import { NextResponse } from "next/server";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
 import { withCompatTelemetry } from "@/lib/compat/withCompatTelemetry";
 import { supabaseAdmin } from "@/lib/supabase";
@@ -27,20 +28,23 @@ async function ensureDefaultStages(userIdUuid: string) {
 
 export async function GET(req: Request) {
     const gate = await requireOpsAuth(req as any);
+    if (!gate.ok || !gate.gate) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     return withCompatTelemetry({
         req: req as any,
-        userIdUuid: gate.canon.userIdUuid,
-        clerkUserId: gate.canon.clerkUserId,
+        userIdUuid: gate.gate.canon.userIdUuid,
+        clerkUserId: gate.gate.canon.clerkUserId,
         eventName: "api.deals.pipeline.get",
         handler: async () => {
-            const stages = await ensureDefaultStages(gate.canon.userIdUuid);
+            const stages = await ensureDefaultStages(gate.gate.canon.userIdUuid);
             const stageKeys = new Set(stages.map((s: any) => s.key));
 
             const { data: deals, error } = await supabaseAdmin
                 .from("deals")
                 .select("*")
-                .eq("user_id_uuid", gate.canon.userIdUuid)
+                .eq("user_id_uuid", gate.gate.canon.userIdUuid)
                 .order("created_at", { ascending: false })
                 .limit(200);
 

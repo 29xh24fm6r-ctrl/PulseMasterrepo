@@ -50,3 +50,11 @@ next-env.d.ts
 *.tar
 *.tar.gz
 *.rar
+
+build_error*.txt
+build_error*.log
+build_fail_log*.txt
+build_out.txt
+build_full.log
+build_failed.txt
+debug.txt

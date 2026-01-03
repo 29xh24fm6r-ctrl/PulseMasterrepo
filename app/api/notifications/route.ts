@@ -168,21 +168,21 @@ export async function POST(req: NextRequest) {
     let notifications = data.notifications || [];
 
     if (autonomyStatus.inQuietHours) {
-      notifications = notifications.filter((n: any) => n.priority === "urgent");
+      notifications = notifications.filter((n: Notification) => n.priority === "urgent");
     }
 
     if (settings?.criticalOnly) {
-      notifications = notifications.filter((n: any) =>
+      notifications = notifications.filter((n: Notification) =>
         n.priority === "urgent" || n.priority === "high"
       );
     }
 
     const stats = {
       total: notifications.length,
-      urgent: notifications.filter((n: any) => n.priority === "urgent").length,
-      high: notifications.filter((n: any) => n.priority === "high").length,
-      overdue: notifications.filter((n: any) => n.type === "overdue").length,
-      dueToday: notifications.filter((n) => n.type === "due_today").length,
+      urgent: notifications.filter((n: Notification) => n.priority === "urgent").length,
+      high: notifications.filter((n: Notification) => n.priority === "high").length,
+      overdue: notifications.filter((n: Notification) => n.type === "overdue").length,
+      dueToday: notifications.filter((n: Notification) => n.type === "due_today").length,
     };
 
     return NextResponse.json({

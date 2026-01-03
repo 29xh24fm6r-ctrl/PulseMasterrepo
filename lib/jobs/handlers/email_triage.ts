@@ -1,29 +1,7 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { JobHandler } from "./types";
 
-export type EmailTriageJobPayload = {
-    user_id_uuid: string;
-    account_id?: string;
-    thread_id?: string;
-    message_id?: string;
-    limit?: number;
-    force?: boolean;
-};
-
-export type JobHandlerContext = {
-    supabaseAdmin: SupabaseClient; // service_role client
-    now: () => Date;
-    logger?: {
-        info: (msg: string, meta?: any) => void;
-        warn: (msg: string, meta?: any) => void;
-        error: (msg: string, meta?: any) => void;
-    };
-};
-
-export async function handleEmailTriage(
-    payload: EmailTriageJobPayload,
-    ctx: JobHandlerContext
-) {
-    const log = ctx.logger ?? console;
+export const handleEmailTriage: JobHandler<"email_triage"> = async ({ payload, ctx }) => {
+    const log = ctx.logger;
 
     if (!payload?.user_id_uuid) {
         throw new Error("email_triage payload missing user_id_uuid");
@@ -58,11 +36,11 @@ export async function handleEmailTriage(
 
     if (!items || items.length === 0) {
         log.info("email_triage: nothing to triage", { user_id_uuid: payload.user_id_uuid });
-        return { triaged: 0 };
+        return { ok: true, output: { triaged: 0 } };
     }
 
     // 2) Lightweight rule-based triage (NO AI yet) — stable + deterministic
-    const updates = items.map((it) => {
+    const updates = items.map((it: any) => {
         const subject = (it.subject ?? "").toLowerCase();
         const snippet = (it.snippet ?? "").toLowerCase();
         const from = (it.from_email ?? "").toLowerCase();
@@ -107,5 +85,5 @@ export async function handleEmailTriage(
     if (upErr) throw new Error(`email_triage update failed: ${upErr.message}`);
 
     log.info("email_triage: triaged", { user_id_uuid: payload.user_id_uuid, count: updates.length });
-    return { triaged: updates.length };
+    return { ok: true, output: { triaged: updates.length } };
 }
