@@ -154,7 +154,7 @@ export default function IdentityGraphsPage() {
                     <YAxis type="category" dataKey="name" stroke="#9ca3af" fontSize={11} width={100} />
                     <Tooltip
                       contentStyle={{ backgroundColor: "#18181b", border: "1px solid #3f3f46", borderRadius: "8px" }}
-                      formatter={(value: number) => [`${value.toFixed(0)}%`, "Confidence"]}
+                      formatter={(value?: number) => [`${(value ?? 0).toFixed(0)}%`, "Confidence"]}
                     />
                     <Bar dataKey="confidence" radius={[0, 4, 4, 0]}>
                       {strengthData.map((entry, index) => (
@@ -250,11 +250,10 @@ export default function IdentityGraphsPage() {
             </div>
             <div className="bg-zinc-900/50 rounded-xl p-4">
               <p className="text-sm text-zinc-400 mb-1">Current Momentum</p>
-              <p className={`text-lg font-semibold ${
-                (momentum[0]?.net_momentum || 0) > 0 ? "text-green-400" : 
-                (momentum[0]?.net_momentum || 0) < 0 ? "text-red-400" : "text-zinc-400"
-              }`}>
-                {momentum[0]?.net_momentum 
+              <p className={`text-lg font-semibold ${(momentum[0]?.net_momentum || 0) > 0 ? "text-green-400" :
+                  (momentum[0]?.net_momentum || 0) < 0 ? "text-red-400" : "text-zinc-400"
+                }`}>
+                {momentum[0]?.net_momentum
                   ? (momentum[0].net_momentum > 0 ? "+" : "") + momentum[0].net_momentum.toFixed(2)
                   : "Neutral"
                 }
