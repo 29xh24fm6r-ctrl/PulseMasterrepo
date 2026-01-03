@@ -1,25 +1,54 @@
 import { NextResponse } from "next/server";
-import { requireOpsAuth } from "@/lib/auth/opsAuth";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { createClient } from "@supabase/supabase-js";
+import { auth } from "@clerk/nextjs/server";
 
+/**
+ * GET /api/crm/oracle
+ * Returns: Relationship Oracle bundle for current user (top N)
+ *
+ * Notes:
+ * - Calls SECURITY DEFINER RPC: public.crm_relationship_oracle_bundle()
+ * - Auth enforced by RPC using auth.uid()
+ */
 export async function GET(req: Request) {
-    const authResult = await requireOpsAuth();
-    if (!authResult.ok) {
-        return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    try {
+        const url = new URL(req.url);
+        const limit = Math.min(Math.max(parseInt(url.searchParams.get("limit") ?? "25", 10), 1), 200);
+
+        const { userId, getToken } = await auth();
+        if (!userId) {
+            return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+        }
+
+        const token = await getToken({ template: "supabase" });
+        if (!token) {
+            return NextResponse.json({ ok: false, error: "No Supabase token" }, { status: 401 });
+        }
+
+        const supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            {
+                global: { headers: { Authorization: `Bearer ${token}` } },
+            }
+        );
+
+        const { data, error } = await supabase.rpc("crm_relationship_oracle_bundle");
+
+        if (error) {
+            return NextResponse.json(
+                { ok: false, error: error.message, code: error.code ?? null },
+                { status: 500 }
+            );
+        }
+
+        const rows = (data ?? []).slice(0, limit);
+
+        return NextResponse.json({ ok: true, rows }, { status: 200 });
+    } catch (e: any) {
+        return NextResponse.json(
+            { ok: false, error: e?.message ?? "Unknown error" },
+            { status: 500 }
+        );
     }
-    const { userId: owner_user_id } = authResult;
-
-    const url = new URL(req.url);
-    const limit = Math.max(1, Math.min(Number(url.searchParams.get("limit") ?? "20"), 100));
-
-    const { data, error } = await supabaseAdmin.rpc("crm_oracle_bundle", {
-        p_owner_user_id: owner_user_id,
-        p_limit: limit,
-    });
-
-    if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json(data ?? { due_followups: [], at_risk_contacts: [] });
 }

@@ -66,6 +66,10 @@ export type JobPayloads = {
 
     rollup_backfill_nightly: Record<string, never>; // No payload
 
+    signals_cache_prune_weekly: {
+        keep_days?: number;
+    };
+
     signals_cache_warm_30d: {
         days?: number;
         batch_size?: number;
