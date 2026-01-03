@@ -2,21 +2,24 @@
 
 import * as React from "react";
 import { InteractionAddForm, InteractionItem } from "@/components/crm/InteractionAddForm";
+import { useAutoAnimateList } from "@/lib/ui/useAutoAnimateList";
 
 type Interaction = {
     id: string;
     type: string;
     summary?: string | null;
     happened_at: string;
+    optimistic?: boolean;
 };
 
 export function InteractionsPanel(props: {
     contactId: string;
     initial: Interaction[];
+    onPulse?: (evt: { kind: "interaction_added"; at: string }) => void; // 🔥 Relationship Pulse hook
 }) {
-    const [items, setItems] = React.useState<(Interaction & { optimistic?: boolean })[]>(
-        props.initial ?? []
-    );
+    const listRef = useAutoAnimateList<HTMLDivElement>();
+
+    const [items, setItems] = React.useState<Interaction[]>(props.initial ?? []);
 
     React.useEffect(() => {
         setItems(props.initial ?? []);
@@ -24,13 +27,12 @@ export function InteractionsPanel(props: {
 
     function onOptimisticAdd(item: InteractionItem) {
         setItems((cur) => [item, ...cur]);
+        props.onPulse?.({ kind: "interaction_added", at: new Date().toISOString() });
     }
 
     function onReconcile(tempId: string, realId: string) {
         setItems((cur) =>
-            cur.map((it) =>
-                it.id === tempId ? { ...it, id: realId, optimistic: false } : it
-            )
+            cur.map((it) => (it.id === tempId ? { ...it, id: realId, optimistic: false } : it))
         );
     }
 
@@ -49,7 +51,7 @@ export function InteractionsPanel(props: {
                 />
             </div>
 
-            <div className="flex flex-col gap-3">
+            <div ref={listRef} className="flex flex-col gap-3">
                 {items?.length ? (
                     items.map((i) => (
                         <div key={i.id} className="rounded-2xl border border-gray-800 bg-gray-900/30 p-4">
@@ -63,7 +65,7 @@ export function InteractionsPanel(props: {
                             {i.summary ? <div className="mt-2 text-sm text-gray-300">{i.summary}</div> : null}
 
                             {i.optimistic ? (
-                                <div className="mt-2 text-xs text-yellow-500 flex items-center gap-1">
+                                <div className="mt-2 text-xs text-yellow-500 flex items-center gap-1 pulse-soft">
                                     <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse" />
                                     Syncing…
                                 </div>
