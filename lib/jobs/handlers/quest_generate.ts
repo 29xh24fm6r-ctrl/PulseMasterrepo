@@ -1,22 +1,10 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
-
-type JobContext = {
-    supabaseAdmin: SupabaseClient;
-    now: () => Date;
-    logger: { info: (...args: any[]) => void; warn: (...args: any[]) => void; error: (...args: any[]) => void };
-};
-
-type JobPayload = {
-    user_id_uuid: string;
-    day?: string;
-    count?: number;
-};
+import type { JobHandler } from "./types";
 
 function isoDayUTC(d: Date) {
     return d.toISOString().slice(0, 10);
 }
 
-export async function questGenerateHandler(payload: JobPayload, ctx: JobContext) {
+export const handleQuestGenerate: JobHandler<"quest_generate"> = async ({ payload, ctx }) => {
     const { supabaseAdmin, now, logger } = ctx;
 
     if (!payload?.user_id_uuid) {

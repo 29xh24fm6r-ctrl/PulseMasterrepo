@@ -48,5 +48,12 @@ export async function requireOpsAuth(opts?: { targetUserId?: string | null }) {
         userId: effectiveUserId,
         isAdmin,
         canon,
+        // Backward compatibility for existing routes expecting .gate
+        gate: {
+            canon,
+            userId: effectiveUserId,
+            clerkUserId,
+            isAdmin,
+        },
     };
 }

@@ -4,7 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 
 export async function GET(req: Request) {
     const gate = await requireOpsAuth(req as any);
-    if (!gate.ok) return Response.json(gate, { status: gate.status });
+    if (!gate.ok || !gate.gate) return Response.json(gate, { status: gate.status });
 
     return withCompatTelemetry({
         req: req as any,

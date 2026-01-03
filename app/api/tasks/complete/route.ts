@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { requireOpsAuth } from "@/lib/auth/opsAuth";
 import { completeTask } from "@/lib/data/tasks";
 import { awardTaskXP } from "@/lib/xp/award";
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth();
-    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const auth = await requireOpsAuth(request as any);
+    if (!auth.ok || !auth.gate) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const userId = auth.gate.canon.userIdUuid;
 
     const { taskId, priority, taskName } = await request.json();
 

@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
 
 export async function POST() {
     // Ops only (canon pattern)
     await requireOpsAuth();
 
-    const supabase = await createClient();
+    const supabase = supabaseAdmin;
 
     // Call existing RPC
     const { error } = await supabase.rpc("user_daily_activity_rollup_refresh");

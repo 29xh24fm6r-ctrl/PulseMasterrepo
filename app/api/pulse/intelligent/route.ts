@@ -213,7 +213,7 @@ async function executeAction(userId: string, actionType: string, payload: any): 
           return { success: false, error: `No habit found matching "${payload.habit_name}"` };
         }
 
-        const result = await logHabitCompletion(userId, match.id);
+        const result = await logHabitCompletion(userId, match.id, match.xp_reward || 10);
 
         return {
           success: true,

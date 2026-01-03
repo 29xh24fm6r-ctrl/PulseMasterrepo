@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { currentUser } from "@clerk/nextjs/server";
+import { requireOpsAuth } from "@/lib/auth/opsAuth";
 import { supabaseAdmin } from "@/lib/supabase";
 
-export async function POST() {
+export async function POST(req: Request) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const access = await requireOpsAuth(req as any);
+    if (!access.ok || !access.gate) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const userId = access.gate.canon.clerkUserId;
 
     const user = await currentUser();
     if (!user) {

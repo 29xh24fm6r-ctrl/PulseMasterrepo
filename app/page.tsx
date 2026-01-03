@@ -6,6 +6,7 @@ import { GlobalNav } from "@/components/GlobalNav";
 import ExecutionTimeline from "@/components/tasks/ExecutionTimeline";
 import XpStreakCard from "@/components/xp/XpStreakCard";
 import DailyQuestsCard from "@/components/quests/DailyQuestsCard";
+import RelationshipOracleCard from "@/components/crm/RelationshipOracleCard";
 
 // Types matching /api/today response
 type DashboardData = {
@@ -168,6 +169,7 @@ export default function HomePage() {
           {/* SECTION 2.2: Execution Timeline */}
           <section className="md:col-span-2 space-y-4">
             <XpStreakCard />
+            <RelationshipOracleCard />
             <DailyQuestsCard />
             <ExecutionTimeline />
           </section>

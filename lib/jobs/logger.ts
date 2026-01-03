@@ -9,7 +9,7 @@ export async function jobLog(args: {
     owner_user_id?: string | null;
     meta?: any;
 }) {
-    const sb = supabaseAdmin();
+    const sb = supabaseAdmin;
     const { error } = await sb.from("execution_logs").insert({
         level: args.level,
         message: args.message,

@@ -78,7 +78,7 @@ export async function POST(req: Request) {
                 }
 
                 // Award XP indirectly via Activity Event (Canonical)
-                const { error: actErr } = await supabaseSpan("quests.claim.log_activity", async () =>
+                const activityId = await supabaseSpan("quests.claim.log_activity", async () =>
                     await logActivity({
                         userId,
                         eventName: "quest.claimed",
@@ -93,18 +93,9 @@ export async function POST(req: Request) {
                     })
                 );
 
-                if (actErr && typeof actErr === 'object') {
-                    // logActivity returns string | null, but if it threw or returned error object inside wrapper?
-                    // logActivity returns null on error. supabaseSpan might return { data, error }.
-                    // Actually logActivity handles its own errors and returns null on explicit error, but supabaseSpan wraps it.
-                    // Let's trust logActivity to just work or return null.
-                    // Verification: logActivity returns Promise<string | null>.
-                    // We probably don't need to block on it failing, but for quests we might want to ensure it wrote.
-                    // The spec says "Never crash product flows because telemetry failed".
-                    // But here telemetry IS the XP award mechanism.
-                    // If it fails, user gets no XP.
-                    // I will assume it works reliably enough or I should check it.
-                    console.warn("Activity log failed for quest claim", actErr);
+                if (!activityId) {
+                    // Log warning handled inside logActivity mostly, but good to know
+                    console.warn("Activity log failed for quest claim");
                 }
 
                 // Mark claimed

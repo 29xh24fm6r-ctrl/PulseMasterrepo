@@ -5,6 +5,9 @@ import { requireOpsAuth } from "@/lib/auth/opsAuth";
 export async function POST(req: NextRequest) {
     // We use requireOpsAuth to get the user ID securely
     const auth = await requireOpsAuth();
+    if (!auth.ok || !auth.gate) {
+        return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    }
     const userId = auth.gate.canon.userIdUuid;
 
     const body = await req.json().catch(() => ({}));

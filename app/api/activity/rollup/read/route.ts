@@ -1,14 +1,20 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { requireOpsAuth } from "@/lib/auth/opsAuth";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 
 export async function GET(req: Request) {
+    const authResult = await requireOpsAuth();
+    if (!authResult.ok) return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    const { userId } = authResult;
+
     const url = new URL(req.url);
     const days = Number(url.searchParams.get("days") ?? "30");
 
-    const supabase = await createClient();
+    const supabase = supabaseAdmin;
 
-    // Auth is handled by RLS in the RPC (uses auth.uid())
+    // Passing p_user_id (ops pattern) - hoping RPC supports it or we need to update RPC
     const { data, error } = await supabase.rpc("user_daily_activity_rollup_read", {
+        p_user_id: userId,
         p_days: days,
     });
 

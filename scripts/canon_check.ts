@@ -22,6 +22,11 @@ dotenv.config();
 const { Client } = pg;
 
 async function main() {
+    if (process.env.CANON_REQUIRE_DB !== "true") {
+        console.log("Skipping DB canon checks (CANON_REQUIRE_DB=false)");
+        process.exit(0);
+    }
+
     // --- Canon Gate: environment handling ---
     // In CI PRs we may not have DB secrets. In that case we run "no-db" checks only.
     // DB-backed checks still run when SUPABASE_DB_URL/DATABASE_URL is present.

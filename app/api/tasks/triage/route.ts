@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { requireOpsAuth } from "@/lib/auth/opsAuth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { readTraceHeaders, traceFromBody } from "@/lib/executions/traceHeaders";
 import { execLog } from "@/lib/executions/logger";
@@ -118,8 +118,9 @@ import { setObsContext } from "@/lib/observability/context";
 import { supabaseSpan } from "@/lib/observability/supabaseSpan";
 
 export async function POST(req: Request) {
-    const { userId } = await auth();
-    if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    const access = await requireOpsAuth();
+    if (!access.ok || !access.gate) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    const userId = access.gate.canon.userIdUuid;
 
     setObsContext({
         userId,

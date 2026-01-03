@@ -79,7 +79,9 @@ function pickVoiceFromCrm(crm: any | null) {
 /**
  * followup_suggest
  */
-export async function followupSuggestHandler(ctx: JobContext, payload: JobPayload) {
+import type { JobHandler } from "./types";
+
+export const handleFollowupSuggest: JobHandler<"followup_suggest"> = async ({ payload, ctx }) => {
     const { supabaseAdmin, now, logger } = ctx;
 
     if (!payload?.user_id_uuid) {

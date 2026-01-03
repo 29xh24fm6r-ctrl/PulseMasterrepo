@@ -5,7 +5,12 @@ import { evaluateEvidenceAndIssue } from "@/lib/xp/orchestrator";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+import { requireOpsAuth } from "@/lib/auth/opsAuth";
+
 export async function POST(req: Request) {
+    const gate = await requireOpsAuth(req as any);
+    if (!gate.ok || !gate.gate) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+
     const body = await req.json();
     const { user_id, evidence_id } = body ?? {};
 

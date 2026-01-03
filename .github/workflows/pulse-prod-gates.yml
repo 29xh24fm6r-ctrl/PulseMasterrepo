@@ -27,6 +27,7 @@ jobs:
       - name: Canon gate (Node/pg)
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          CANON_REQUIRE_DB: ${{ vars.CANON_REQUIRE_DB }}
         run: npm run canon:check
 
   prod-smoke:

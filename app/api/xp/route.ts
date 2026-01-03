@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { requireOpsAuth } from '@/lib/auth/opsAuth';
 import {
   XPCategory,
   XP_CATEGORIES,
@@ -52,8 +52,9 @@ function createXPStateFromTotals(totals: Record<string, number>) {
 // GET - Fetch current XP state
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth();
-    if (!userId) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const access = await requireOpsAuth(request as any);
+    if (!access.ok || !access.gate) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const userId = access.gate.canon.clerkUserId;
 
     const { totals, recentGains } = await getXPTotals(userId);
     const xpState = createXPStateFromTotals(totals);
@@ -90,8 +91,9 @@ export async function GET(request: NextRequest) {
 // POST - Award XP for an activity
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth();
-    if (!userId) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const access = await requireOpsAuth(request as any);
+    if (!access.ok || !access.gate) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const userId = access.gate.canon.clerkUserId;
 
     const body = await request.json();
     const { activity, description, forceCrit, customMultiplier } = body;
