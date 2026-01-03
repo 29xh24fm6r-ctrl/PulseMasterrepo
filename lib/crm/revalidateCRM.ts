@@ -3,15 +3,29 @@ import {
     crmContactTag,
     crmFollowupsTag,
     crmInteractionsTag,
-} from "./cacheTags";
+} from "@/lib/crm/cacheTags";
 
 /**
- * Centralized CRM cache invalidation.
- * Safe across Next.js / Vercel cache API differences.
+ * Next.js typings for revalidateTag have varied across versions/build tooling.
+ * Some environments type it as (tag: string) => void, others as (tag: string, ...rest) => void.
+ *
+ * We normalize by calling through an `any` wrapper and supplying a harmless 2nd arg when required.
  */
+function safeRevalidateTag(tag: string) {
+    const fn = revalidateTag as unknown as (...args: any[]) => void;
+
+    // If runtime function expects 2+ args, supply a second arg to satisfy that signature.
+    // The value is intentionally non-semantic; it’s only to satisfy compat typing.
+    if (fn.length >= 2) {
+        fn(tag, "tag");
+        return;
+    }
+
+    fn(tag);
+}
+
 export function revalidateCRM(contactId: string) {
-    // Call shape compatible with both 1-arg and 2-arg signatures
-    revalidateTag(crmContactTag(contactId) as any);
-    revalidateTag(crmFollowupsTag(contactId) as any);
-    revalidateTag(crmInteractionsTag(contactId) as any);
+    safeRevalidateTag(crmContactTag(contactId));
+    safeRevalidateTag(crmFollowupsTag(contactId));
+    safeRevalidateTag(crmInteractionsTag(contactId));
 }
