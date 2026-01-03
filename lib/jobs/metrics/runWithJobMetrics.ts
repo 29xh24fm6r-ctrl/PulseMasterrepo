@@ -5,7 +5,7 @@ export async function runWithJobMetrics<T>(
     fn: () => Promise<T>
 ): Promise<T> {
     const start = performance.now();
-    const supabase = supabaseAdmin(); // Get client
+    const supabase = supabaseAdmin; // Get client
 
     try {
         const res = await fn();
