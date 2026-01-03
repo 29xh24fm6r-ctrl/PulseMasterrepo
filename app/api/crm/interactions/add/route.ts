@@ -1,22 +1,21 @@
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
+import { crmContactTag, crmInteractionsTag } from "@/lib/crm/cacheTags";
 
 type Body = {
     contact_id: string;         // uuid
-    type: string;               // e.g. "call" | "email" | "meeting" | ...
-    channel?: string | null;    // optional
-    happened_at?: string | null;// ISO string optional
+    type: string;               // e.g. "call" | "email" | "meeting"
+    channel?: string | null;
+    happened_at?: string | null; // ISO
     summary?: string | null;
     metadata?: Record<string, any> | null;
 };
 
 export async function POST(req: Request) {
     try {
-        const auth = await requireOpsAuth();
-        if (!auth.ok || !auth.userId) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
+        const auth = await requireOpsAuth(req);
         const owner_user_id = auth.userId;
 
         const body = (await req.json()) as Body;
@@ -46,6 +45,10 @@ export async function POST(req: Request) {
                 { status: 500 }
             );
         }
+
+        // 🔥 Live refresh for Person Detail (Server Components)
+        revalidateTag(crmContactTag(body.contact_id));
+        revalidateTag(crmInteractionsTag(body.contact_id));
 
         return NextResponse.json({ interaction_id: data }, { status: 200 });
     } catch (e: any) {

@@ -12,6 +12,7 @@ import { UserProvider } from "./providers/user-provider";
 import { GlobalNav } from "@/components/GlobalNav";
 import ServiceWorkerRegistration from "./components/ServiceWorkerRegistration";
 import { GlobalVoiceButton } from "@/components/GlobalVoiceButton";
+import { ToastProvider } from "@/components/ui/ToastProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -47,11 +48,13 @@ export default function RootLayout({
         <body className={`${inter.className} bg-slate-950 text-slate-100`}>
           <Providers>
             <UserProvider>
-              <GlobalNav />
-              <CommandPalette />
-              {children}
-              <ServiceWorkerRegistration />
-              <GlobalVoiceButton />
+              <ToastProvider>
+                <GlobalNav />
+                <CommandPalette />
+                {children}
+                <ServiceWorkerRegistration />
+                <GlobalVoiceButton />
+              </ToastProvider>
             </UserProvider>
           </Providers>
         </body>

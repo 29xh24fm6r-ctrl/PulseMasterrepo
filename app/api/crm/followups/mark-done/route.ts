@@ -1,26 +1,29 @@
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
+import { crmContactTag, crmFollowupsTag } from "@/lib/crm/cacheTags";
 
 type Body = {
     followup_id: string;        // uuid
-    done_at?: string | null;    // ISO optional
+    contact_id: string;         // 🔥 required so we can revalidate the correct Person Detail cache
+    done_at?: string | null;    // ISO
     outcome?: string | null;
     notes?: string | null;
 };
 
 export async function POST(req: Request) {
     try {
-        const auth = await requireOpsAuth();
-        if (!auth.ok || !auth.userId) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
+        const auth = await requireOpsAuth(req);
         const owner_user_id = auth.userId;
 
         const body = (await req.json()) as Body;
 
         if (!body?.followup_id) {
             return NextResponse.json({ error: "followup_id is required" }, { status: 400 });
+        }
+        if (!body?.contact_id) {
+            return NextResponse.json({ error: "contact_id is required" }, { status: 400 });
         }
 
         const sb = supabaseAdmin;
@@ -39,6 +42,10 @@ export async function POST(req: Request) {
                 { status: 500 }
             );
         }
+
+        // 🔥 Live refresh for Followups + Person Detail
+        revalidateTag(crmContactTag(body.contact_id));
+        revalidateTag(crmFollowupsTag(body.contact_id));
 
         return NextResponse.json({ ok: true }, { status: 200 });
     } catch (e: any) {
