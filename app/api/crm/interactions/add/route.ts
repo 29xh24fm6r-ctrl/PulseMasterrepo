@@ -1,47 +1,57 @@
 import { NextResponse } from "next/server";
-import { requireOpsAuth } from "@/lib/auth/opsAuth";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { requireOpsAuth } from "@/lib/auth/opsAuth";
 
 type Body = {
-    contact_id: string;
-    kind: "call" | "email" | "meeting" | "text" | "note" | "other";
-    occurred_at?: string;
-    subject?: string | null;
-    body?: string | null;
-    channel?: string | null;
-    duration_seconds?: number | null;
-    sentiment?: number | null; // -5..5
-    meta?: Record<string, unknown>;
+    contact_id: string;         // uuid
+    type: string;               // e.g. "call" | "email" | "meeting" | ...
+    channel?: string | null;    // optional
+    happened_at?: string | null;// ISO string optional
+    summary?: string | null;
+    metadata?: Record<string, any> | null;
 };
 
 export async function POST(req: Request) {
-    const authResult = await requireOpsAuth();
-    if (!authResult.ok) {
-        return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    try {
+        const auth = await requireOpsAuth();
+        if (!auth.ok || !auth.userId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+        const owner_user_id = auth.userId;
+
+        const body = (await req.json()) as Body;
+
+        if (!body?.contact_id) {
+            return NextResponse.json({ error: "contact_id is required" }, { status: 400 });
+        }
+        if (!body?.type || body.type.trim().length === 0) {
+            return NextResponse.json({ error: "type is required" }, { status: 400 });
+        }
+
+        const sb = supabaseAdmin;
+
+        const { data, error } = await sb.rpc("crm_interaction_add", {
+            p_owner_user_id: owner_user_id,
+            p_contact_id: body.contact_id,
+            p_type: body.type,
+            p_channel: body.channel ?? null,
+            p_happened_at: body.happened_at ? new Date(body.happened_at).toISOString() : null,
+            p_summary: body.summary ?? null,
+            p_metadata: body.metadata ?? {},
+        });
+
+        if (error) {
+            return NextResponse.json(
+                { error: "rpc_failed", details: error.message },
+                { status: 500 }
+            );
+        }
+
+        return NextResponse.json({ interaction_id: data }, { status: 200 });
+    } catch (e: any) {
+        return NextResponse.json(
+            { error: "unhandled", details: e?.message ?? String(e) },
+            { status: 500 }
+        );
     }
-    const { userId: owner_user_id } = authResult;
-    const body = (await req.json()) as Body;
-
-    if (!body?.contact_id || !body?.kind) {
-        return NextResponse.json({ error: "contact_id and kind are required" }, { status: 400 });
-    }
-
-    const { data, error } = await supabaseAdmin.rpc("crm_interaction_add", {
-        p_owner_user_id: owner_user_id,
-        p_contact_id: body.contact_id,
-        p_kind: body.kind,
-        p_occurred_at: body.occurred_at ?? null,
-        p_subject: body.subject ?? null,
-        p_body: body.body ?? null,
-        p_channel: body.channel ?? null,
-        p_duration_seconds: body.duration_seconds ?? null,
-        p_sentiment: body.sentiment ?? null,
-        p_meta: body.meta ?? {},
-    });
-
-    if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json({ ok: true, result: data?.[0] ?? null });
 }
