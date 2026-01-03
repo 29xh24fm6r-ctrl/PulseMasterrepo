@@ -70,7 +70,7 @@ export async function runWorker(opts?: { lanes?: any; maxEmptySleepsMs?: number 
     const emptySleep = opts?.maxEmptySleepsMs ?? 1000;
 
     // Bootstrap Heartbeat
-    const sbAdmin = createSupabaseAdmin();
+    const sbAdmin = createSupabaseAdmin;
     setInterval(() => {
         beat(sbAdmin, workerId).catch(() => { });
     }, 15_000);
