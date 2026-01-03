@@ -47,8 +47,8 @@ export async function POST(req: Request) {
         }
 
         // 🔥 Live refresh for Followups + Person Detail
-        revalidateTag(crmContactTag(body.contact_id));
-        revalidateTag(crmFollowupsTag(body.contact_id));
+        // revalidateTag(crmContactTag(body.contact_id));
+        // revalidateTag(crmFollowupsTag(body.contact_id));
 
         return NextResponse.json({ ok: true }, { status: 200 });
     } catch (e: any) {

@@ -50,8 +50,8 @@ export async function POST(req: Request) {
         }
 
         // 🔥 Live refresh for Person Detail (Server Components)
-        revalidateTag(crmContactTag(body.contact_id));
-        revalidateTag(crmInteractionsTag(body.contact_id));
+        // revalidateTag(crmContactTag(body.contact_id));
+        // revalidateTag(crmInteractionsTag(body.contact_id));
 
         return NextResponse.json({ interaction_id: data }, { status: 200 });
     } catch (e: any) {
