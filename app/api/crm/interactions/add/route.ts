@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { revalidateTag } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
-import { crmContactTag, crmInteractionsTag } from "@/lib/crm/cacheTags";
+import { revalidateCRM } from "@/lib/crm/revalidateCRM";
 
 type Body = {
     contact_id: string; // uuid
@@ -47,9 +46,7 @@ export async function POST(req: Request) {
         }
 
         // Live refresh for Interactions + Person Detail
-        // NOTE: In this repo, revalidateTag requires a second "profile" argument.
-        revalidateTag(crmContactTag(body.contact_id), "default");
-        revalidateTag(crmInteractionsTag(body.contact_id), "default");
+        revalidateCRM(body.contact_id);
 
         return NextResponse.json({ interaction_id: data }, { status: 200 });
     } catch (e: any) {
