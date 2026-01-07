@@ -12,7 +12,7 @@ export async function GET() {
     const { data, error } = await supabaseAdmin
         .from("xp_state")
         .select("*")
-        .eq("user_id", userId)
+        .eq("user_id_uuid", userId)
         .single();
 
     // If none exists yet, return zeros

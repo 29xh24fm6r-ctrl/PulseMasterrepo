@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     }
 
     await supabase.from("dashboard_telemetry_events").insert({
-      user_id: userId,
+      user_id_uuid: userId,
       widget_key: widgetKey,
       event_type: eventType,
       metadata: metadata || {},

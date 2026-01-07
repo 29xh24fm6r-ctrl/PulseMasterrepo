@@ -75,11 +75,11 @@ export async function POST(req: NextRequest) {
         const today = new Date();
         const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0).toISOString();
         const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59).toISOString();
-        
+
         const { data: events } = await supabase
           .from("calendar_events")
           .select("*")
-          .eq("user_id", userId)
+          .eq("user_id_uuid", userId)
           .gte("start_time", startOfDay)
           .lte("start_time", endOfDay)
           .order("start_time", { ascending: true });
@@ -117,7 +117,7 @@ export async function POST(req: NextRequest) {
         const { data: event, error } = await supabase
           .from("calendar_events")
           .insert({
-            user_id: userId,
+            user_id_uuid: userId,
             title,
             summary: title,
             start_time: startDate.toISOString(),
@@ -153,13 +153,13 @@ export async function POST(req: NextRequest) {
         if (start_time) {
           const startDate = parseTimeExpression(start_time);
           updates.start_time = startDate.toISOString();
-          
+
           const { data: existing } = await supabase
             .from("calendar_events")
             .select("start_time, end_time")
             .eq("id", event_id)
             .single();
-          
+
           if (existing) {
             const duration = new Date(existing.end_time).getTime() - new Date(existing.start_time).getTime();
             updates.end_time = new Date(startDate.getTime() + duration).toISOString();
@@ -170,7 +170,7 @@ export async function POST(req: NextRequest) {
           .from("calendar_events")
           .update(updates)
           .eq("id", event_id)
-          .eq("user_id", userId)
+          .eq("user_id_uuid", userId)
           .select()
           .single();
 
@@ -187,7 +187,7 @@ export async function POST(req: NextRequest) {
           .eq("user_id", userId)
           .single();
 
-        await supabase.from("calendar_events").delete().eq("id", event_id).eq("user_id", userId);
+        await supabase.from("calendar_events").delete().eq("id", event_id).eq("user_id_uuid", userId);
         result = { success: true, message: `Cancelled "${event?.title || "event"}"` };
         break;
       }
@@ -198,7 +198,7 @@ export async function POST(req: NextRequest) {
         const { data: plan } = await supabase
           .from("day_plans")
           .select("*, day_plan_items(*)")
-          .eq("user_id", userId)
+          .eq("user_id_uuid", userId)
           .eq("date", today)
           .single();
 
@@ -222,7 +222,7 @@ export async function POST(req: NextRequest) {
         const { data: tasks } = await supabase
           .from("tasks")
           .select("*")
-          .eq("user_id", userId)
+          .eq("user_id_uuid", userId)
           .in("status", ["pending", "in_progress"])
           .order("priority", { ascending: false })
           .order("created_at", { ascending: false })
@@ -246,7 +246,7 @@ export async function POST(req: NextRequest) {
         const { data: tasks } = await supabase
           .from("tasks")
           .select("*")
-          .eq("user_id", userId)
+          .eq("user_id_uuid", userId)
           .eq("priority", priority)
           .in("status", ["pending", "in_progress"])
           .limit(10);
@@ -263,7 +263,7 @@ export async function POST(req: NextRequest) {
         const { data: task, error } = await supabase
           .from("tasks")
           .insert({
-            user_id: userId,
+            user_id_uuid: userId,
             title,
             priority,
             due_date: due_date || null,
@@ -273,8 +273,8 @@ export async function POST(req: NextRequest) {
           .select()
           .single();
 
-        result = error 
-          ? { error: "Failed to create task" } 
+        result = error
+          ? { error: "Failed to create task" }
           : { success: true, task: { id: task.id, title: task.title }, message: `Added: ${title}` };
         break;
       }
@@ -282,23 +282,23 @@ export async function POST(req: NextRequest) {
       case "complete_task": {
         const { task_id, task_identifier } = args || {};
         const identifier = task_id || task_identifier;
-        
+
         let taskToComplete;
         if (identifier) {
           const { data: byId } = await supabase
             .from("tasks")
             .select("id, title")
-            .eq("user_id", userId)
+            .eq("user_id_uuid", userId)
             .eq("id", identifier)
             .single();
-          
+
           if (byId) {
             taskToComplete = byId;
           } else {
             const { data: byTitle } = await supabase
               .from("tasks")
               .select("id, title")
-              .eq("user_id", userId)
+              .eq("user_id_uuid", userId)
               .ilike("title", `%${identifier}%`)
               .in("status", ["pending", "in_progress"])
               .limit(1)
@@ -324,7 +324,7 @@ export async function POST(req: NextRequest) {
         const { data: task } = await supabase
           .from("tasks")
           .select("id, title")
-          .eq("user_id", userId)
+          .eq("user_id_uuid", userId)
           .ilike("title", `%${task_identifier}%`)
           .limit(1)
           .single();
@@ -341,12 +341,12 @@ export async function POST(req: NextRequest) {
       case "reschedule_task": {
         const { task_id, new_time } = args || {};
         const scheduledTime = parseTimeExpression(new_time);
-        
+
         await supabase
           .from("tasks")
           .update({ scheduled_time: scheduledTime.toISOString() })
           .eq("id", task_id)
-          .eq("user_id", userId);
+          .eq("user_id_uuid", userId);
 
         result = { success: true, message: `Rescheduled to ${scheduledTime.toLocaleString()}` };
         break;
@@ -355,9 +355,9 @@ export async function POST(req: NextRequest) {
       // ==================== THIRD BRAIN ====================
       case "get_context": {
         const [{ data: memories }, { data: insights }, { data: events }] = await Promise.all([
-          supabase.from("third_brain_memories").select("*").eq("user_id", userId).order("importance", { ascending: false }).limit(10),
-          supabase.from("third_brain_insights").select("*").eq("user_id", userId).eq("status", "pending").limit(5),
-          supabase.from("third_brain_events").select("*").eq("user_id", userId).order("occurred_at", { ascending: false }).limit(10)
+          supabase.from("third_brain_memories").select("*").eq("user_id_uuid", userId).order("importance", { ascending: false }).limit(10),
+          supabase.from("third_brain_insights").select("*").eq("user_id_uuid", userId).eq("status", "pending").limit(5),
+          supabase.from("third_brain_events").select("*").eq("user_id_uuid", userId).order("occurred_at", { ascending: false }).limit(10)
         ]);
 
         result = {
@@ -373,7 +373,7 @@ export async function POST(req: NextRequest) {
         const { data: memories } = await supabase
           .from("third_brain_memories")
           .select("*")
-          .eq("user_id", userId)
+          .eq("user_id_uuid", userId)
           .ilike("content", `%${query}%`)
           .order("importance", { ascending: false })
           .limit(10);
@@ -394,7 +394,7 @@ export async function POST(req: NextRequest) {
         const { data: events } = await supabase
           .from("third_brain_events")
           .select("*")
-          .eq("user_id", userId)
+          .eq("user_id_uuid", userId)
           .order("occurred_at", { ascending: false })
           .limit(limit);
 
@@ -413,7 +413,7 @@ export async function POST(req: NextRequest) {
         const { data: insights } = await supabase
           .from("third_brain_insights")
           .select("*")
-          .eq("user_id", userId)
+          .eq("user_id_uuid", userId)
           .order("created_at", { ascending: false })
           .limit(10);
 
@@ -430,7 +430,7 @@ export async function POST(req: NextRequest) {
       case "add_memory": {
         const { content, category = "general" } = args || {};
         const { error } = await supabase.from("third_brain_memories").insert({
-          user_id: userId,
+          user_id_uuid: userId,
           content,
           category,
           importance: 5,
@@ -447,7 +447,7 @@ export async function POST(req: NextRequest) {
         const { data: contacts } = await supabase
           .from("contacts")
           .select("*")
-          .eq("user_id", userId)
+          .eq("user_id_uuid", userId)
           .or(`name.ilike.%${searchQuery}%,company.ilike.%${searchQuery}%,email.ilike.%${searchQuery}%`)
           .limit(5);
 
@@ -471,13 +471,13 @@ export async function POST(req: NextRequest) {
           .from("contacts")
           .select("*")
           .eq("id", contact_id)
-          .eq("user_id", userId)
+          .eq("user_id_uuid", userId)
           .single();
 
         const { data: interactions } = await supabase
           .from("third_brain_events")
           .select("*")
-          .eq("user_id", userId)
+          .eq("user_id_uuid", userId)
           .ilike("summary", `%${contact?.name}%`)
           .order("occurred_at", { ascending: false })
           .limit(5);
@@ -505,7 +505,7 @@ export async function POST(req: NextRequest) {
       case "log_emotion": {
         const { emotion, energy } = args || {};
         await supabase.from("emotional_checkins").insert({
-          user_id: userId,
+          user_id_uuid: userId,
           emotion: emotion || "neutral",
           energy_level: energy || 5,
           created_at: new Date().toISOString()
@@ -519,7 +519,7 @@ export async function POST(req: NextRequest) {
         const { data: actions } = await supabase
           .from("autonomy_actions")
           .select("*")
-          .eq("user_id", userId)
+          .eq("user_id_uuid", userId)
           .eq("status", "pending")
           .order("priority", { ascending: false })
           .limit(5);
@@ -542,7 +542,7 @@ export async function POST(req: NextRequest) {
           .from("autonomy_actions")
           .update({ status: "approved", approved_at: new Date().toISOString() })
           .eq("id", action_id)
-          .eq("user_id", userId);
+          .eq("user_id_uuid", userId);
         result = { success: true, message: "Action approved" };
         break;
       }
@@ -553,7 +553,7 @@ export async function POST(req: NextRequest) {
           .from("autonomy_actions")
           .update({ status: "dismissed" })
           .eq("id", action_id)
-          .eq("user_id", userId);
+          .eq("user_id_uuid", userId);
         result = { success: true, message: "Action dismissed" };
         break;
       }
@@ -562,7 +562,7 @@ export async function POST(req: NextRequest) {
         const { data: drafts } = await supabase
           .from("delegated_drafts")
           .select("*")
-          .eq("user_id", userId)
+          .eq("user_id_uuid", userId)
           .eq("status", "pending")
           .order("created_at", { ascending: false })
           .limit(5);
@@ -579,7 +579,7 @@ export async function POST(req: NextRequest) {
         };
         break;
       }
-// ==================== SIMULATIONS ====================
+      // ==================== SIMULATIONS ====================
       case "run_simulation": {
         const { scenario } = args || {};
         try {
@@ -598,7 +598,7 @@ export async function POST(req: NextRequest) {
 
       case "journal_entry": {
         const { content, mood } = args || {};
-        await supabase.from("journal_entries").insert({ user_id: userId, content: content || "", mood: mood || "neutral", entry_type: "voice", created_at: new Date().toISOString() });
+        await supabase.from("journal_entries").insert({ user_id_uuid: userId, content: content || "", mood: mood || "neutral", entry_type: "voice", created_at: new Date().toISOString() });
         result = { success: true, message: "Journal entry saved." };
         break;
       }
@@ -607,7 +607,7 @@ export async function POST(req: NextRequest) {
         const today = new Date();
         const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
         const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59).toISOString();
-        const { data: calEvents } = await supabase.from("calendar_events").select("*").eq("user_id", userId).gte("start_time", startOfDay).lte("start_time", endOfDay).order("start_time");
+        const { data: calEvents } = await supabase.from("calendar_events").select("*").eq("user_id_uuid", userId).gte("start_time", startOfDay).lte("start_time", endOfDay).order("start_time");
         result = { events: (calEvents || []).map(e => ({ title: e.title, start: e.start_time, end: e.end_time })), message: calEvents?.length ? `You have ${calEvents.length} events today` : "Your calendar is clear" };
         break;
       }
@@ -618,7 +618,7 @@ export async function POST(req: NextRequest) {
     // Log the voice interaction
     try {
       await supabase.from("third_brain_events").insert({
-        user_id: userId,
+        user_id_uuid: userId,
         type: "voice_function",
         source: "realtime_voice",
         title: `Voice: ${function_name}`,
