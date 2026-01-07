@@ -153,7 +153,7 @@ Return JSON: {"summary": "1-2 sentence summary", "goals_discussed": ["goal1"], "
       const data = JSON.parse(match[0]);
 
       await supabaseAdmin.from("coach_sessions").insert({
-        user_id: userId,
+        user_id_uuid: userId,
         coach,
         summary: data.summary,
         goals_discussed: data.goals_discussed || [],
