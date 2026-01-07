@@ -56,7 +56,7 @@ type Contact = {
 
 import { getTasks } from '@/lib/data/tasks';
 import { getDeals } from '@/lib/data/deals';
-import { getContacts } from '@/lib/data/journal';
+import { getContacts, type Contact } from "@/lib/data/journal";
 import { getFollowUps } from '@/lib/data/followups';
 
 // Data Fetching Adapters
@@ -162,8 +162,8 @@ async function generateAIBrief(data: {
   const totalPipelineValue = deals.reduce((sum, d) => sum + d.value, 0);
   const weightedPipeline = deals.reduce((sum, d) => sum + (d.value * d.probability / 100), 0);
 
-  const coldContacts = contacts.filter(c => c.relationshipStatus === "cold");
-  const coolingContacts = contacts.filter(c => c.relationshipStatus === "cooling");
+  const coldContacts = contacts.filter((c: Contact) => c.relationshipStatus === "cold");
+  const coolingContacts = contacts.filter((c: Contact) => c.relationshipStatus === "cooling");
 
   const prompt = `You are an executive AI assistant. Generate a brief, actionable morning summary.
 
@@ -241,8 +241,8 @@ export async function GET(req: NextRequest) {
     const totalPipelineValue = deals.reduce((sum, d) => sum + d.value, 0);
     const weightedPipeline = deals.reduce((sum, d) => sum + (d.value * d.probability / 100), 0);
 
-    const coldContacts = contacts.filter(c => c.relationshipStatus === "cold");
-    const coolingContacts = contacts.filter(c => c.relationshipStatus === "cooling");
+    const coldContacts = contacts.filter((c: Contact) => c.relationshipStatus === "cold");
+    const coolingContacts = contacts.filter((c: Contact) => c.relationshipStatus === "cooling");
 
     const aiBrief = await generateAIBrief({ tasks, followUps, deals, contacts });
 

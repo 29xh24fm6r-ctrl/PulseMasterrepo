@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { canMakeAICall, trackAIUsage } from "@/lib/services/usage";
 import { NextRequest, NextResponse } from "next/server";
-import { getContact, getContacts, updateContact } from "@/lib/data/journal";
+import { getContacts, type Contact } from "@/lib/data/journal";
 import OpenAI from "openai";
 
 export const maxDuration = 120; // 2 minutes for deep scan
@@ -229,7 +229,7 @@ export async function GET(req: NextRequest) {
 
   if (action === "search" && query) {
     const contacts = await getContacts(userId);
-    const filtered = contacts.filter(c =>
+    const filtered = contacts.filter((c: Contact) =>
       c.name.toLowerCase().includes(query.toLowerCase()) ||
       (c.email && c.email.toLowerCase().includes(query.toLowerCase())) ||
       (c.company && c.company.toLowerCase().includes(query.toLowerCase()))
