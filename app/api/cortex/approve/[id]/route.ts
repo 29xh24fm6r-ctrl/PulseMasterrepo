@@ -5,7 +5,8 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { executeAction } from "@/lib/cortex/executor";
 import { ProposedAction } from "@/lib/cortex/engine";
 
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
+    const params = await props.params;
     try {
         // 1. Validate User (In a real app, check session)
         // const supabase = createClient();
