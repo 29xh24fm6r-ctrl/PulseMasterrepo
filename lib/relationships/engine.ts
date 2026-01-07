@@ -77,7 +77,7 @@ export async function getRelationships(
   let query = supabaseAdmin
     .from("relationships")
     .select("*")
-    .eq("user_id", userId);
+    .eq("user_id_uuid", userId);
 
   if (options?.importance?.length) {
     query = query.in("importance", options.importance);
@@ -104,7 +104,7 @@ export async function getRelationship(userId: string, id: string): Promise<Relat
   const { data, error } = await supabaseAdmin
     .from("relationships")
     .select("*")
-    .eq("user_id", userId)
+    .eq("user_id_uuid", userId)
     .eq("id", id)
     .single();
 
@@ -122,7 +122,7 @@ export async function upsertRelationship(
   const now = new Date().toISOString();
 
   const record = {
-    user_id: userId,
+    user_id_uuid: userId,
     name: data.name,
     email: data.email,
     phone: data.phone,
@@ -145,7 +145,7 @@ export async function upsertRelationship(
       .from("relationships")
       .update(record)
       .eq("id", data.id)
-      .eq("user_id", userId)
+      .eq("user_id_uuid", userId)
       .select()
       .single();
 
@@ -184,7 +184,7 @@ export async function logInteraction(
   const { error: interactionError } = await supabaseAdmin
     .from("relationship_interactions")
     .insert({
-      user_id: userId,
+      user_id_uuid: userId,
       relationship_id: relationshipId,
       type: interaction.type,
       direction: interaction.direction,
@@ -228,7 +228,7 @@ export async function recalculateHealthScores(userId: string): Promise<number> {
   const { data: relationships } = await supabaseAdmin
     .from("relationships")
     .select("id, last_contact_at, followup_cadence_days, next_followup_at")
-    .eq("user_id", userId);
+    .eq("user_id_uuid", userId);
 
   if (!relationships) return 0;
 
@@ -334,7 +334,7 @@ export async function getInteractions(
   const { data, error } = await supabaseAdmin
     .from("relationship_interactions")
     .select("*")
-    .eq("user_id", userId)
+    .eq("user_id_uuid", userId)
     .eq("relationship_id", relationshipId)
     .order("occurred_at", { ascending: false })
     .limit(limit);
@@ -343,7 +343,7 @@ export async function getInteractions(
 
   return data.map((row) => ({
     id: row.id,
-    userId: row.user_id,
+    userId: row.user_id_uuid,
     relationshipId: row.relationship_id,
     type: row.type,
     direction: row.direction,
@@ -407,7 +407,7 @@ Provide a 2-3 sentence summary of this relationship and one suggestion for stren
 function mapRelationship(row: any): Relationship {
   return {
     id: row.id,
-    userId: row.user_id,
+    userId: row.user_id_uuid,
     contactId: row.contact_id,
     name: row.name,
     email: row.email,

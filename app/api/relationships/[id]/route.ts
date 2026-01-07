@@ -29,7 +29,7 @@ export async function GET(
         .from("relationship_interactions")
         .select("*")
         .eq("relationship_id", id)
-        .eq("user_id", userId)
+        .eq("user_id_uuid", userId)
         .order("occurred_at", { ascending: false })
         .limit(50);
 
@@ -53,7 +53,7 @@ export async function GET(
           .from("relationships")
           .select("*")
           .eq("id", id)
-          .eq("user_id", userId)
+          .eq("user_id_uuid", userId)
           .single(),
         supabaseAdmin
           .from("relationship_interactions")
@@ -100,7 +100,7 @@ Provide a 2-3 sentence summary and 1-2 specific suggestions to strengthen this r
       .from("relationships")
       .select("*")
       .eq("id", id)
-      .eq("user_id", userId)
+      .eq("user_id_uuid", userId)
       .single();
 
     if (error || !data) {
@@ -151,7 +151,7 @@ export async function POST(
     const { data: interaction, error: intError } = await supabaseAdmin
       .from("relationship_interactions")
       .insert({
-        user_id: userId,
+        user_id_uuid: userId,
         relationship_id: id,
         type,
         direction,
@@ -175,7 +175,7 @@ export async function POST(
         interaction_count: supabaseAdmin.rpc("increment_count", { row_id: id }),
       })
       .eq("id", id)
-      .eq("user_id", userId);
+      .eq("user_id_uuid", userId);
     // Increment interaction count via RPC (ignore if fails)
     try {
       await supabaseAdmin.rpc("increment_relationship_interaction", { rel_id: id });

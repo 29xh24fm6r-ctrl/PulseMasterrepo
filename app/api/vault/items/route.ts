@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
   const { data, error } = await supabase
     .from("vault_items")
     .insert({
-      user_id: userId,
+      user_id_uuid: userId,
       item_type: item_type || "secret",
       item_name,
       encrypted_data, // Ciphertext only
@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
   const { data, error } = await supabase
     .from("vault_items")
     .select("id, item_type, item_name, tags, metadata, created_at, updated_at")
-    .eq("user_id", userId)
+    .eq("user_id_uuid", userId)
     .order("created_at", { ascending: false });
 
   if (error) {

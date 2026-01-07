@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
           updated_at: new Date().toISOString(),
         })
         .eq("id", id)
-        .eq("user_id", userId)
+        .eq("user_id_uuid", userId)
         .select()
         .single();
 
@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
       const { data, error } = await supabase
         .from("tasks")
         .insert({
-          user_id: userId,
+          user_id_uuid: userId,
           name,
           description,
           status: dbStatus,
