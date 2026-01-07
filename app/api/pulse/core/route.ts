@@ -3,8 +3,9 @@
 // One endpoint to power the entire dashboard with AI intelligence
 
 import { NextRequest, NextResponse } from "next/server";
+import { getContacts, type Contact } from "@/lib/data/journal";
 import { auth } from "@clerk/nextjs/server";
-import { createClient } from "@supabase/supabase-js";
+import { createClient } => "@supabase/supabase-js";
 import OpenAI from "openai";
 import { loadKernel, loadRelevantModules, detectRelevantModules } from "@/app/lib/brain-loader";
 import { canMakeAICall, trackAIUsage } from "@/lib/services/usage";
@@ -182,7 +183,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Analyze relationships
-    const coldContacts = contacts.filter(c => {
+    const coldContacts = contacts.filter((c: Contact) => {
       if (!c.last_contact) return true;
       const daysSince = Math.floor((now.getTime() - new Date(c.last_contact).getTime()) / (1000 * 60 * 60 * 24));
       return daysSince >= 14;
@@ -197,7 +198,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Recent journal sentiment
-    const recentJournalMood = journalEntries.length > 0 
+    const recentJournalMood = journalEntries.length > 0
       ? journalEntries[0].mood || journalEntries[0].extracted_data?.mood || "neutral"
       : "unknown";
 
@@ -358,7 +359,7 @@ Generate 3-7 insights, 2-3 quests, and top 3 relationship alerts. Be specific an
 
 // GET for simple health check
 export async function GET() {
-  return NextResponse.json({ 
+  return NextResponse.json({
     status: "Pulse AI Core Online",
     version: "2.0",
     capabilities: [

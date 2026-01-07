@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import OpenAI from "openai";
 
 import { getTasks } from '@/lib/data/tasks';
-import { getContacts } from '@/lib/data/journal';
+import { getContacts, type Contact } from "@/lib/data/journal";
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
@@ -56,7 +56,7 @@ export async function POST(req: Request) {
     try {
       const contacts = await getContacts(userId);
 
-      const relatedPeople = contacts.filter(c => {
+      const relatedPeople = contacts.filter((c: Contact) => {
         // Match by deal name or company name in deal name
         const matchName = c.name?.toLowerCase().includes(dealName.toLowerCase());
         const matchCompany = c.company?.toLowerCase() && dealName.toLowerCase().includes(c.company.toLowerCase());
