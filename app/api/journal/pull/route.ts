@@ -11,14 +11,14 @@ export async function GET(request: NextRequest) {
 
     // Map to expected format if UI expects .preview etc
     // Supabase returns full content, usually better than Notion blocks
-    const formatted = entries.map(e => ({
+    const formatted = entries.map((e: any) => ({
       id: e.id,
       title: e.title,
-      date: e.created_at.split('T')[0],
+      date: e.created_at ? e.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
       mood: e.mood,
       tags: e.tags,
-      preview: e.content.substring(0, 200),
-      createdAt: e.created_at
+      preview: e.content ? e.content.substring(0, 200) : "",
+      createdAt: e.created_at || new Date().toISOString()
     }));
 
     return NextResponse.json({ ok: true, entries: formatted, total: entries.length });

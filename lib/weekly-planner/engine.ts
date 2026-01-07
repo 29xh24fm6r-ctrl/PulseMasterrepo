@@ -96,9 +96,9 @@ export async function getOrCreateWeeklyPlan(userId: string, weekStart?: Date): P
       user_id: userId,
       week_start: start.toISOString().split("T")[0],
       week_end: end.toISOString().split("T")[0],
-      top_priorities: [],
-      goals: [],
-      time_blocks: getDefaultTimeBlocks(),
+      top_priorities: [] as any,
+      goals: [] as any,
+      time_blocks: getDefaultTimeBlocks() as any,
       status: "planning",
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -158,7 +158,7 @@ export async function saveWeeklyReflection(
   const { error } = await supabaseAdmin
     .from("weekly_plans")
     .update({
-      reflections: reflection,
+      reflections: reflection as any,
       status: "reviewed",
       updated_at: new Date().toISOString(),
     })
@@ -286,8 +286,8 @@ export async function generateWeeklyReview(
 
   if (!plan) return null;
 
-  const priorities = plan.top_priorities || [];
-  const goals = plan.goals || [];
+  const priorities = (plan.top_priorities as unknown as WeeklyPriority[]) || [];
+  const goals = (plan.goals as unknown as WeeklyGoal[]) || [];
   const completedPriorities = priorities.filter((p: any) => p.completed).length;
   const completedGoals = goals.filter((g: any) => g.completed).length;
 
@@ -359,10 +359,10 @@ function mapWeeklyPlan(row: any): WeeklyPlan {
     weekStart: new Date(row.week_start),
     weekEnd: new Date(row.week_end),
     theme: row.theme,
-    topPriorities: row.top_priorities || [],
-    goals: row.goals || [],
-    timeBlocks: row.time_blocks || [],
-    reflections: row.reflections,
+    topPriorities: (row.top_priorities as unknown as WeeklyPriority[]) || [],
+    goals: (row.goals as unknown as WeeklyGoal[]) || [],
+    timeBlocks: (row.time_blocks as unknown as TimeBlock[]) || [],
+    reflections: row.reflections as unknown as WeeklyReflection,
     status: row.status,
     aiSummary: row.ai_summary,
     createdAt: new Date(row.created_at),

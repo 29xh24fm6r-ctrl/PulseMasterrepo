@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 async function awardXp(userId: string, event_type: string, xp: number, ref_id: string) {
-    await supabaseAdmin.rpc("award_xp", {
+    await (supabaseAdmin as any).rpc("award_xp", {
         p_user_id: userId,
         p_event_type: event_type,
         p_xp: xp,
@@ -95,7 +95,7 @@ export async function POST(req: Request) {
                         .from("tasks")
                         .update(patch)
                         .eq("id", task_id)
-                        .eq("user_id", userId)
+                        .eq("user_id_uuid", userId)
                         .select("*")
                         .single()
                 );
@@ -119,7 +119,7 @@ export async function POST(req: Request) {
                         const { data: prefs } = await supabaseAdmin
                             .from("user_prefs")
                             .select("active_focus_task_id,focus_mode_enabled")
-                            .eq("user_id", userId)
+                            .eq("user_id_uuid", userId)
                             .single();
 
                         if (prefs?.focus_mode_enabled && prefs?.active_focus_task_id === task_id) {
@@ -128,7 +128,7 @@ export async function POST(req: Request) {
                             // clear focus lock (optional but feels great)
                             await supabaseAdmin
                                 .from("user_prefs")
-                                .upsert({ user_id: userId, focus_mode_enabled: false, active_focus_task_id: null }, { onConflict: "user_id" });
+                                .upsert({ user_id_uuid: userId, owner_user_id: userId, focus_mode_enabled: false, active_focus_task_id: null }, { onConflict: "user_id_uuid" });
                         }
                     });
                 }

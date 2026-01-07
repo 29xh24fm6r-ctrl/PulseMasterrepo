@@ -31,7 +31,7 @@ export async function GET(request: Request) {
     // Since phone formatting varies, we fetch all and check in JS, or use a broad ilike if possible.
     // Given the small scale of contacts usually (<10k), fetching id, name, phone is fine.
 
-    const { data: contacts, error } = await supabaseAdmin
+    const { data: contacts, error } = await (supabaseAdmin as any)
       .from("contacts")
       .select("id, name, company, phone")
       .eq("user_id", userId)

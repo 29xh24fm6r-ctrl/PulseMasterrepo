@@ -86,7 +86,7 @@ export async function canMakeAICall(
     const { data: profile, error } = await supabaseAdmin
       .from("user_profiles")
       .select("plan, usage_cents_this_month, token_balance_cents")
-      .eq("user_id", userId)
+      .eq("user_id_uuid", userId)
       .single();
 
     if (error || !profile) {
@@ -100,7 +100,7 @@ export async function canMakeAICall(
 
     const plan = profile.plan || "free";
     const limits = PLAN_LIMITS[plan as keyof typeof PLAN_LIMITS] || PLAN_LIMITS.free;
-    
+
     // Check feature access
     if (limits.features[0] !== "all" && !limits.features.includes(feature)) {
       return {
@@ -120,7 +120,7 @@ export async function canMakeAICall(
     if (totalAvailable < estimatedCostCents) {
       return {
         allowed: false,
-        reason: plan === "free" 
+        reason: plan === "free"
           ? "Free tier limit reached. Upgrade to Pulse+ for more tokens."
           : "Token balance depleted. Purchase more tokens to continue.",
         remainingTokens: totalAvailable,
@@ -177,7 +177,7 @@ export async function trackAIUsage(
     const { data: profile, error: profileError } = await supabaseAdmin
       .from("user_profiles")
       .select("plan, usage_cents_this_month, token_balance_cents")
-      .eq("user_id", userId)
+      .eq("user_id_uuid", userId)
       .single();
 
     if (profileError || !profile) {
@@ -213,16 +213,17 @@ export async function trackAIUsage(
         usage_cents_this_month: newUsedThisMonth,
         token_balance_cents: newPurchasedTokens,
       })
-      .eq("user_id", userId);
+      .eq("user_id_uuid", userId);
 
     // Log usage
     await supabaseAdmin.from("usage_logs").insert({
-      user_id: userId,
+      user_id_uuid: userId,
+      owner_user_id_legacy: userId,
       feature,
       tokens_used: totalTokens,
       cost_cents: costCents,
       model,
-      metadata: metadata || {},
+      metadata: (metadata || {}) as any,
     });
 
     // Check usage alerts
@@ -251,7 +252,7 @@ export async function trackVoiceUsage(
   feature: string = "voice_transcription"
 ): Promise<UsageResult> {
   const costCents = calculateTranscriptionCost(durationMinutes);
-  
+
   return trackAIUsage(userId, feature, "whisper-1", {}, {
     duration_minutes: durationMinutes,
     cost_cents: costCents,
@@ -268,7 +269,7 @@ export async function trackTTSUsage(
 ): Promise<UsageResult> {
   const costCents = calculateTTSCost(characters, hd);
   const model = hd ? "tts-1-hd" : "tts-1";
-  
+
   return trackAIUsage(userId, "tts", model, {}, {
     characters,
     cost_cents: costCents,
@@ -285,7 +286,7 @@ async function getDailyAICallCount(userId: string): Promise<number> {
   const { count } = await supabaseAdmin
     .from("usage_logs")
     .select("*", { count: "exact", head: true })
-    .eq("user_id", userId)
+    .eq("user_id_uuid", userId)
     .gte("created_at", today.toISOString());
 
   return count || 0;
@@ -298,7 +299,7 @@ export async function getUsageSummary(userId: string) {
   const { data: profile } = await supabaseAdmin
     .from("user_profiles")
     .select("plan, usage_cents_this_month, token_balance_cents")
-    .eq("user_id", userId)
+    .eq("user_id_uuid", userId)
     .single();
 
   if (!profile) {
@@ -356,7 +357,7 @@ export async function requireTokens(
   if (!userId) {
     return {
       allowed: false,
-      response: new Response(JSON.stringify({ error: "Unauthorized" }), { 
+      response: new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { "Content-Type": "application/json" }
       })
@@ -370,7 +371,7 @@ export async function requireTokens(
       response: new Response(JSON.stringify({
         error: check.reason,
         requiresUpgrade: check.requiresUpgrade,
-      }), { 
+      }), {
         status: 402,
         headers: { "Content-Type": "application/json" }
       })

@@ -3,6 +3,8 @@ import { auth } from "@clerk/nextjs/server";
 import { createTask } from "@/lib/data/tasks";
 import { createFollowUp } from "@/lib/data/followups";
 
+import { ActionData, typeLabels } from "@/lib/types/actions";
+
 function calculateDueDate(dateStr: string | null, priority: string): string {
   if (dateStr) return dateStr;
 
@@ -22,28 +24,6 @@ function calculateDueDate(dateStr: string | null, priority: string): string {
   }
   return now.toISOString().split("T")[0];
 }
-
-// Type definitions
-type ActionType = "task" | "follow_up" | "commitment" | "waiting_on";
-
-interface ActionData {
-  type: ActionType;
-  priority: string;
-  description: string;
-  dueDate: string | null;
-  context?: string;
-  fromName: string;
-  fromEmail: string;
-  subject: string;
-  personId?: string;
-}
-
-const typeLabels: Record<ActionType, string> = {
-  task: "Task",
-  commitment: "Commitment",
-  follow_up: "Follow-up",
-  waiting_on: "Check-in",
-};
 
 export async function POST(req: NextRequest) {
   try {

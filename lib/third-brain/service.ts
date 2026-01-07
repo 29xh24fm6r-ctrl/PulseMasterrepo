@@ -162,7 +162,7 @@ export interface CreateInsightInput {
  */
 export async function logThirdBrainEvent(input: LogEventInput): Promise<string | null> {
   try {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await (supabaseAdmin as any)
       .from("third_brain_events")
       .insert({
         user_id: input.userId,
@@ -197,7 +197,7 @@ export async function logThirdBrainEventsBatch(
   if (events.length === 0) return 0;
 
   try {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await (supabaseAdmin as any)
       .from("third_brain_events")
       .insert(
         events.map((e) => ({
@@ -234,7 +234,7 @@ export async function logThirdBrainEventsBatch(
  */
 export async function upsertMemory(input: UpsertMemoryInput): Promise<string | null> {
   try {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await (supabaseAdmin as any)
       .from("third_brain_memories")
       .upsert(
         {
@@ -273,7 +273,7 @@ export async function getMemory(
   key: string
 ): Promise<ThirdBrainMemory | null> {
   try {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await (supabaseAdmin as any)
       .from("third_brain_memories")
       .select("*")
       .eq("user_id", userId)
@@ -308,7 +308,7 @@ export async function getMemoriesByCategory(
   limit: number = 50
 ): Promise<ThirdBrainMemory[]> {
   try {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await (supabaseAdmin as any)
       .from("third_brain_memories")
       .select("*")
       .eq("user_id", userId)
@@ -319,7 +319,7 @@ export async function getMemoriesByCategory(
 
     if (error || !data) return [];
 
-    return data.map((d) => ({
+    return data.map((d: any) => ({
       id: d.id,
       userId: d.user_id,
       category: d.category,
@@ -329,7 +329,7 @@ export async function getMemoriesByCategory(
       metadata: d.metadata,
       lastUpdatedAt: new Date(d.last_updated_at),
       createdAt: new Date(d.created_at),
-    }));
+    })) as ThirdBrainMemory[];
   } catch (err) {
     console.error("[ThirdBrain] Exception getting memories by category:", err);
     return [];
@@ -344,7 +344,7 @@ export async function getTopMemories(
   limit: number = 20
 ): Promise<ThirdBrainMemory[]> {
   try {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await (supabaseAdmin as any)
       .from("third_brain_memories")
       .select("*")
       .eq("user_id", userId)
@@ -354,7 +354,7 @@ export async function getTopMemories(
 
     if (error || !data) return [];
 
-    return data.map((d) => ({
+    return data.map((d: any) => ({
       id: d.id,
       userId: d.user_id,
       category: d.category,
@@ -364,7 +364,7 @@ export async function getTopMemories(
       metadata: d.metadata,
       lastUpdatedAt: new Date(d.last_updated_at),
       createdAt: new Date(d.created_at),
-    }));
+    })) as ThirdBrainMemory[];
   } catch (err) {
     console.error("[ThirdBrain] Exception getting top memories:", err);
     return [];
@@ -376,7 +376,7 @@ export async function getTopMemories(
  */
 export async function deleteMemory(userId: string, key: string): Promise<boolean> {
   try {
-    const { error } = await supabaseAdmin
+    const { error } = await (supabaseAdmin as any)
       .from("third_brain_memories")
       .delete()
       .eq("user_id", userId)
@@ -398,7 +398,7 @@ export async function deleteMemory(userId: string, key: string): Promise<boolean
  */
 export async function createInsight(input: CreateInsightInput): Promise<string | null> {
   try {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await (supabaseAdmin as any)
       .from("third_brain_insights")
       .insert({
         user_id: input.userId,
@@ -433,7 +433,7 @@ export async function getOpenInsights(
   limit: number = 20
 ): Promise<ThirdBrainInsight[]> {
   try {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await (supabaseAdmin as any)
       .from("third_brain_insights")
       .select("*")
       .eq("user_id", userId)
@@ -444,7 +444,7 @@ export async function getOpenInsights(
 
     if (error || !data) return [];
 
-    return data.map((d) => ({
+    return data.map((d: any) => ({
       id: d.id,
       userId: d.user_id,
       kind: d.kind,
@@ -455,7 +455,7 @@ export async function getOpenInsights(
       status: d.status,
       createdAt: new Date(d.created_at),
       actedAt: d.acted_at ? new Date(d.acted_at) : null,
-    }));
+    })) as ThirdBrainInsight[];
   } catch (err) {
     console.error("[ThirdBrain] Exception getting open insights:", err);
     return [];
@@ -470,7 +470,7 @@ export async function updateInsightStatus(
   status: "accepted" | "dismissed" | "done" | "snoozed"
 ): Promise<boolean> {
   try {
-    const { error } = await supabaseAdmin
+    const { error } = await (supabaseAdmin as any)
       .from("third_brain_insights")
       .update({
         status,
@@ -497,7 +497,7 @@ async function insightExistsRecently(
   const since = new Date();
   since.setDate(since.getDate() - daysBack);
 
-  const { data } = await supabaseAdmin
+  const { data } = await (supabaseAdmin as any)
     .from("third_brain_insights")
     .select("id")
     .eq("user_id", userId)
@@ -524,7 +524,7 @@ export async function buildContextSnapshot(userId: string): Promise<ContextSnaps
   const sevenDaysAgoISO = sevenDaysAgo.toISOString();
 
   // Fetch recent events (last 7 days, max 50)
-  const { data: recentEventsData } = await supabaseAdmin
+  const { data: recentEventsData } = await (supabaseAdmin as any)
     .from("third_brain_events")
     .select("id, type, source, title, summary, occurred_at")
     .eq("user_id", userId)
@@ -533,7 +533,7 @@ export async function buildContextSnapshot(userId: string): Promise<ContextSnaps
     .limit(50);
 
   // Fetch top memories
-  const { data: memoriesData } = await supabaseAdmin
+  const { data: memoriesData } = await (supabaseAdmin as any)
     .from("third_brain_memories")
     .select("id, category, key, importance, content")
     .eq("user_id", userId)
@@ -553,22 +553,22 @@ export async function buildContextSnapshot(userId: string): Promise<ContextSnaps
   // Calculate metrics from events
   const events = recentEventsData || [];
   const metrics = {
-    tasksCompletedLast7Days: events.filter((e) => e.type === "task_completed").length,
-    callsLast7Days: events.filter((e) => e.type === "call").length,
-    emailsLast7Days: events.filter((e) => e.type === "email").length,
+    tasksCompletedLast7Days: events.filter((e: any) => e.type === "task_completed").length,
+    callsLast7Days: events.filter((e: any) => e.type === "call").length,
+    emailsLast7Days: events.filter((e: any) => e.type === "email").length,
     xpGainedLast7Days: events
-      .filter((e) => e.type === "xp_gain")
-      .reduce((sum, e) => sum + 1, 0),
-    journalEntriesLast7Days: events.filter((e) => e.type === "journal").length,
+      .filter((e: any) => e.type === "xp_gain")
+      .reduce((sum: number, e: any) => sum + 1, 0),
+    journalEntriesLast7Days: events.filter((e: any) => e.type === "journal").length,
     dealsAdvancedLast7Days: events.filter(
-      (e) => e.type === "deal_advanced" || e.type === "deal_won"
+      (e: any) => e.type === "deal_advanced" || e.type === "deal_won"
     ).length,
   };
 
   return {
     userId,
     generatedAt: new Date(),
-    recentEvents: (recentEventsData || []).map((e) => ({
+    recentEvents: (recentEventsData || []).map((e: any) => ({
       id: e.id,
       type: e.type,
       source: e.source,
@@ -576,7 +576,7 @@ export async function buildContextSnapshot(userId: string): Promise<ContextSnaps
       summary: e.summary,
       occurredAt: new Date(e.occurred_at),
     })),
-    recentMemories: (memoriesData || []).map((m) => ({
+    recentMemories: (memoriesData || []).map((m: any) => ({
       id: m.id,
       category: m.category,
       key: m.key,
@@ -587,7 +587,7 @@ export async function buildContextSnapshot(userId: string): Promise<ContextSnaps
       id: i.id,
       kind: i.kind,
       title: i.title,
-      severity: i.severity,
+      severity: i.severity || 0,
     })),
     metrics,
   };
@@ -620,11 +620,11 @@ export async function buildContextString(
   if (includeMetrics) {
     parts.push(
       `## Recent Activity (7 days)\n` +
-        `- Tasks completed: ${snapshot.metrics.tasksCompletedLast7Days}\n` +
-        `- Calls: ${snapshot.metrics.callsLast7Days}\n` +
-        `- Emails: ${snapshot.metrics.emailsLast7Days}\n` +
-        `- Journal entries: ${snapshot.metrics.journalEntriesLast7Days}\n` +
-        `- Deals advanced: ${snapshot.metrics.dealsAdvancedLast7Days}`
+      `- Tasks completed: ${snapshot.metrics.tasksCompletedLast7Days}\n` +
+      `- Calls: ${snapshot.metrics.callsLast7Days}\n` +
+      `- Emails: ${snapshot.metrics.emailsLast7Days}\n` +
+      `- Journal entries: ${snapshot.metrics.journalEntriesLast7Days}\n` +
+      `- Deals advanced: ${snapshot.metrics.dealsAdvancedLast7Days}`
     );
   }
 
@@ -1001,7 +1001,7 @@ export async function runThirdBrainDailyCycle(userId: string): Promise<{
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    const { data: recentEvents } = await supabaseAdmin
+    const { data: recentEvents } = await (supabaseAdmin as any)
       .from("third_brain_events")
       .select("*")
       .eq("user_id", userId)
@@ -1061,9 +1061,8 @@ export async function runThirdBrainDailyCycle(userId: string): Promise<{
           userId,
           category: "relationship",
           key: rel.key,
-          content: `${rel.name} - Gone quiet. Last contact: ${
-            rel.lastCallAt?.toLocaleDateString() || "Unknown"
-          }. Consider reaching out.`,
+          content: `${rel.name} - Gone quiet. Last contact: ${rel.lastCallAt?.toLocaleDateString() || "Unknown"
+            }. Consider reaching out.`,
           importance: 3,
           metadata: {
             trend: "gone_quiet",
@@ -1079,7 +1078,7 @@ export async function runThirdBrainDailyCycle(userId: string): Promise<{
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    await supabaseAdmin
+    await (supabaseAdmin as any)
       .from("third_brain_insights")
       .update({ status: "dismissed" })
       .eq("user_id", userId)
@@ -1181,7 +1180,7 @@ export async function logDealEvent(
   value?: number
 ): Promise<string | null> {
   const isWon = stage.toLowerCase().includes("won") || stage.toLowerCase().includes("closed");
-  
+
   return logThirdBrainEvent({
     userId,
     type: isWon ? "deal_won" : "deal_advanced",

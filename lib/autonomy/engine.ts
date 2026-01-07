@@ -19,7 +19,8 @@ export type AutonomyActionType =
   | "follow_up"
   | "habit_nudge"
   | "reflection"
-  | "briefing";
+  | "briefing"
+  | "draft_review";
 
 export type AutonomyActionStatus =
   | "suggested"
@@ -351,9 +352,8 @@ async function generateMorningBriefing(
   return {
     type: "briefing",
     title: `${dayOfWeek} Morning Focus`,
-    description: `Today you have ${openInsights?.length || 0} open insights to review. ${
-      todayEvents?.length || 0
-    } activities logged so far. Take 5 minutes to check your Third Brain and set your intentions.`,
+    description: `Today you have ${openInsights?.length || 0} open insights to review. ${todayEvents?.length || 0
+      } activities logged so far. Take 5 minutes to check your Third Brain and set your intentions.`,
   };
 }
 
@@ -378,7 +378,7 @@ export async function runAutonomyCycle(userId: string): Promise<{
     // 3. Check for duplicates and create actions
     for (const action of generatedActions) {
       const exists = await actionExistsRecently(userId, action.type, action.title, 3);
-      
+
       if (exists) {
         result.skipped++;
         continue;

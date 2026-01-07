@@ -13,9 +13,9 @@ export async function GET(req: Request) {
     const limit = Math.min(Number(searchParams.get("limit") ?? 10), 50);
 
     const { data, error } = await supabaseAdmin
-        .from("tasks_execution_feed")
+        .from("tasks_execution_feed" as any)
         .select("*")
-        .eq("user_id", userId)
+        .eq("user_id_uuid", userId)
         .order("is_overdue", { ascending: false })
         .order("due_at", { ascending: true, nullsFirst: false })
         .order("priority", { ascending: false })

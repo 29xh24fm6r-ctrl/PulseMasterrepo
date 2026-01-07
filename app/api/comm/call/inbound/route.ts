@@ -16,14 +16,14 @@ export async function POST(request: Request) {
     console.log(`📞 Inbound call: ${callSid} from ${from}`);
 
     // Find user by their Twilio number
-    const { data: user } = await supabaseAdmin
+    const { data: user } = await (supabaseAdmin as any)
       .from("users")
       .select("id")
       .eq("phone", to)
       .single();
 
     // Create call record
-    const { data: call } = await supabaseAdmin
+    const { data: call } = await (supabaseAdmin as any)
       .from("calls")
       .insert({
         user_id: user?.id || null,
@@ -37,18 +37,19 @@ export async function POST(request: Request) {
 
     const sessionId = call?.id || "unknown";
 
-    // Return TwiML voicemail per spec
+    // Return TwiML with Stream to local WebSocket Server (via ngrok in dev)
     const twiml = new VoiceResponse();
+    const connect = twiml.connect();
+    // In dev, you must set NGROK_URL in env. In prod, this is your real domain.
+    const wsUrl = process.env.NGROK_URL
+      ? `${process.env.NGROK_URL.replace('http', 'ws')}/`
+      : `wss://${request.headers.get('host')}/`;
 
-    twiml.say(
-      { voice: "alice" },
-      "Hi, this is Pulse. The human is not available. Please leave a message after the tone."
-    );
+    console.log(`🔗 Connecting Twilio Stream to: ${wsUrl}`);
 
-    twiml.record({
-      maxLength: 60,
-      playBeep: true,
-      action: `${APP_BASE_URL}/api/comm/call/voicemail-complete?callSessionId=${sessionId}`,
+    connect.stream({
+      url: wsUrl,
+      track: "inbound_track"
     });
 
     return new NextResponse(twiml.toString(), {

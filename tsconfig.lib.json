@@ -1,0 +1,20 @@
+{
+    "extends": "./tsconfig.json",
+    "include": [
+        "app/api/**/*",
+        "lib/data/**/*",
+        "lib/executions/**/*",
+        "lib/email/**/*",
+        "lib/executive/**/*",
+        "lib/memory/**/*",
+        "lib/services/**/*",
+        "lib/teaching/**/*",
+        "lib/campaigns/**/*",
+        "lib/email/**/*",
+        "lib/xp/**/*"
+    ],
+    "exclude": [
+        "node_modules",
+        "**/*.test.ts"
+    ]
+}

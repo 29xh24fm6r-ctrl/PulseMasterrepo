@@ -20,7 +20,7 @@ export async function POST(req: Request) {
 
     if (usersRes.error) return NextResponse.json({ ok: false, error: usersRes.error.message }, { status: 500 });
 
-    const uniq = Array.from(new Set((usersRes.data ?? []).map((r: any) => r.user_id_uuid)));
+    const uniq = Array.from(new Set(((usersRes.data as any) ?? []).map((r: any) => r.user_id_uuid)));
 
     // For now: do nothing else here to avoid impersonation complexity.
     // Instead, cron triggers will be user-driven (manual run) until we add service-side "process as user".

@@ -472,7 +472,7 @@ async function logVoiceInteraction(
   result: VoiceCommandResult
 ): Promise<void> {
   try {
-    await supabaseAdmin.from("third_brain_events").insert({
+    await (supabaseAdmin as any).from("third_brain_events").insert({
       user_id: userId,
       type: "voice_command",
       source: "voice_orchestrator",

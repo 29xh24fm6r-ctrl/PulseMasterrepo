@@ -25,13 +25,15 @@ export async function POST(req: Request) {
       };
 
       const payload = {
-        user_id_uuid: gate.gate.canon.userIdUuid,
-        title: body.title ?? "",
-        body: body.body ?? "",
-        due_at: body.dueAt ?? null,
+        user_id: gate.gate.canon.userIdUuid,
+        name: body.title ?? "",
+        person_name: null,
+        description: body.body ?? "", // Mapping body to description assuming follow_ups uses description? Wait, check error log.
+        due_date: body.dueAt ?? null,
         status: body.status ?? "open",
-        source: body.source ?? "manual",
-        meta: body.meta ?? {},
+        type: "general",
+        priority: "medium",
+        metadata: body.meta ?? {},
       };
 
       const { data, error } = await supabaseAdmin

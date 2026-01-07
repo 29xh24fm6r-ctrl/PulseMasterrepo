@@ -125,7 +125,7 @@ async function handleSubscriptionChange(
   eventType: "created" | "updated"
 ) {
   const customerId = subscription.customer as string;
-  
+
   // Get user by Stripe customer ID
   const { data: profile } = await supabaseAdmin
     .from("user_profiles")
@@ -139,7 +139,7 @@ async function handleSubscriptionChange(
   }
 
   const userId = profile.user_id;
-  
+
   // Get plan from price ID
   const priceId = subscription.items.data[0]?.price.id;
   const plan = getPlanFromPriceId(priceId);
@@ -280,11 +280,12 @@ async function addTokensToUser(userId: string, tokens: number) {
 
   // Log the transaction
   await supabaseAdmin.from("xp_transactions").insert({
-    user_id: userId,
-    amount: 0, // No XP for purchases
-    source: "token_purchase",
-    description: `Purchased ${tokens} tokens`,
-    metadata: { tokens },
+    user_id_uuid: userId,
+    owner_user_id_legacy: userId,
+    amount: 0,
+    source_type: "token_purchase",
+    reason: `Purchased ${tokens} tokens`,
+    // metadata column missing in schema, omitting
   });
 
   console.log(`💳 Added ${tokens} tokens to user ${userId}. New balance: ${newBalance}`);
@@ -319,7 +320,7 @@ async function creditReferralBonus(userId: string) {
 
   // Credit the referrer with tokens (500 tokens = $5 value)
   const referralTokens = 500;
-  
+
   const { data: referrerProfile } = await supabaseAdmin
     .from("user_profiles")
     .select("token_balance_cents")

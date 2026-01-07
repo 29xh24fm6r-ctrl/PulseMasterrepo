@@ -65,7 +65,7 @@ export async function ensureUserDomains(userId: string): Promise<void> {
   const { data: existing } = await supabaseAdmin
     .from("life_domains")
     .select("key")
-    .eq("user_id", userId);
+    .eq("user_id_uuid", userId);
 
   if (existing && existing.length >= DEFAULT_DOMAINS.length) return;
 
@@ -73,7 +73,8 @@ export async function ensureUserDomains(userId: string): Promise<void> {
 
   const toInsert = DEFAULT_DOMAINS.filter((d) => !existingKeys.has(d.key)).map(
     (d) => ({
-      user_id: userId,
+      user_id_uuid: userId,
+      owner_user_id_legacy: userId,
       key: d.key,
       label: d.label,
       weight: d.weight,
@@ -96,10 +97,14 @@ export async function getUserDomains(
   const { data } = await supabaseAdmin
     .from("life_domains")
     .select("key, label, weight")
-    .eq("user_id", userId)
+    .eq("user_id_uuid", userId)
     .order("weight", { ascending: false });
 
-  return data || [];
+  return (data || []).map(d => ({
+    key: d.key,
+    label: d.label,
+    weight: d.weight ?? 0
+  }));
 }
 
 // ============================================
@@ -164,14 +169,15 @@ export async function recomputeDomainKPIs(input: DomainKPIInput): Promise<void> 
   for (const kpi of domainKPIs) {
     await supabaseAdmin.from("domain_kpis").upsert(
       {
-        user_id: userId,
+        user_id_uuid: userId,
+        owner_user_id_legacy: userId,
         domain_key: kpi.domainKey,
         period_start: startStr,
         period_end: endStr,
         score: kpi.score,
         metrics: kpi.metrics,
       },
-      { onConflict: "user_id,domain_key,period_start,period_end" }
+      { onConflict: "user_id_uuid,domain_key,period_start,period_end" }
     );
   }
 
@@ -192,9 +198,11 @@ export async function generateExecutiveSummary(
   const { data: kpis } = await supabaseAdmin
     .from("domain_kpis")
     .select("*")
-    .eq("user_id", userId)
+    .eq("user_id_uuid", userId)
     .eq("period_start", startStr)
     .eq("period_end", endStr);
+
+  let kpiData = kpis || [];
 
   if (!kpis || kpis.length === 0) {
     // Compute KPIs first
@@ -203,16 +211,16 @@ export async function generateExecutiveSummary(
     const { data: freshKpis } = await supabaseAdmin
       .from("domain_kpis")
       .select("*")
-      .eq("user_id", userId)
+      .eq("user_id_uuid", userId)
       .eq("period_start", startStr)
       .eq("period_end", endStr);
 
     if (!freshKpis || freshKpis.length === 0) {
       return null;
     }
+    kpiData = freshKpis;
   }
 
-  const kpiData = kpis || [];
   const domainScores: Record<string, number> = {};
   let totalScore = 0;
   let totalWeight = 0;
@@ -225,9 +233,11 @@ export async function generateExecutiveSummary(
   });
 
   for (const kpi of kpiData) {
-    domainScores[kpi.domain_key] = kpi.score;
+    if (kpi.score !== null) {
+      domainScores[kpi.domain_key] = kpi.score ?? 0;
+    }
     const weight = domainWeights[kpi.domain_key] || 1;
-    totalScore += kpi.score * weight;
+    totalScore += (kpi.score ?? 0) * weight;
     totalWeight += weight;
   }
 
@@ -242,8 +252,8 @@ export async function generateExecutiveSummary(
 
 Domain Scores (0-100):
 ${Object.entries(domainScores)
-  .map(([k, v]) => `- ${k}: ${v}`)
-  .join("\n")}
+        .map(([k, v]) => `- ${k}: ${v}`)
+        .join("\n")}
 
 Overall Score: ${overallScore}
 
@@ -264,11 +274,11 @@ Output as JSON:
   const aiSummary = aiResult.success && aiResult.data
     ? aiResult.data
     : {
-        summary: `Your overall score this week is ${overallScore}. Review your domain performance for details.`,
-        highlights: [],
-        concerns: [],
-        recommendations: [],
-      };
+      summary: `Your overall score this week is ${overallScore}. Review your domain performance for details.`,
+      highlights: [],
+      concerns: [],
+      recommendations: [],
+    };
 
   // Determine period type
   const daysDiff = Math.ceil(
@@ -281,7 +291,8 @@ Output as JSON:
     .from("executive_summaries")
     .upsert(
       {
-        user_id: userId,
+        user_id_uuid: userId,
+        owner_user_id_legacy: userId,
         period_type: periodType,
         period_start: startStr,
         period_end: endStr,
@@ -292,7 +303,7 @@ Output as JSON:
         recommendations: aiSummary.recommendations,
         domain_scores: domainScores,
       },
-      { onConflict: "user_id,period_type,period_start" }
+      { onConflict: "user_id_uuid,period_type,period_start" }
     )
     .select("*")
     .single();
@@ -314,7 +325,7 @@ export async function getLatestExecutiveSummary(
   const { data } = await supabaseAdmin
     .from("executive_summaries")
     .select("*")
-    .eq("user_id", userId)
+    .eq("user_id_uuid", userId)
     .order("period_start", { ascending: false })
     .limit(1)
     .single();
@@ -333,14 +344,14 @@ export async function getDomainKPIs(
   const { data } = await supabaseAdmin
     .from("domain_kpis")
     .select("*")
-    .eq("user_id", userId)
+    .eq("user_id_uuid", userId)
     .eq("period_start", formatDate(startDate))
     .eq("period_end", formatDate(endDate));
 
   return (data || []).map((row) => ({
     domainKey: row.domain_key,
-    score: row.score,
-    metrics: row.metrics,
+    score: row.score ?? 0,
+    metrics: row.metrics as any,
   }));
 }
 
@@ -355,15 +366,15 @@ async function computeHabitMetrics(
 ): Promise<Record<string, any>> {
   const { data: logs } = await supabaseAdmin
     .from("habit_logs")
-    .select("habit_id, completed_at")
-    .eq("user_id", userId)
-    .gte("completed_at", start.toISOString())
-    .lte("completed_at", end.toISOString());
+    .select("habit_id, occurred_at")
+    .eq("user_id_uuid", userId)
+    .gte("occurred_at", start.toISOString())
+    .lte("occurred_at", end.toISOString());
 
   const { data: habits } = await supabaseAdmin
     .from("habits")
-    .select("id, name, category")
-    .eq("user_id", userId);
+    .select("id, name")
+    .eq("user_id_uuid", userId);
 
   const totalLogs = logs?.length || 0;
   const uniqueHabits = new Set(logs?.map((l) => l.habit_id)).size;
@@ -375,9 +386,9 @@ async function computeHabitMetrics(
 
   logs?.forEach((log) => {
     const habit = habitMap.get(log.habit_id);
-    if (habit?.category) {
-      categoryCount[habit.category] = (categoryCount[habit.category] || 0) + 1;
-    }
+    // Category not available in schema yet
+    const category = "general";
+    categoryCount[category] = (categoryCount[category] || 0) + 1;
   });
 
   return {
@@ -397,8 +408,8 @@ async function computeJournalMetrics(
 ): Promise<Record<string, any>> {
   const { data: entries } = await supabaseAdmin
     .from("journal_entries")
-    .select("id, mood, tags, created_at")
-    .eq("user_id", userId)
+    .select("id, mood, created_at")
+    .eq("user_id_uuid", userId)
     .gte("created_at", start.toISOString())
     .lte("created_at", end.toISOString());
 
@@ -408,7 +419,8 @@ async function computeJournalMetrics(
 
   entries?.forEach((e) => {
     if (e.mood) moodCounts[e.mood] = (moodCounts[e.mood] || 0) + 1;
-    if (e.tags) allTags.push(...(Array.isArray(e.tags) ? e.tags : []));
+    // Tags not available in schema
+    // if (e.tags) allTags.push(...(Array.isArray(e.tags) ? e.tags : []));
   });
 
   // Calculate average mood score
@@ -445,7 +457,7 @@ async function computeRelationshipMetrics(
   const { data: events } = await supabaseAdmin
     .from("third_brain_events")
     .select("type, title, raw_payload")
-    .eq("user_id", userId)
+    .eq("user_id_uuid", userId)
     .eq("type", "call")
     .gte("occurred_at", start.toISOString())
     .lte("occurred_at", end.toISOString());
@@ -453,12 +465,15 @@ async function computeRelationshipMetrics(
   const { data: memories } = await supabaseAdmin
     .from("third_brain_memories")
     .select("key, content, metadata")
-    .eq("user_id", userId)
+    .eq("user_id_uuid", userId)
     .eq("category", "relationship");
 
   const totalCalls = events?.length || 0;
   const uniqueContacts = new Set(
-    events?.map((e) => e.raw_payload?.contactName || e.raw_payload?.contactId)
+    events?.map((e) => {
+      const p = e.raw_payload as any;
+      return p?.contactName || p?.contactId;
+    })
   ).size;
 
   // Count relationships by trend
@@ -466,7 +481,8 @@ async function computeRelationshipMetrics(
     stable = 0,
     cooling = 0;
   memories?.forEach((m) => {
-    const trend = m.metadata?.trend;
+    const meta = m.metadata as any;
+    const trend = meta?.trend;
     if (trend === "warming") warming++;
     else if (trend === "cooling" || trend === "gone_quiet") cooling++;
     else stable++;
@@ -488,7 +504,7 @@ async function computeTaskMetrics(
   const { data: events } = await supabaseAdmin
     .from("third_brain_events")
     .select("type, title")
-    .eq("user_id", userId)
+    .eq("user_id_uuid", userId)
     .in("type", ["task_completed", "quest_completed"])
     .gte("occurred_at", start.toISOString())
     .lte("occurred_at", end.toISOString());
@@ -496,7 +512,7 @@ async function computeTaskMetrics(
   const { data: planItems } = await supabaseAdmin
     .from("plan_items")
     .select("status")
-    .eq("user_id", userId)
+    .eq("user_id_uuid", userId)
     .gte("created_at", start.toISOString())
     .lte("created_at", end.toISOString());
 
@@ -520,8 +536,8 @@ async function computeXPMetrics(
 ): Promise<Record<string, any>> {
   const { data: transactions } = await supabaseAdmin
     .from("xp_transactions")
-    .select("amount, source")
-    .eq("user_id", userId)
+    .select("amount, source_type")
+    .eq("user_id_uuid", userId)
     .gte("created_at", start.toISOString())
     .lte("created_at", end.toISOString());
 
@@ -529,8 +545,8 @@ async function computeXPMetrics(
   const sourceBreakdown: Record<string, number> = {};
 
   transactions?.forEach((t) => {
-    if (t.source) {
-      sourceBreakdown[t.source] = (sourceBreakdown[t.source] || 0) + t.amount;
+    if (t.source_type) {
+      sourceBreakdown[t.source_type] = (sourceBreakdown[t.source_type] || 0) + t.amount;
     }
   });
 
@@ -616,7 +632,7 @@ function getTopItems(items: string[], limit: number): string[] {
 function mapRowToSummary(row: any): ExecutiveSummary {
   return {
     id: row.id,
-    userId: row.user_id,
+    userId: row.user_id_uuid,
     periodType: row.period_type,
     periodStart: new Date(row.period_start),
     periodEnd: new Date(row.period_end),

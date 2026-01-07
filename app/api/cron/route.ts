@@ -89,10 +89,10 @@ export async function POST(req: NextRequest) {
       case "cleanup": {
         // Clean up expired data
         const now = new Date().toISOString();
-        
+
         // Remove expired notifications
         await supabaseAdmin
-          .from("notification_queue")
+          .from("notification_queue" as any)
           .delete()
           .lt("expires_at", now)
           .eq("status", "queued");
@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
         // Remove old sent notifications (30 days)
         const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
         await supabaseAdmin
-          .from("notification_queue")
+          .from("notification_queue" as any)
           .delete()
           .lt("created_at", thirtyDaysAgo)
           .eq("status", "sent");
@@ -162,9 +162,9 @@ export async function GET(req: NextRequest) {
 // Helper functions
 async function getUsersWithNotifications(): Promise<string[]> {
   const { data } = await supabaseAdmin
-    .from("notification_preferences")
+    .from("notification_preferences" as any)
     .select("user_id")
-    .eq("push_enabled", true);
+    .eq("push_enabled", true) as any;
 
   return (data || []).map((d) => d.user_id);
 }
@@ -172,9 +172,9 @@ async function getUsersWithNotifications(): Promise<string[]> {
 async function getAllUsers(): Promise<string[]> {
   // Get unique users from various tables
   const { data } = await supabaseAdmin
-    .from("relationships")
+    .from("relationships" as any)
     .select("user_id")
-    .limit(1000);
+    .limit(1000) as any;
 
   const users = new Set<string>();
   (data || []).forEach((d) => users.add(d.user_id));

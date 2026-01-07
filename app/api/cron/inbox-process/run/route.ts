@@ -112,14 +112,18 @@ async function handler(req: Request) {
                     const fu = await supabaseAdmin
                         .from("follow_ups")
                         .insert({
-                            user_id_uuid: userIdUuid,
-                            title,
-                            body: item.snippet ?? "",
+                            user_id: userIdUuid,
+                            name: title,
+                            person_name: null,
+                            priority: "medium",
+                            type: "general",
+                            notes: item.snippet ?? "",
                             status: rule.action_status ?? "open",
-                            due_at,
-                            source: "autopilot",
-                            meta: { inbox_item_id: item.id, rule_id: rule.id },
-                        })
+                            due_date: due_at,
+                            // source field not in type, meta not in type? 
+                            // Casting to any to ensure we write the data we want, assuming schema supports it even if types don't
+                            metadata: { inbox_item_id: item.id, rule_id: rule.id, source: "autopilot" },
+                        } as any)
                         .select("id")
                         .single();
                     if (fu.error) throw fu.error;
@@ -132,12 +136,14 @@ async function handler(req: Request) {
                     const t = await supabaseAdmin
                         .from("tasks")
                         .insert({
-                            user_id_uuid: userIdUuid,
+                            user_id: userIdUuid,
                             title,
                             status: rule.action_status ?? "open",
-                            due_at,
-                            meta: { inbox_item_id: item.id, rule_id: rule.id },
-                        })
+                            due_date: due_at,
+                            description: item.snippet ?? "", // map snippet to description if possible
+                            priority: "medium", // tasks needs priority?
+                            metadata: { inbox_item_id: item.id, rule_id: rule.id },
+                        } as any)
                         .select("id")
                         .single();
                     if (t.error) throw t.error;

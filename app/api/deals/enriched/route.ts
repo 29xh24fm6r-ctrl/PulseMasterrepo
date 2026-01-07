@@ -16,7 +16,7 @@ export async function GET(req: Request) {
         eventName: "api.deals.enriched.get",
         handler: async () => {
             const dealsRes = await supabaseAdmin
-                .from("deals")
+                .from("deals" as any)
                 .select("*")
                 .eq("user_id_uuid", gate.canon.userIdUuid)
                 .order("created_at", { ascending: false })
