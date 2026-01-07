@@ -10,6 +10,8 @@ import { rollupBackfillNightly } from "./rollupBackfillNightly";
 import { userDailySignalsCompute } from "./userDailySignalsCompute";
 import { signalsCachePruneWeekly } from "./signalsCachePruneWeekly";
 import { signalsCacheWarm30d } from "./signalsCacheWarm30d";
+import { momentumEventIngest } from "./momentumEventIngest";
+import { momentumDailySnapshot } from "./momentumDailySnapshot";
 
 // Explicitly cast imported handlers to JobHandler<any> to satisfy registry type
 // This handles any minor signature variance as long as runtime behavior is correct
@@ -24,6 +26,8 @@ const handlers: Record<JobName, JobHandler<any>> = {
     user_daily_signals_compute: userDailySignalsCompute as JobHandler<any>,
     signals_cache_prune_weekly: signalsCachePruneWeekly as JobHandler<any>,
     signals_cache_warm_30d: signalsCacheWarm30d as JobHandler<any>,
+    momentum_event_ingest: momentumEventIngest as JobHandler<any>,
+    momentum_daily_snapshot: momentumDailySnapshot as JobHandler<any>,
 };
 
 export function getJobHandler(name: JobName): JobHandler<any> {

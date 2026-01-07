@@ -164,9 +164,9 @@ export async function POST(req: Request) {
                 const { data: task, error: readErr } = await supabaseSpan("tasks.triage.fetch", async () =>
                     await supabaseAdmin
                         .from("tasks")
-                        .select("id,user_id,title,description,status,priority,context,due_at,defer_until,blocked_reason")
+                        .select("id,title,description,status,priority,context,due_at,defer_until,blocked_reason")
                         .eq("id", body.task_id)
-                        .eq("user_id", userId)
+                        .eq("user_id_uuid", userId)
                         .single()
                 );
 
@@ -224,7 +224,7 @@ export async function POST(req: Request) {
                         .from("tasks")
                         .update(patch)
                         .eq("id", body.task_id)
-                        .eq("user_id", userId)
+                        .eq("user_id_uuid", userId)
                         .select("*")
                         .single()
                 );

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
 import { revalidateCRM } from "@/lib/crm/revalidateCRM";
+import { logActivityEvent } from "@/lib/activity/log";
 
 type Body = {
     contact_id: string; // uuid
@@ -9,6 +10,7 @@ type Body = {
     channel?: string | null;
     happened_at?: string | null; // ISO
     summary?: string | null;
+    body?: string | null;
     metadata?: Record<string, any> | null;
 };
 
@@ -47,6 +49,16 @@ export async function POST(req: Request) {
 
         // Live refresh for Interactions + Person Detail
         revalidateCRM(body.contact_id);
+
+        // Canon Event Logging (feeds Momentum)
+        await logActivityEvent({
+            user_id: owner_user_id,
+            source: "crm",
+            event_type: "crm_interaction_created",
+            title: `Interaction: ${body.type}`,
+            detail: body.summary || body.body,
+            payload: { interaction_id: data, contact_id: body.contact_id, type: body.type, channel: body.channel }
+        });
 
         return NextResponse.json({ interaction_id: data }, { status: 200 });
     } catch (e: any) {

@@ -3,68 +3,80 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import OpenAI from 'openai';
 import { supabaseAdmin } from '@/lib/supabase';
+import { loadRelevantModules } from '@/app/lib/brain-loader';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // Fetch user's day summary from Supabase
 async function getDaySummary(userId: string) {
   const today = new Date().toISOString().split('T')[0];
-  
+
   // Get recent journal entries for streak calculation
   const { data: recentJournals } = await supabaseAdmin
     .from('journal_entries')
     .select('date, primary_theme')
-    .eq('user_id', userId)
+    .eq('user_id_uuid', userId)
     .order('date', { ascending: false })
     .limit(7);
 
   let reflectionStreak = 0;
   let recentThemes: string[] = [];
-  
+
   if (recentJournals) {
     // Calculate streak
-    const sortedDates = recentJournals.map(j => j.date).sort().reverse();
-    for (let i = 0; i < sortedDates.length; i++) {
-      const entryDate = new Date(sortedDates[i]);
-      const expectedDate = new Date();
-      expectedDate.setDate(expectedDate.getDate() - i - 1);
-      
-      if (entryDate.toISOString().split('T')[0] === expectedDate.toISOString().split('T')[0]) {
+    const sortedDates = recentJournals.map((j: any) => j.date).sort().reverse();
+    // Unique dates
+    const uniqueDates = Array.from(new Set(sortedDates));
+
+    for (let i = 0; i < uniqueDates.length; i++) {
+      const d = new Date(uniqueDates[i]);
+      const now = new Date();
+      const diffTime = Math.abs(now.getTime() - d.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      if (diffDays <= i + 1) { // roughly consecutive
         reflectionStreak++;
       } else {
         break;
       }
     }
-    
+
     recentThemes = recentJournals
       .slice(0, 3)
-      .map(j => j.primary_theme)
+      .map((j: any) => j.primary_theme)
       .filter(Boolean);
   }
 
-  // Get recent calls for context
-  const { data: recentCalls } = await supabaseAdmin
-    .from('calls')
-    .select('summary_short, sentiment, created_at')
-    .eq('user_id', userId)
-    .gte('created_at', today)
-    .limit(5);
+  // Calls - DISABLED (Table 'calls' does not exist)
+  const recentCalls: any[] = [];
 
-  // Get recent interactions
+  // Get recent interactions (crm_interactions)
+  // use subject as title proxy
   const { data: recentInteractions } = await supabaseAdmin
-    .from('interactions')
-    .select('type, summary, created_at')
-    .eq('user_id', userId)
-    .gte('created_at', today)
+    .from('crm_interactions')
+    .select('type, subject, summary, occurred_at')
+    .eq('owner_user_id', userId)
+    .gte('occurred_at', today)
     .limit(10);
 
-  // Get contacts for relationship context
+  // Get contacts (crm_contacts)
+  // use updated_at as proxy for last_interaction_at if missing
   const { data: contacts } = await supabaseAdmin
-    .from('contacts')
-    .select('name, last_contact')
-    .eq('user_id', userId)
-    .order('last_contact', { ascending: false })
+    .from('crm_contacts')
+    .select('first_name, last_name, updated_at')
+    .eq('owner_user_id', userId)
+    .order('updated_at', { ascending: false })
     .limit(5);
+
+  const formattedContacts = contacts?.map((c: any) => ({
+    name: `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'Unknown',
+    last_contact: c.updated_at
+  })) || [];
+
+  const formattedInteractions = recentInteractions?.map((i: any) => ({
+    type: i.type,
+    summary: i.summary || i.subject || 'Interaction',
+    created_at: i.occurred_at
+  })) || [];
 
   return {
     completedTasks: [],
@@ -72,9 +84,9 @@ async function getDaySummary(userId: string) {
     dealsProgress: [],
     recentThemes,
     reflectionStreak,
-    recentCalls: recentCalls || [],
-    recentInteractions: recentInteractions || [],
-    recentContacts: contacts || [],
+    recentCalls,
+    recentInteractions: formattedInteractions,
+    recentContacts: formattedContacts,
   };
 }
 
@@ -281,13 +293,13 @@ export async function POST(request: NextRequest) {
 
     // Get user's Supabase ID
     const { data: user } = await supabaseAdmin
-      .from('users')
-      .select('id, name')
-      .eq('clerk_id', clerkId)
+      .from('user_profiles')
+      .select('id, email')
+      .eq('id', clerkId)
       .single();
 
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return NextResponse.json({ error: 'User profile not found. Ensure User Sync is active.' }, { status: 404 });
     }
 
     const { messages, action, journalData } = await request.json();
@@ -297,38 +309,54 @@ export async function POST(request: NextRequest) {
     }
 
     const daySummary = await getDaySummary(user.id);
-    
+
     const today = new Date();
     const dayOfWeek = today.toLocaleDateString('en-US', { weekday: 'long' });
     const dateStr = today.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
     const timeOfDay = today.getHours() >= 17 ? 'evening' : today.getHours() >= 12 ? 'afternoon' : 'morning';
-    
+
     // Build rich context
     let contextDetails = '';
-    
+
     if (daySummary.recentCalls?.length > 0) {
       contextDetails += `\n\n📞 CALLS TODAY:\n${daySummary.recentCalls.map((c: any) => `• ${c.summary_short} (${c.sentiment})`).join('\n')}`;
     }
-    
+
     if (daySummary.recentInteractions?.length > 0) {
       contextDetails += `\n\n💬 INTERACTIONS TODAY:\n${daySummary.recentInteractions.map((i: any) => `• ${i.type}: ${i.summary}`).join('\n')}`;
     }
-    
+
     if (daySummary.recentContacts?.length > 0) {
       contextDetails += `\n\n👥 RECENT CONNECTIONS:\n${daySummary.recentContacts.map((c: any) => `• ${c.name}`).join('\n')}`;
     }
-    
+
     if (daySummary.recentThemes?.length > 0) {
       contextDetails += `\n\n📝 THEMES FROM RECENT JOURNALS (for context, not to repeat):\n${daySummary.recentThemes.map((t: string) => `• ${t}`).join('\n')}`;
     }
 
+    // Load relevant brain modules based on the conversation
+    const lastUserMessage = messages.length > 0 ? messages[messages.length - 1].content : '';
+    let brainInsights = '';
+    try {
+      if (lastUserMessage) {
+        brainInsights = await loadRelevantModules(lastUserMessage);
+      }
+    } catch (e) {
+      console.error("Failed to load brain modules:", e);
+    }
+
     const systemPrompt = `${ADAPTIVE_JOURNAL_BRAIN}
+
+${brainInsights ? `═══════════════════════════════════════════════════════════════
+RELEVANT PSYCHOLOGICAL FRAMEWORKS (Use implicitly)
+═══════════════════════════════════════════════════════════════
+${brainInsights}` : ''}
 
 ═══════════════════════════════════════════════════════════════
 TONIGHT'S CONTEXT (Use naturally, don't force)
 ═══════════════════════════════════════════════════════════════
 
-User: ${user.name || 'Friend'}
+User: ${user.email || 'Friend'}
 Date: ${dayOfWeek}, ${dateStr}
 Time: ${timeOfDay}
 ${daySummary.reflectionStreak > 0 ? `Reflection Streak: ${daySummary.reflectionStreak} days 🔥` : 'Starting fresh tonight'}
@@ -355,7 +383,7 @@ If this is the START of the conversation, greet them warmly and simply. Maybe ac
     });
 
     let response = completion.choices[0]?.message?.content || '';
-    
+
     // Parse options
     let options = null;
     const optionsMatch = response.match(/```options\s*([\s\S]*?)\s*```/);
@@ -364,7 +392,7 @@ If this is the START of the conversation, greet them warmly and simply. Maybe ac
         const optionsData = JSON.parse(optionsMatch[1]);
         if (optionsData.hasOptions) options = optionsData.options;
         response = response.replace(/```options\s*[\s\S]*?\s*```/, '').trim();
-      } catch (e) {}
+      } catch (e) { }
     }
 
     return NextResponse.json({ response, options, daySummary });
@@ -395,7 +423,7 @@ Respond in JSON only:
 {"theme": "", "wins": [], "challenges": [], "gratitude": [], "lessons": [], "tomorrowFocus": "", "mood": 5}`;
 
     let extracted = { theme: '', wins: [], challenges: [], gratitude: [], lessons: [], tomorrowFocus: '', mood: 5 };
-    
+
     try {
       const extraction = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
@@ -414,12 +442,15 @@ Respond in JSON only:
     const { data: entry, error } = await supabaseAdmin
       .from('journal_entries')
       .insert({
-        user_id: userId,
+        user_id_uuid: userId,
+        owner_user_id_legacy: userId,
         title: data.title || `Reflection - ${new Date().toLocaleDateString()}`,
         date: new Date().toISOString().split('T')[0],
         mode: data.mode || 'Guided',
+        content: data.transcript || '',
         mood: extracted.mood || 5,
         primary_theme: extracted.theme || '',
+
         wins: extracted.wins || [],
         challenges: extracted.challenges || [],
         gratitude: extracted.gratitude || [],
@@ -428,6 +459,10 @@ Respond in JSON only:
         transcript: data.transcript || '',
         xp_earned: data.xpEarned || 50,
         reflection_streak: data.streak || 1,
+
+        metadata: {
+          original_theme: extracted.theme
+        }
       })
       .select()
       .single();
@@ -437,9 +472,9 @@ Respond in JSON only:
       return NextResponse.json({ error: 'Failed to save' }, { status: 500 });
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      entryId: entry.id, 
+    return NextResponse.json({
+      success: true,
+      entryId: entry.id,
       extracted,
       xp: { amount: data.xpEarned || 50, category: 'DXP' }
     });

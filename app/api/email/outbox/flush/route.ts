@@ -155,7 +155,7 @@ export async function POST(req: Request) {
 
                 if (traceId && executionId) {
                     await linkArtifact({
-                        userId: row.user_id,
+                        userId: row.user_id_uuid,
                         traceId,
                         executionId,
                         fromType: "execution",

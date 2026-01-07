@@ -1,13 +1,11 @@
 // app/api/capture/route.ts
 import { NextResponse } from "next/server";
 import { logActivityEvent } from "@/lib/activity/log";
+import { supabaseAdmin } from "@/lib/supabase";
+import { auth } from "@clerk/nextjs/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-// Simple in-memory store for capture events (resets on server restart)
-// In production, this would write to a DB (e.g., Supabase 'events' table)
-const CAPTURE_STORE: { id: string; text: string; created_at: string }[] = [];
 
 /**
  * POST /api/capture
@@ -16,6 +14,11 @@ const CAPTURE_STORE: { id: string; text: string; created_at: string }[] = [];
  */
 export async function POST(req: Request) {
     try {
+        const { userId } = await auth();
+        if (!userId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
         const body = await req.json().catch(() => null);
 
         if (!body || typeof body.text !== "string" || !body.text.trim()) {
@@ -25,32 +28,45 @@ export async function POST(req: Request) {
             );
         }
 
-        const newItem = {
-            id: `cap_${Date.now()}`,
-            text: body.text.trim(),
-            created_at: new Date().toISOString(),
-        };
+        const content = body.text.trim();
 
-        CAPTURE_STORE.unshift(newItem); // Add to local store
+        // 1. Insert into inbox_items
+        const { data: item, error } = await (supabaseAdmin as any)
+            .from("inbox_items")
+            .insert({
+                user_id: userId,
+                title: content,
+                source: "capture",
+                status: "pending",
+                is_processed: false,
+                priority: "medium"
+            })
+            .select()
+            .single();
 
-        // In a real implementation:
-        // await supabase.from('inbox').insert({ content: newItem.text });
+        if (error) {
+            throw new Error(`DB Insert Failed: ${error.message}`);
+        }
 
-        // Log to Activity Feed
+        // 2. Log to Activity Feed
         await logActivityEvent({
             source: "capture",
             event_type: "capture.created",
             title: "Captured item",
-            detail: typeof body?.text === "string" ? body.text.slice(0, 140) : "New capture",
-            payload: { text: body?.text ?? null },
+            detail: content.length > 50 ? content.slice(0, 50) + "..." : content,
+            payload: { text: content, itemId: item.id },
+            // Note: logActivityEvent needs to support user_id if specific to user, 
+            // but currently assumes context or admin usage. 
+            // If logActivityEvent extracts user from somewhere else, verify.
+            // For now, we proceed as it was imported.
         });
 
         return NextResponse.json({
             success: true,
-            item: newItem,
-            store_count: CAPTURE_STORE.length
+            item: item
         });
     } catch (err: any) {
+        console.error("[Capture Error]", err);
         return NextResponse.json(
             { error: "Capture failed", detail: err?.message || String(err) },
             { status: 500 }

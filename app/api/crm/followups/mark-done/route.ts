@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
 import { revalidateCRM } from "@/lib/crm/revalidateCRM";
+import { logActivityEvent } from "@/lib/activity/log";
 
 type Body = {
     followup_id: string; // uuid
@@ -43,7 +44,18 @@ export async function POST(req: Request) {
         }
 
         // Live refresh for Followups + Person Detail
+        // Live refresh for Followups + Person Detail
         revalidateCRM(body.contact_id);
+
+        // Canon Event Logging (feeds Momentum)
+        await logActivityEvent({
+            user_id: owner_user_id,
+            source: "crm",
+            event_type: "crm_followup_completed",
+            title: `Followup Completed`,
+            detail: body.notes || body.outcome,
+            payload: { followup_id: body.followup_id, contact_id: body.contact_id, outcome: body.outcome }
+        });
 
         return NextResponse.json({ ok: true }, { status: 200 });
     } catch (e: any) {

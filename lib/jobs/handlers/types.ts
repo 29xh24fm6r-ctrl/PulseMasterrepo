@@ -8,7 +8,9 @@ export type JobName =
     | "rollup_backfill_nightly"
     | "signals_cache_prune_weekly"
     | "signals_cache_warm_30d"
-    | "user_daily_signals_compute"; // Preserving this existing job type
+    | "user_daily_signals_compute"
+    | "momentum_event_ingest"
+    | "momentum_daily_snapshot";
 
 export type JobPayloads = {
     email_triage: {
@@ -81,6 +83,14 @@ export type JobPayloads = {
     user_daily_signals_compute: {
         owner_user_id: string;
         day?: string; // YYYY-MM-DD
+    };
+
+    momentum_event_ingest: {
+        canon_event: import("../../momentum/types").CanonEvent;
+    };
+
+    momentum_daily_snapshot: {
+        owner_user_id: string;
     };
 };
 

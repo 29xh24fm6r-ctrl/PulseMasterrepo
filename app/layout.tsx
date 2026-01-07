@@ -34,6 +34,9 @@ export const viewport: Viewport = {
   maximumScale: 1,
 };
 
+import { WhisperFeed } from "@/components/WhisperFeed";
+import { TheOrb } from "@/components/TheOrb";
+
 export default function RootLayout({
   children,
 }: {
@@ -49,11 +52,13 @@ export default function RootLayout({
           <Providers>
             <UserProvider>
               <ToastProvider>
+                <TheOrb />
                 <GlobalNav />
                 <CommandPalette />
                 {children}
                 <ServiceWorkerRegistration />
                 <GlobalVoiceButton />
+                <WhisperFeed />
               </ToastProvider>
             </UserProvider>
           </Providers>

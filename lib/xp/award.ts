@@ -58,16 +58,14 @@ export async function awardXP(
   const finalAmount = Math.round(activityConfig.amount * multiplier);
 
   try {
-    await supabaseAdmin.from("xp_logs").insert({
-      user_id: userId,
+    await supabaseAdmin.from("xp_transactions").insert({
+      user_id_uuid: userId,
+      owner_user_id_legacy: userId, // Legacy field
       amount: finalAmount,
-      category: activityConfig.category,
-      activity: activity,
+      // Map category/activity/notes to reason since schema is limited
+      reason: `${activity} (${activityConfig.category})${options.notes ? `: ${options.notes}` : ''}`,
       source_type: sourceType,
-      source_id: options.sourceId,
-      notes: options.notes,
-      was_crit: wasCrit,
-      base_amount: activityConfig.amount
+      source_id: options.sourceId || null,
     });
   } catch (error) {
     console.error("Failed to log XP:", error);
@@ -105,7 +103,7 @@ export async function awardDealAdvancedXP(userId: string, dealId: string, dealNa
 }
 
 export async function getXPTotals(userId: string, period: "today" | "week" | "month" | "all" = "all") {
-  let query = supabaseAdmin.from("xp_logs").select("*").eq("user_id", userId);
+  let query = supabaseAdmin.from("xp_transactions").select("*").eq("user_id_uuid", userId);
 
   const now = new Date();
   if (period === "today") {
@@ -119,12 +117,23 @@ export async function getXPTotals(userId: string, period: "today" | "week" | "mo
   if (error) return { totals: {}, recentGains: [] };
 
   const totals: Record<string, number> = { DXP: 0, PXP: 0, IXP: 0, AXP: 0, MXP: 0 };
-  data.forEach(log => {
-    if (totals[log.category] !== undefined) totals[log.category] += log.amount;
+
+  data.forEach((log: any) => {
+    // Attempt to extract category from reason: "Activity Name (DXP)"
+    const match = log.reason?.match(/\((DXP|PXP|IXP|AXP|MXP)\)/);
+    const category = match ? match[1] : "AXP"; // Default to AXP if not found
+
+    if (totals[category] !== undefined) {
+      totals[category] += (log.amount || 0);
+    }
   });
 
-  // Sort desc by created_at
-  const sorted = data.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  // Sort desc by created_at (handling nulls)
+  const sorted = data.sort((a, b) => {
+    const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+    const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+    return dateB - dateA;
+  });
 
   return { totals, recentGains: sorted.slice(0, 10) };
 }

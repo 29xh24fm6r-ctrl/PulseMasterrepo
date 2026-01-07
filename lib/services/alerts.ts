@@ -24,16 +24,16 @@ async function hasAlertBeenSent(userId: string, threshold: number): Promise<bool
   const startOfMonth = new Date();
   startOfMonth.setDate(1);
   startOfMonth.setHours(0, 0, 0, 0);
-  const { count } = await supabaseAdmin.from("usage_logs").select("*", { count: "exact", head: true }).eq("user_id", userId).eq("feature", `alert_${threshold}`).gte("created_at", startOfMonth.toISOString());
+  const { count } = await supabaseAdmin.from("usage_logs").select("*", { count: "exact", head: true }).eq("user_id_uuid", userId).eq("feature", `alert_${threshold}`).gte("created_at", startOfMonth.toISOString());
   return (count || 0) > 0;
 }
 
 async function markAlertSent(userId: string, threshold: number): Promise<void> {
-  await supabaseAdmin.from("usage_logs").insert({ user_id: userId, feature: `alert_${threshold}`, tokens_used: 0, cost_cents: 0, model: "system", metadata: { type: "usage_alert", threshold } });
+  await supabaseAdmin.from("usage_logs").insert({ user_id_uuid: userId, owner_user_id_legacy: userId, feature: `alert_${threshold}`, tokens_used: 0, cost_cents: 0, model: "system", metadata: { type: "usage_alert", threshold } as any });
 }
 
 async function triggerAlert(userId: string, threshold: number, tokensRemaining: number, percentUsed: number): Promise<void> {
-  const { data: profile } = await supabaseAdmin.from("user_profiles").select("email").eq("user_id", userId).single();
+  const { data: profile } = await supabaseAdmin.from("user_profiles").select("email").eq("user_id_uuid", userId).single();
   if (!profile?.email) { console.log("No email for user:", userId); return; }
   const name = profile.email.split("@")[0];
   if (threshold === 100) { await sendTokensDepletedEmail(profile.email, name); }

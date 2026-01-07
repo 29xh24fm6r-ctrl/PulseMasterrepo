@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
 
     // Build conversation history
     const messages: any[] = [
-      { role: "system", content: getCoachSystemPrompt(coach, user?.name, context) },
+      { role: "system", content: getCoachSystemPrompt(coach, user?.name || undefined, context) },
       ...history.map((msg: any) => ({
         role: msg.role === "user" ? "user" : "assistant",
         content: msg.text,
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
       messages,
       max_tokens: 500,
       temperature: 0.8,
-    });
+    }) as any;
 
     const response = completion.choices[0]?.message?.content || "I'm not sure how to respond to that.";
 
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
 
 function getCoachSystemPrompt(coach: string, userName?: string, context?: any): string {
   const name = userName || "there";
-  
+
   const prompts: Record<string, string> = {
     "life-coach": `You are Pulse, a warm and insightful life coach. You're talking with ${name}.
 
@@ -151,7 +151,7 @@ Return JSON: {"summary": "1-2 sentence summary", "goals_discussed": ["goal1"], "
     const match = text.match(/\{[\s\S]*\}/);
     if (match) {
       const data = JSON.parse(match[0]);
-      
+
       await supabaseAdmin.from("coach_sessions").insert({
         user_id: userId,
         coach,

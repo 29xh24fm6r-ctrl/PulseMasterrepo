@@ -91,14 +91,14 @@ async function gatherUserContext(userId: string, coach: string) {
     isNewUser: !coachSessions?.length,
     sessionCount: coachSessions?.length || 0,
     hasBreakthroughs: coachSessions?.some(s => s.breakthrough) || false,
-    recentGoals: coachSessions?.flatMap(s => s.goals_discussed || []).slice(0, 5) || [],
-    pendingActions: coachSessions?.flatMap(s => s.action_items || []).slice(0, 5) || [],
+    recentGoals: coachSessions?.flatMap(s => (s.goals_discussed as unknown as string[]) || []).slice(0, 5) || [],
+    pendingActions: coachSessions?.flatMap(s => (s.action_items as unknown as string[]) || []).slice(0, 5) || [],
   };
 }
 
 async function generateGrowthSuggestions(coach: string, context: any, count: number): Promise<string[]> {
   const coachPersonality = getCoachPersonality(coach);
-  
+
   const prompt = `You are ${coachPersonality.name}, a ${coachPersonality.role}.
 
 YOUR COACHING PHILOSOPHY:
