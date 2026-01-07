@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getContacts, type Contact } from "@/lib/data/journal";
 import { auth } from "@clerk/nextjs/server";
-import { createClient } => "@supabase/supabase-js";
+import { createClient } from "@supabase/supabase-js";
 import OpenAI from "openai";
 import { loadKernel, loadRelevantModules, detectRelevantModules } from "@/app/lib/brain-loader";
 import { canMakeAICall, trackAIUsage } from "@/lib/services/usage";
