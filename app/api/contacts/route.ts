@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
     const { data: contact, error } = await supabaseAdmin
       .from("contacts")
       .insert({
-        user_id: user.id,
+        user_id_uuid: user.id,
         name: body.name,
         email: body.email,
         phone: body.phone,
