@@ -750,268 +750,6 @@ export type Database = {
           },
         ]
       }
-      domain_kpis: {
-        Row: {
-          domain_key: string
-          metrics: Json
-          owner_user_id: string | null
-          owner_user_id_legacy: string
-          period_end: string
-          period_start: string
-          score: number | null
-          user_id_uuid: string
-        }
-        Insert: {
-          domain_key: string
-          metrics: Json
-          owner_user_id?: string | null
-          owner_user_id_legacy: string
-          period_end: string
-          period_start: string
-          score?: number | null
-          user_id_uuid: string
-        }
-        Update: {
-          domain_key?: string
-          metrics?: Json
-          owner_user_id?: string | null
-          owner_user_id_legacy?: string
-          period_end?: string
-          period_start?: string
-          score?: number | null
-          user_id_uuid?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "domain_kpis_user_id_uuid_fkey_identity_users"
-            columns: ["user_id_uuid"]
-            isOneToOne: false
-            referencedRelation: "identity_users"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      executive_summaries: {
-        Row: {
-          concerns: string[] | null
-          created_at: string
-          domain_scores: Json
-          highlights: string[] | null
-          id: string
-          overall_score: number | null
-          owner_user_id: string | null
-          owner_user_id_legacy: string
-          period_end: string
-          period_start: string
-          period_type: "weekly" | "monthly"
-          recommendations: string[] | null
-          summary: string
-          user_id_uuid: string
-        }
-        Insert: {
-          concerns?: string[] | null
-          created_at?: string
-          domain_scores: Json
-          highlights?: string[] | null
-          id?: string
-          overall_score?: number | null
-          owner_user_id?: string | null
-          owner_user_id_legacy: string
-          period_end: string
-          period_start: string
-          period_type: "weekly" | "monthly"
-          recommendations?: string[] | null
-          summary: string
-          user_id_uuid: string
-        }
-        Update: {
-          concerns?: string[] | null
-          created_at?: string
-          domain_scores?: Json
-          highlights?: string[] | null
-          id?: string
-          overall_score?: number | null
-          owner_user_id?: string | null
-          owner_user_id_legacy?: string
-          period_end?: string
-          period_start?: string
-          period_type?: "weekly" | "monthly"
-          recommendations?: string[] | null
-          summary?: string
-          user_id_uuid?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "executive_summaries_user_id_uuid_fkey_identity_users"
-            columns: ["user_id_uuid"]
-            isOneToOne: false
-            referencedRelation: "identity_users"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      life_domains: {
-        Row: {
-          created_at: string
-          id: string
-          key: string
-          label: string
-          owner_user_id: string | null
-          owner_user_id_legacy: string
-          owner_user_uuid: string | null
-          user_id_uuid: string
-          weight: number | null
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          key: string
-          label: string
-          owner_user_id?: string | null
-          owner_user_id_legacy: string
-          owner_user_uuid?: string | null
-          user_id_uuid: string
-          weight?: number | null
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          key?: string
-          label?: string
-          owner_user_id?: string | null
-          owner_user_id_legacy?: string
-          owner_user_uuid?: string | null
-          user_id_uuid?: string
-          weight?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "life_domains_user_id_uuid_fkey_identity_users"
-            columns: ["user_id_uuid"]
-            isOneToOne: false
-            referencedRelation: "identity_users"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      memories: {
-        Row: {
-          access_count: number
-          category: string
-          content: string
-          context: string | null
-          created_at: string
-          embedding: string | null
-          expires_at: string | null
-          id: string
-          importance: number
-          last_accessed_at: string | null
-          owner_user_id: string | null
-          owner_user_id_legacy: string
-          source: string | null
-          source_id: string | null
-          tags: string[] | null
-          type: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          access_count?: number
-          category: string
-          content: string
-          context?: string | null
-          created_at?: string
-          embedding?: string | null
-          expires_at?: string | null
-          id?: string
-          importance?: number
-          last_accessed_at?: string | null
-          owner_user_id?: string | null
-          owner_user_id_legacy: string
-          source?: string | null
-          source_id?: string | null
-          tags?: string[] | null
-          type: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          access_count?: number
-          category?: string
-          content?: string
-          context?: string | null
-          created_at?: string
-          embedding?: string | null
-          expires_at?: string | null
-          id?: string
-          importance?: number
-          last_accessed_at?: string | null
-          owner_user_id?: string | null
-          owner_user_id_legacy?: string
-          source?: string | null
-          source_id?: string | null
-          tags?: string[] | null
-          type?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "memories_user_id_fkey_identity_users"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "identity_users"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      memory_patterns: {
-        Row: {
-          confidence: number
-          data: Json
-          description: string
-          frequency: number
-          id: string
-          last_occurred: string
-          owner_user_id: string | null
-          owner_user_id_legacy: string
-          pattern_type: string
-          user_id: string
-        }
-        Insert: {
-          confidence: number
-          data: Json
-          description: string
-          frequency?: number
-          id?: string
-          last_occurred?: string
-          owner_user_id?: string | null
-          owner_user_id_legacy: string
-          pattern_type: string
-          user_id: string
-        }
-        Update: {
-          confidence?: number
-          data?: Json
-          description?: string
-          frequency?: number
-          id?: string
-          last_occurred?: string
-          owner_user_id?: string | null
-          owner_user_id_legacy?: string
-          pattern_type?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "memory_patterns_user_id_fkey_identity_users"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "identity_users"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
       agi_scenario_runs: {
         Row: {
           created_at: string
@@ -1089,1121 +827,6 @@ export type Database = {
           owner_user_uuid?: string | null
         }
         Relationships: []
-      }
-      referral_rewards: {
-        Row: {
-          created_at: string
-          id: string
-          referred_user_id: string
-          referrer_user_id: string
-          reward_cents: number
-          reward_type: string
-          status: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          referred_user_id: string
-          referrer_user_id: string
-          reward_cents: number
-          reward_type: string
-          status: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          referred_user_id?: string
-          referrer_user_id?: string
-          reward_cents?: number
-          reward_type?: string
-          status?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "referral_rewards_referred_user_id_fkey"
-            columns: ["referred_user_id"]
-            isOneToOne: false
-            referencedRelation: "identity_users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "referral_rewards_referrer_user_id_fkey"
-            columns: ["referrer_user_id"]
-            isOneToOne: false
-            referencedRelation: "identity_users"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      usage_logs: {
-        Row: {
-          cost_cents: number
-          created_at: string
-          feature: string
-          id: string
-          metadata: Json
-          model: string | null
-          tokens_used: number
-          user_id: string
-        }
-        Insert: {
-          cost_cents: number
-          created_at?: string
-          feature: string
-          id?: string
-          metadata?: Json
-          model?: string | null
-          tokens_used: number
-          user_id: string
-        }
-        Update: {
-          cost_cents?: number
-          created_at?: string
-          feature?: string
-          id?: string
-          metadata?: Json
-          model?: string | null
-          tokens_used?: number
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "usage_logs_user_id_fkey_identity_users"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "identity_users"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      user_profiles: {
-        Row: {
-          archetype: string | null
-          created_at: string
-          current_energy: number | null
-          current_mood: number | null
-          current_stress: number | null
-          email: string | null
-          free_month_credits: number
-          id: string
-          intensity_level: number
-          job_title_id: string | null
-          last_checkin_at: string | null
-          name: string | null
-          onboarding_completed: boolean
-          onboarding_skipped: boolean
-          philosophy_last_practice: string | null
-          philosophy_mentor: string | null
-          philosophy_streak: number
-          plan: "free" | "plus"
-          professional_identity: Json
-          referral_code: string
-          referred_by: string | null
-          refund_eligible_at: string | null
-          stripe_customer_id: string | null
-          stripe_subscription_id: string | null
-          subscription_status: string
-          token_balance_cents: number
-          trial_ends_at: string | null
-          updated_at: string
-          usage_cents_this_month: number
-          usage_reset_at: string | null
-          user_id: string
-        }
-        Insert: {
-          archetype?: string | null
-          created_at?: string
-          current_energy?: number | null
-          current_mood?: number | null
-          current_stress?: number | null
-          email?: string | null
-          free_month_credits: number
-          id?: string
-          intensity_level: number
-          job_title_id?: string | null
-          last_checkin_at?: string | null
-          name?: string | null
-          onboarding_completed?: boolean
-          onboarding_skipped?: boolean
-          philosophy_last_practice?: string | null
-          philosophy_mentor?: string | null
-          philosophy_streak?: number
-          plan: "free" | "plus"
-          professional_identity?: Json
-          referral_code?: string
-          referred_by?: string | null
-          refund_eligible_at?: string | null
-          stripe_customer_id?: string | null
-          stripe_subscription_id?: string | null
-          subscription_status: string
-          token_balance_cents: number
-          trial_ends_at?: string | null
-          updated_at?: string
-          usage_cents_this_month: number
-          usage_reset_at?: string | null
-          user_id: string
-        }
-        Update: {
-          archetype?: string | null
-          created_at?: string
-          current_energy?: number | null
-          current_mood?: number | null
-          current_stress?: number | null
-          email?: string | null
-          free_month_credits?: number
-          id?: string
-          intensity_level?: number
-          job_title_id?: string | null
-          last_checkin_at?: string | null
-          name?: string | null
-          onboarding_completed?: boolean
-          onboarding_skipped?: boolean
-          philosophy_last_practice?: string | null
-          philosophy_mentor?: string | null
-          philosophy_streak?: number
-          plan?: "free" | "plus"
-          professional_identity?: Json
-          referral_code?: string
-          referred_by?: string | null
-          refund_eligible_at?: string | null
-          stripe_customer_id?: string | null
-          stripe_subscription_id?: string | null
-          subscription_status?: string
-          token_balance_cents?: number
-          trial_ends_at?: string | null
-          updated_at?: string
-          usage_cents_this_month?: number
-          usage_reset_at?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_profiles_user_id_fkey_identity_users"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "identity_users"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      feedback: {
-        Row: {
-          category: string | null
-          comment: string | null
-          correction: string | null
-          created_at: string
-          id: string
-          message_id: string | null
-          rating: string
-          user_id: string
-        }
-        Insert: {
-          category?: string | null
-          comment?: string | null
-          correction?: string | null
-          created_at: string
-          id?: string
-          message_id?: string | null
-          rating: string
-          user_id: string
-        }
-        Update: {
-          category?: string | null
-          comment?: string | null
-          correction?: string | null
-          created_at?: string
-          id?: string
-          message_id?: string | null
-          rating?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "feedback_user_id_fkey_identity_users"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "identity_users"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      teachings: {
-        Row: {
-          category: string
-          created_at: string
-          examples: Json
-          id: string
-          instruction: string
-          is_active: boolean
-          last_used_at: string | null
-          priority: number
-          trigger: string | null
-          type: string
-          updated_at: string
-          usage_count: number
-          user_id: string
-        }
-        Insert: {
-          category: string
-          created_at: string
-          examples?: Json
-          id?: string
-          instruction: string
-          is_active?: boolean
-          last_used_at?: string | null
-          priority: number
-          trigger?: string | null
-          type: string
-          updated_at: string
-          usage_count?: number
-          user_id: string
-        }
-        Update: {
-          category?: string
-          created_at?: string
-          examples?: Json
-          id?: string
-          instruction?: string
-          is_active?: boolean
-          last_used_at?: string | null
-          priority?: number
-          trigger?: string | null
-          type?: string
-          updated_at?: string
-          usage_count?: number
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "teachings_user_id_fkey_identity_users"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "identity_users"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-
-      calendar_accounts: {
-        Row: {
-          access_token: string
-          created_at: string
-          id: string
-          provider: string
-          refresh_token: string
-          token_expires_at: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          access_token: string
-          created_at?: string
-          id?: string
-          provider: string
-          refresh_token: string
-          token_expires_at?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          access_token?: string
-          created_at?: string
-          id?: string
-          provider?: string
-          refresh_token?: string
-          token_expires_at?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "calendar_accounts_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      email_outbox: {
-        Row: {
-          body: string | null
-          created_at: string
-          error: string | null
-          id: string
-          meta: Json | null
-          retries: number
-          send_at: string | null
-          sent_at: string | null
-          status: string
-          subject: string | null
-          to_email: string
-          updated_at: string
-          user_id_uuid: string
-        }
-        Insert: {
-          body?: string | null
-          created_at?: string
-          error?: string | null
-          id?: string
-          meta?: Json | null
-          retries?: number
-          send_at?: string | null
-          sent_at?: string | null
-          status?: string
-          subject?: string | null
-          to_email: string
-          updated_at?: string
-          user_id_uuid: string
-        }
-        Update: {
-          body?: string | null
-          created_at?: string
-          error?: string | null
-          id?: string
-          meta?: Json | null
-          retries?: number
-          send_at?: string | null
-          sent_at?: string | null
-          status?: string
-          subject?: string | null
-          to_email?: string
-          updated_at?: string
-          user_id_uuid?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "email_outbox_user_id_uuid_fkey"
-            columns: ["user_id_uuid"]
-            isOneToOne: false
-            referencedRelation: "identity_users"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      email_threads: {
-        Row: {
-          category: string | null
-          created_at: string
-          email_count: number
-          followup_reason: string | null
-          id: string
-          importance: string | null
-          labels: string[] | null
-          last_message_at: string | null
-          last_message_from: string | null
-          last_message_to: string | null
-          needs_followup: boolean
-          needs_response: boolean
-          owner_user_id_legacy: string
-          provider: string
-          snippet: string | null
-          starred: boolean
-          subject: string
-          thread_id: string
-          unread: boolean
-          updated_at: string
-          user_id_uuid: string
-        }
-        Insert: {
-          category?: string | null
-          created_at?: string
-          email_count?: number
-          followup_reason?: string | null
-          id?: string
-          importance?: string | null
-          labels?: string[] | null
-          last_message_at?: string | null
-          last_message_from?: string | null
-          last_message_to?: string | null
-          needs_followup?: boolean
-          needs_response?: boolean
-          owner_user_id_legacy: string
-          provider?: string
-          snippet?: string | null
-          starred?: boolean
-          subject: string
-          thread_id: string
-          unread?: boolean
-          updated_at?: string
-          user_id_uuid: string
-        }
-        Update: {
-          category?: string | null
-          created_at?: string
-          email_count?: number
-          followup_reason?: string | null
-          id?: string
-          importance?: string | null
-          labels?: string[] | null
-          last_message_at?: string | null
-          last_message_from?: string | null
-          last_message_to?: string | null
-          needs_followup?: boolean
-          needs_response?: boolean
-          owner_user_id_legacy?: string
-          provider?: string
-          snippet?: string | null
-          starred?: boolean
-          subject?: string
-          thread_id?: string
-          unread?: boolean
-          updated_at?: string
-          user_id_uuid?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "email_threads_user_id_uuid_fkey"
-            columns: ["user_id_uuid"]
-            isOneToOne: false
-            referencedRelation: "identity_users"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      reply_drafts: {
-        Row: {
-          body: string | null
-          created_at: string
-          id: string
-          inbox_item_id: string | null
-          initial_tone: string | null
-          outbox_id: string | null
-          refined_tone: string | null
-          send_at: string | null
-          status: string
-          subject: string | null
-          to_email: string | null
-          updated_at: string
-          user_id_uuid: string
-        }
-        Insert: {
-          body?: string | null
-          created_at?: string
-          id?: string
-          inbox_item_id?: string | null
-          initial_tone?: string | null
-          outbox_id?: string | null
-          refined_tone?: string | null
-          send_at?: string | null
-          status?: string
-          subject?: string | null
-          to_email?: string | null
-          updated_at?: string
-          user_id_uuid: string
-        }
-        Update: {
-          body?: string | null
-          created_at?: string
-          id?: string
-          inbox_item_id?: string | null
-          initial_tone?: string | null
-          outbox_id?: string | null
-          refined_tone?: string | null
-          send_at?: string | null
-          status?: string
-          subject?: string | null
-          to_email?: string | null
-          updated_at?: string
-          user_id_uuid?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "reply_drafts_inbox_item_id_fkey"
-            columns: ["inbox_item_id"]
-            isOneToOne: false
-            referencedRelation: "inbox_items"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reply_drafts_outbox_id_fkey"
-            columns: ["outbox_id"]
-            isOneToOne: false
-            referencedRelation: "email_outbox"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reply_drafts_user_id_uuid_fkey"
-            columns: ["user_id_uuid"]
-            isOneToOne: false
-            referencedRelation: "identity_users"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      deals: {
-        Row: {
-          ai_insights: string | null
-          close_date: string | null
-          company: string
-          company_size: string | null
-          contact_email: string | null
-          contact_name: string | null
-          created_at: string
-          id: string
-          industry: string | null
-          name: string
-          notes: string | null
-          owner_user_id_legacy: string
-          source: string | null
-          stage: string
-          updated_at: string
-          user_id_uuid: string
-          value: number
-        }
-        Insert: {
-          ai_insights?: string | null
-          close_date?: string | null
-          company: string
-          company_size?: string | null
-          contact_email?: string | null
-          contact_name?: string | null
-          created_at?: string
-          id?: string
-          industry?: string | null
-          name: string
-          notes?: string | null
-          owner_user_id_legacy: string
-          source?: string | null
-          stage: string
-          updated_at?: string
-          user_id_uuid: string
-          value: number
-        }
-        Update: {
-          ai_insights?: string | null
-          close_date?: string | null
-          company?: string
-          company_size?: string | null
-          contact_email?: string | null
-          contact_name?: string | null
-          created_at?: string
-          id?: string
-          industry?: string | null
-          name?: string
-          notes?: string | null
-          owner_user_id_legacy?: string
-          source?: string | null
-          stage?: string
-          updated_at?: string
-          user_id_uuid?: string
-          value?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "deals_user_id_uuid_fkey"
-            columns: ["user_id_uuid"]
-            isOneToOne: false
-            referencedRelation: "identity_users"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      follow_ups: {
-        Row: {
-          body: string | null
-          contact_id: string | null
-          due_date: string | null
-          id: string
-          last_action: string | null
-          last_action_date: string | null
-          notes: string | null
-          owner_user_id: string | null
-          owner_user_id_legacy: string
-          person_name: string
-          priority: string
-          user_id_uuid: string
-        }
-        Insert: {
-          body?: string | null
-          contact_id?: string | null
-          due_date?: string | null
-          id?: string
-          last_action?: string | null
-          last_action_date?: string | null
-          notes?: string | null
-          owner_user_id?: string | null
-          owner_user_id_legacy: string
-          person_name: string
-          priority: string
-          user_id_uuid: string
-        }
-        Update: {
-          body?: string | null
-          contact_id?: string | null
-          due_date?: string | null
-          id?: string
-          last_action?: string | null
-          last_action_date?: string | null
-          notes?: string | null
-          owner_user_id?: string | null
-          owner_user_id_legacy?: string
-          person_name?: string
-          priority?: string
-          user_id_uuid?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "follow_ups_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "crm_contacts" // Assuming existent or will exist
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "follow_ups_user_id_uuid_fkey"
-            columns: ["user_id_uuid"]
-            isOneToOne: false
-            referencedRelation: "identity_users"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      habit_logs: {
-        Row: {
-          count: number
-          habit_id: string
-          id: string
-          occurred_at: string
-          occurred_on: string
-          owner_user_id: string
-          user_id_uuid: string
-        }
-        Insert: {
-          count?: number
-          habit_id: string
-          id?: string
-          occurred_at?: string
-          occurred_on: string
-          owner_user_id: string
-          user_id_uuid: string
-        }
-        Update: {
-          count?: number
-          habit_id?: string
-          id?: string
-          occurred_at?: string
-          occurred_on?: string
-          owner_user_id?: string
-          user_id_uuid?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "habit_logs_habit_id_fkey"
-            columns: ["habit_id"]
-            isOneToOne: false
-            referencedRelation: "habits"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "habit_logs_user_id_uuid_fkey"
-            columns: ["user_id_uuid"]
-            isOneToOne: false
-            referencedRelation: "identity_users"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      habits: {
-        Row: {
-          description: string | null
-          frequency: string
-          id: string
-          is_active: boolean
-          name: string
-          owner_user_id: string
-          owner_user_id_legacy: string
-          streak: number
-          updated_at: string
-          user_id_uuid: string
-          xp_per_completion: number
-        }
-        Insert: {
-          description?: string | null
-          frequency?: string
-          id?: string
-          is_active?: boolean
-          name: string
-          owner_user_id: string
-          owner_user_id_legacy: string
-          streak?: number
-          updated_at?: string
-          user_id_uuid: string
-          xp_per_completion?: number
-        }
-        Update: {
-          description?: string | null
-          frequency?: string
-          id?: string
-          is_active?: boolean
-          name?: string
-          owner_user_id?: string
-          owner_user_id_legacy?: string
-          streak?: number
-          updated_at?: string
-          user_id_uuid?: string
-          xp_per_completion?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "habits_user_id_uuid_fkey"
-            columns: ["user_id_uuid"]
-            isOneToOne: false
-            referencedRelation: "identity_users"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      journal_entries: {
-        Row: {
-          created_at: string
-          id: string
-          mood: number | null
-          owner_user_id_legacy: string
-          tags: string[] | null
-          title: string
-          transcript: string
-          user_id_uuid: string
-          xp_earned: number | null
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          mood?: number | null
-          owner_user_id_legacy: string
-          tags?: string[] | null
-          title: string
-          transcript: string
-          user_id_uuid: string
-          xp_earned?: number | null
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          mood?: number | null
-          owner_user_id_legacy?: string
-          tags?: string[] | null
-          title?: string
-          transcript?: string
-          user_id_uuid?: string
-          xp_earned?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "journal_entries_user_id_uuid_fkey"
-            columns: ["user_id_uuid"]
-            isOneToOne: false
-            referencedRelation: "identity_users"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      tasks: {
-        Row: {
-          completed_at: string | null
-          due_at: string | null
-          id: string
-          name: string
-          owner_user_id_legacy: string
-          priority: number
-          project: string | null
-          status: string
-          title: string
-          user_id_uuid: string
-          xp: number | null
-        }
-        Insert: {
-          completed_at?: string | null
-          due_at?: string | null
-          id?: string
-          name: string
-          owner_user_id_legacy: string
-          priority?: number
-          project?: string | null
-          status: string
-          title: string
-          user_id_uuid: string
-          xp?: number | null
-        }
-        Update: {
-          completed_at?: string | null
-          due_at?: string | null
-          id?: string
-          name?: string
-          owner_user_id_legacy?: string
-          priority?: number
-          project?: string | null
-          status?: string
-          title?: string
-          user_id_uuid?: string
-          xp?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "tasks_user_id_uuid_fkey"
-            columns: ["user_id_uuid"]
-            isOneToOne: false
-            referencedRelation: "identity_users"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      xp_transactions: {
-        Row: {
-          amount: number
-          created_at: string
-          id: string
-          owner_user_id_legacy: string
-          reason: string
-          source_id: string | null
-          source_type: string
-          user_id_uuid: string
-        }
-        Insert: {
-          amount: number
-          created_at?: string
-          id?: string
-          owner_user_id_legacy: string
-          reason: string
-          source_id?: string | null
-          source_type: string
-          user_id_uuid: string
-        }
-        Update: {
-          amount?: number
-          created_at?: string
-          id?: string
-          owner_user_id_legacy?: string
-          reason?: string
-          source_id?: string | null
-          source_type?: string
-          user_id_uuid?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "xp_transactions_user_id_uuid_fkey"
-            columns: ["user_id_uuid"]
-            isOneToOne: false
-            referencedRelation: "identity_users"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      autonomy_actions: {
-        Row: {
-          created_at: string
-          description: string | null
-          id: string
-          priority: string
-          source: string | null
-          source_id: string | null
-          status: string
-          title: string
-          type: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          priority?: string
-          source?: string | null
-          source_id?: string | null
-          status: string
-          title: string
-          type: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          priority?: string
-          source?: string | null
-          source_id?: string | null
-          status?: string
-          title?: string
-          type?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "autonomy_actions_user_id_fkey_identity_users"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "identity_users"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      campaign_enrollments: {
-        Row: {
-          campaign_id: string
-          completed_at: string | null
-          completed_steps: string[] | null
-          contact_email: string
-          contact_name: string
-          current_step_index: number
-          id: string
-          next_step_at: string | null
-          relationship_id: string | null
-          started_at: string
-          status: string
-          user_id: string
-        }
-        Insert: {
-          campaign_id: string
-          completed_at?: string | null
-          completed_steps?: string[] | null
-          contact_email: string
-          contact_name: string
-          current_step_index?: number
-          id?: string
-          next_step_at?: string | null
-          relationship_id?: string | null
-          started_at?: string
-          status: string
-          user_id: string
-        }
-        Update: {
-          campaign_id?: string
-          completed_at?: string | null
-          completed_steps?: string[] | null
-          contact_email?: string
-          contact_name?: string
-          current_step_index?: number
-          id?: string
-          next_step_at?: string | null
-          relationship_id?: string | null
-          started_at?: string
-          status?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "campaign_enrollments_campaign_id_fkey"
-            columns: ["campaign_id"]
-            isOneToOne: false
-            referencedRelation: "campaigns"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "campaign_enrollments_user_id_fkey_identity_users"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "identity_users"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      campaigns: {
-        Row: {
-          completed_at: string | null
-          completed_count: number
-          created_at: string
-          description: string | null
-          enrolled_count: number
-          id: string
-          name: string
-          started_at: string | null
-          status: string
-          steps: Json
-          target_criteria: Json
-          type: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          completed_at?: string | null
-          completed_count?: number
-          created_at?: string
-          description?: string | null
-          enrolled_count?: number
-          id?: string
-          name: string
-          started_at?: string | null
-          status: string
-          steps?: Json
-          target_criteria?: Json
-          type: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          completed_at?: string | null
-          completed_count?: number
-          created_at?: string
-          description?: string | null
-          enrolled_count?: number
-          id?: string
-          name?: string
-          started_at?: string | null
-          status?: string
-          steps?: Json
-          target_criteria?: Json
-          type?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "campaigns_user_id_fkey_identity_users"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "identity_users"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      delegation_drafts: {
-        Row: {
-          content: string | null
-          created_at: string
-          id: string
-          source: string | null
-          source_id: string | null
-          status: string
-          subject: string | null
-          target: string | null
-          target_name: string | null
-          type: string
-          user_id: string
-        }
-        Insert: {
-          content?: string | null
-          created_at?: string
-          id?: string
-          source?: string | null
-          source_id?: string | null
-          status: string
-          subject?: string | null
-          target?: string | null
-          target_name?: string | null
-          type: string
-          user_id: string
-        }
-        Update: {
-          content?: string | null
-          created_at?: string
-          id?: string
-          source?: string | null
-          source_id?: string | null
-          status?: string
-          subject?: string | null
-          target?: string | null
-          target_name?: string | null
-          type?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "delegation_drafts_user_id_fkey_identity_users"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "identity_users"
-            referencedColumns: ["id"]
-          }
-        ]
       }
       agi_telemetry: {
         Row: {
@@ -41120,20 +39743,20 @@ export type Database = {
         Returns: string
       }
       crm_followup_mark_done:
-      | {
-        Args: { p_followup_id: string; p_owner_user_id: string }
-        Returns: undefined
-      }
-      | {
-        Args: {
-          p_done_at?: string
-          p_followup_id: string
-          p_notes?: string
-          p_outcome?: string
-          p_owner_user_id: string
-        }
-        Returns: undefined
-      }
+        | {
+            Args: { p_followup_id: string; p_owner_user_id: string }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_done_at?: string
+              p_followup_id: string
+              p_notes?: string
+              p_outcome?: string
+              p_owner_user_id: string
+            }
+            Returns: undefined
+          }
       crm_influence_event_add: {
         Args: {
           p_contact_id: string
@@ -41147,52 +39770,52 @@ export type Database = {
         Returns: string
       }
       crm_interaction_add:
-      | {
-        Args: {
-          p_contact_id: string
-          p_direction: string
-          p_occurred_at?: string
-          p_sentiment: string
-          p_subject: string
-          p_summary: string
-          p_type: string
-        }
-        Returns: string
-      }
-      | {
-        Args: {
-          p_body?: string
-          p_channel?: string
-          p_contact_id: string
-          p_duration_seconds?: number
-          p_kind: string
-          p_meta?: Json
-          p_occurred_at?: string
-          p_owner_user_id: string
-          p_sentiment?: number
-          p_subject?: string
-        }
-        Returns: {
-          days_since_last_interaction: number
-          interaction_id: string
-          last_interaction_at: string
-          open_followups: number
-          risk_level: string
-          score: number
-        }[]
-      }
-      | {
-        Args: {
-          p_channel?: string
-          p_contact_id: string
-          p_happened_at?: string
-          p_metadata?: Json
-          p_owner_user_id: string
-          p_summary?: string
-          p_type: string
-        }
-        Returns: string
-      }
+        | {
+            Args: {
+              p_contact_id: string
+              p_direction: string
+              p_occurred_at?: string
+              p_sentiment: string
+              p_subject: string
+              p_summary: string
+              p_type: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_body?: string
+              p_channel?: string
+              p_contact_id: string
+              p_duration_seconds?: number
+              p_kind: string
+              p_meta?: Json
+              p_occurred_at?: string
+              p_owner_user_id: string
+              p_sentiment?: number
+              p_subject?: string
+            }
+            Returns: {
+              days_since_last_interaction: number
+              interaction_id: string
+              last_interaction_at: string
+              open_followups: number
+              risk_level: string
+              score: number
+            }[]
+          }
+        | {
+            Args: {
+              p_channel?: string
+              p_contact_id: string
+              p_happened_at?: string
+              p_metadata?: Json
+              p_owner_user_id: string
+              p_summary?: string
+              p_type: string
+            }
+            Returns: string
+          }
       crm_oracle_bundle: {
         Args: { p_limit?: number; p_owner_user_id: string }
         Returns: Json
@@ -41651,26 +40274,26 @@ export type Database = {
         Returns: number
       }
       job_queue_start_c8:
-      | {
-        Args: { p_job_id: string; p_worker_id: string }
-        Returns: undefined
-      }
-      | {
-        Args: {
-          p_job_id: string
-          p_lease_seconds?: number
-          p_worker_id: string
-        }
-        Returns: {
-          attempts: number
-          id: string
-          lease_expires_at: string
-          max_attempts: number
-          payload: Json
-          started_at: string
-          status: string
-        }[]
-      }
+        | {
+            Args: { p_job_id: string; p_worker_id: string }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_job_id: string
+              p_lease_seconds?: number
+              p_worker_id: string
+            }
+            Returns: {
+              attempts: number
+              id: string
+              lease_expires_at: string
+              max_attempts: number
+              payload: Json
+              started_at: string
+              status: string
+            }[]
+          }
       life_score_attribution: {
         Args: { p_day?: string }
         Returns: {
@@ -42027,27 +40650,27 @@ export type Database = {
         Returns: string
       }
       user_daily_activity_rollup_read:
-      | {
-        Args: { p_days?: number }
-        Returns: {
-          day: string
-          event_count: number
-        }[]
-      }
-      | {
-        Args: { p_days?: number; p_user_id_uuid: string }
-        Returns: {
-          day: string
-          event_count: number
-        }[]
-      }
+        | {
+            Args: { p_days?: number }
+            Returns: {
+              day: string
+              event_count: number
+            }[]
+          }
+        | {
+            Args: { p_days?: number; p_user_id_uuid: string }
+            Returns: {
+              day: string
+              event_count: number
+            }[]
+          }
       user_daily_activity_rollup_refresh:
-      | { Args: { p_days?: number }; Returns: undefined }
-      | { Args: { p_days?: number; p_user_id?: string }; Returns: undefined }
-      | {
-        Args: { p_day: string; p_user_id_uuid: string }
-        Returns: undefined
-      }
+        | { Args: { p_days?: number }; Returns: undefined }
+        | { Args: { p_days?: number; p_user_id?: string }; Returns: undefined }
+        | {
+            Args: { p_day: string; p_user_id_uuid: string }
+            Returns: undefined
+          }
       user_daily_activity_rollup_refresh_incremental: {
         Args: { p_fallback_days?: number; p_user_id_uuid: string }
         Returns: Json
@@ -42145,13 +40768,13 @@ export type Database = {
     Enums: {
       task_status: "pending" | "active" | "blocked" | "completed" | "archived"
       xp_kind:
-      | "xp_physical"
-      | "xp_discipline"
-      | "xp_identity"
-      | "xp_relationship"
-      | "xp_career"
-      | "xp_mind"
-      | "xp_spirit"
+        | "xp_physical"
+        | "xp_discipline"
+        | "xp_identity"
+        | "xp_relationship"
+        | "xp_career"
+        | "xp_mind"
+        | "xp_spirit"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -42159,123 +40782,122 @@ export type Database = {
   }
 }
 
-
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
 
 type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
-  | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-  : never = never,
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
-  ? R
-  : never
+    ? R
+    : never
   : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-    DefaultSchema["Views"])
-  ? (DefaultSchema["Tables"] &
-    DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-      Row: infer R
-    }
-  ? R
-  : never
-  : never
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-  | keyof DefaultSchema["Tables"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-    Insert: infer I
-  }
-  ? I
-  : never
+      Insert: infer I
+    }
+    ? I
+    : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-    Insert: infer I
-  }
-  ? I
-  : never
-  : never
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-  | keyof DefaultSchema["Tables"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-    Update: infer U
-  }
-  ? U
-  : never
+      Update: infer U
+    }
+    ? U
+    : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-    Update: infer U
-  }
-  ? U
-  : never
-  : never
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-  | keyof DefaultSchema["Enums"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-  ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-  : never
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-  | keyof DefaultSchema["CompositeTypes"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-  ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-  : never
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
 
 export const Constants = {
   public: {
