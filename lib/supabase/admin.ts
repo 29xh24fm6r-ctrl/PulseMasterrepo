@@ -15,6 +15,13 @@ export const supabaseAdmin = new Proxy({} as SupabaseClient<Database>, {
                 // Return a dummy client that throws on use, or handled error.
                 if (process.env.NODE_ENV === "production" && !key) {
                     console.warn("⚠️ Attempting to access supabaseAdmin without SUPABASE_SERVICE_ROLE_KEY. This is expected during build time for static pages.");
+                    // Return a proxy that logs/throws on access instead of crashing immediately
+                    client = new Proxy({} as SupabaseClient<Database>, {
+                        get: (_target, _prop) => {
+                            throw new Error("Attempted to use supabaseAdmin during build without SUPABASE_SERVICE_ROLE_KEY.");
+                        }
+                    }) as SupabaseClient<Database>;
+                    return Reflect.get(client, prop);
                 }
 
                 throw new Error(

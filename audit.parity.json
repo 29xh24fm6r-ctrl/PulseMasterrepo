@@ -1,8 +1,8 @@
 {
   "detectedAppRoot": "app",
   "counts": {
-    "apiRoutes": 312,
-    "referencedApiCalls": 143,
+    "apiRoutes": 335,
+    "referencedApiCalls": 141,
     "missingApiRoutes": 0
   },
   "missingApiRoutes": [],
@@ -10,6 +10,9 @@
     "apiRoutesFirst20": [
       "/api/achievements",
       "/api/activity/recent",
+      "/api/activity/rollup/read",
+      "/api/activity/rollup/refresh",
+      "/api/activity/track",
       "/api/admin/stats",
       "/api/agents",
       "/api/agents/[runId]",
@@ -24,10 +27,7 @@
       "/api/autonomy/actions",
       "/api/autonomy/actions/[id]/status",
       "/api/autonomy/check",
-      "/api/belts",
-      "/api/calendar/events",
-      "/api/calendar/google/callback",
-      "/api/calendar/google/connect"
+      "/api/belts"
     ]
   }
 }

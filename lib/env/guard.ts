@@ -5,7 +5,8 @@
 
 const REQUIRED = [
     "NEXT_PUBLIC_SUPABASE_URL",
-    "SUPABASE_SERVICE_ROLE_KEY",
+    "NEXT_PUBLIC_SUPABASE_URL",
+    // "SUPABASE_SERVICE_ROLE_KEY", // Validation handled lazily in admin.ts to support build-time static generation
     // add these only if those subsystems are enabled in prod:
     // "OPENAI_API_KEY",
     // "RESEND_API_KEY",

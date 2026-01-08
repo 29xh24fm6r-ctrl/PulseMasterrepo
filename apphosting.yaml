@@ -7,6 +7,8 @@ runConfig:
 
 env:
   - variable: NEXT_PUBLIC_SUPABASE_URL
-    value: https://jqxnmmuvqeduovnoajkru.supabase.co
+    value: https://jqxnmuvqeduovnoajkru.supabase.co
   - variable: NEXT_PUBLIC_SUPABASE_ANON_KEY
-    value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpxeG5tdXZxZWR1b3Zub2Fqa3J1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NDgyMDIsImV4cCI6MjA4MDQyNDIwMn0.SPp0y00O0MPCflmPFvtPXKOl_hkoQW8-Pb8huabGUa8
+    value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpxeG5tdXZxZWR1b3Zub2Fqa3J1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NDgyMDIsImV4cCI6MjA4MDQyNDIwMn0.AZcqCekA8bdhkrihjMQ2tRf5pZPnrOpzeCiA5VQH1rU
+  - variable: SUPABASE_SERVICE_ROLE_KEY
+    secret: SUPABASE_SERVICE_ROLE_KEY

@@ -2,7 +2,6 @@
 // App root detected: app
 export const GENERATED_APIS = [
   "/api/achievements",
-  "/api/activity/daily",
   "/api/activity/recent",
   "/api/activity/rollup/read",
   "/api/activity/rollup/refresh",
@@ -57,7 +56,6 @@ export const GENERATED_APIS = [
   "/api/comm/call/recording-complete",
   "/api/comm/call/save-to-brain",
   "/api/comm/call/status",
-  "/api/comm/call/stream",
   "/api/comm/call/transcribe",
   "/api/comm/call/twiml",
   "/api/comm/call/voicemail-complete",
