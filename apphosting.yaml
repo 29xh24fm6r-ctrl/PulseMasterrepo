@@ -35,9 +35,7 @@ env:
   - variable: MICROSOFT_REDIRECT_URI
     secret: MICROSOFT_REDIRECT_URI
     availability: [BUILD, RUNTIME]
-  - variable: NOTION_JOURNAL_DB
-    secret: NOTION_JOURNAL_DB
-    availability: [BUILD, RUNTIME]
+
   - variable: XP_LOG_DB
     secret: XP_LOG_DB
     availability: [BUILD, RUNTIME]
