@@ -6,32 +6,189 @@ runConfig:
   concurrency: 80
 
 env:
-  - variable: NEXT_PUBLIC_SUPABASE_URL
-    value: https://jqxnmuvqeduovnoajkru.supabase.co
-  - variable: NEXT_PUBLIC_SUPABASE_ANON_KEY
-    value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpxeG5tdXZxZWR1b3Zub2Fqa3J1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NDgyMDIsImV4cCI6MjA4MDQyNDIwMn0.AZcqCekA8bdhkrihjMQ2tRf5pZPnrOpzeCiA5VQH1rU
-  - variable: SUPABASE_SERVICE_ROLE_KEY
-    secret: SUPABASE_SERVICE_ROLE_KEY
-    availability:
-      - BUILD
-      - RUNTIME
+  - variable: NOTION_API_KEY
+    secret: NOTION_API_KEY
+    availability: [BUILD, RUNTIME]
+  - variable: NOTION_DATABASE_DEALS
+    secret: NOTION_DATABASE_DEALS
+    availability: [BUILD, RUNTIME]
+  - variable: NOTION_DATABASE_TASKS
+    secret: NOTION_DATABASE_TASKS
+    availability: [BUILD, RUNTIME]
+  - variable: NOTION_DATABASE_HABITS
+    secret: NOTION_DATABASE_HABITS
+    availability: [BUILD, RUNTIME]
+  - variable: NOTION_DATABASE_XP
+    secret: NOTION_DATABASE_XP
+    availability: [BUILD, RUNTIME]
+  - variable: NOTION_DATABASE_IDENTITY
+    secret: NOTION_DATABASE_IDENTITY
+    availability: [BUILD, RUNTIME]
+  - variable: NOTION_DATABASE_SECOND_BRAIN
+    secret: NOTION_DATABASE_SECOND_BRAIN
+    availability: [BUILD, RUNTIME]
   - variable: OPENAI_API_KEY
     secret: OPENAI_API_KEY
-    availability:
-      - BUILD
-      - RUNTIME
-  - variable: RESEND_API_KEY
-    secret: RESEND_API_KEY
-    availability:
-      - BUILD
-      - RUNTIME
-  - variable: SENTRY_AUTH_TOKEN
-    secret: SENTRY_AUTH_TOKEN
-    availability:
-      - BUILD
-      - RUNTIME
+    availability: [BUILD, RUNTIME]
+  - variable: BRAVE_SEARCH_API_KEY
+    secret: BRAVE_SEARCH_API_KEY
+    availability: [BUILD, RUNTIME]
+  - variable: NOTION_DATABASE_KNOWLEDGE_BASE
+    secret: NOTION_DATABASE_KNOWLEDGE_BASE
+    availability: [BUILD, RUNTIME]
+  - variable: NOTION_DATABASE_FOLLOW_UPS
+    secret: NOTION_DATABASE_FOLLOW_UPS
+    availability: [BUILD, RUNTIME]
+  - variable: PULSE_ADMIN_CLERK_IDS
+    secret: PULSE_ADMIN_CLERK_IDS
+    availability: [BUILD, RUNTIME]
+  - variable: GOOGLE_CLIENT_ID
+    secret: GOOGLE_CLIENT_ID
+    availability: [BUILD, RUNTIME]
+  - variable: GOOGLE_CLIENT_SECRET
+    secret: GOOGLE_CLIENT_SECRET
+    availability: [BUILD, RUNTIME]
+  - variable: GOOGLE_GMAIL_REDIRECT_URI
+    secret: GOOGLE_GMAIL_REDIRECT_URI
+    availability: [BUILD, RUNTIME]
+  - variable: MICROSOFT_CLIENT_ID
+    secret: MICROSOFT_CLIENT_ID
+    availability: [BUILD, RUNTIME]
+  - variable: MICROSOFT_CLIENT_SECRET
+    secret: MICROSOFT_CLIENT_SECRET
+    availability: [BUILD, RUNTIME]
+  - variable: MICROSOFT_REDIRECT_URI
+    secret: MICROSOFT_REDIRECT_URI
+    availability: [BUILD, RUNTIME]
+  - variable: NOTION_JOURNAL_DB
+    secret: NOTION_JOURNAL_DB
+    availability: [BUILD, RUNTIME]
+  - variable: XP_LOG_DB
+    secret: XP_LOG_DB
+    availability: [BUILD, RUNTIME]
+  - variable: CRON_SECRET
+    secret: CRON_SECRET
+    availability: [BUILD, RUNTIME]
+  - variable: ELEVENLABS_API_KEY
+    secret: ELEVENLABS_API_KEY
+    availability: [BUILD, RUNTIME]
+  - variable: ELEVENLABS_VOICE_ID
+    secret: ELEVENLABS_VOICE_ID
+    availability: [BUILD, RUNTIME]
+  - variable: DEEPGRAM_API_KEY
+    secret: DEEPGRAM_API_KEY
+    availability: [BUILD, RUNTIME]
+  - variable: GITHUB_TOKEN
+    secret: GITHUB_TOKEN
+    availability: [BUILD, RUNTIME]
+  - variable: NOTION_DATABASE_SKILL_PROGRESS
+    secret: NOTION_DATABASE_SKILL_PROGRESS
+    availability: [BUILD, RUNTIME]
+  - variable: NOTION_DATABASE_STREAKS
+    secret: NOTION_DATABASE_STREAKS
+    availability: [BUILD, RUNTIME]
+  - variable: NOTION_DATABASE_ACHIEVEMENTS
+    secret: NOTION_DATABASE_ACHIEVEMENTS
+    availability: [BUILD, RUNTIME]
+  - variable: NOTION_DATABASE_JOB_MODEL
+    secret: NOTION_DATABASE_JOB_MODEL
+    availability: [BUILD, RUNTIME]
+  - variable: TWILIO_ACCOUNT_SID
+    secret: TWILIO_ACCOUNT_SID
+    availability: [BUILD, RUNTIME]
+  - variable: TWILIO_AUTH_TOKEN
+    secret: TWILIO_AUTH_TOKEN
+    availability: [BUILD, RUNTIME]
+  - variable: TWILIO_VOICE_NUMBER
+    secret: TWILIO_VOICE_NUMBER
+    availability: [BUILD, RUNTIME]
+  - variable: APP_BASE_URL
+    secret: APP_BASE_URL
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+    secret: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+    availability: [BUILD, RUNTIME]
+  - variable: CLERK_SECRET_KEY
+    secret: CLERK_SECRET_KEY
+    availability: [BUILD, RUNTIME]
+  - variable: TEST_CLERK_USER_ID
+    secret: TEST_CLERK_USER_ID
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_CLERK_SIGN_IN_URL
+    secret: NEXT_PUBLIC_CLERK_SIGN_IN_URL
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_CLERK_SIGN_UP_URL
+    secret: NEXT_PUBLIC_CLERK_SIGN_UP_URL
+    availability: [BUILD, RUNTIME]
+  - variable: CLERK_AFTER_SIGN_IN_URL
+    secret: CLERK_AFTER_SIGN_IN_URL
+    availability: [BUILD, RUNTIME]
+  - variable: CLERK_AFTER_SIGN_UP_URL
+    secret: CLERK_AFTER_SIGN_UP_URL
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_SUPABASE_URL
+    secret: NEXT_PUBLIC_SUPABASE_URL
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_SUPABASE_ANON_KEY
+    secret: NEXT_PUBLIC_SUPABASE_ANON_KEY
+    availability: [BUILD, RUNTIME]
+  - variable: SUPABASE_SERVICE_ROLE_KEY
+    secret: SUPABASE_SERVICE_ROLE_KEY
+    availability: [BUILD, RUNTIME]
+  - variable: SUPABASE_URL
+    secret: SUPABASE_URL
+    availability: [BUILD, RUNTIME]
+  - variable: DATABASE_URL
+    secret: DATABASE_URL
+    availability: [BUILD, RUNTIME]
+  - variable: SUPABASE_ANON_KEY
+    secret: SUPABASE_ANON_KEY
+    availability: [BUILD, RUNTIME]
   - variable: STRIPE_SECRET_KEY
     secret: STRIPE_SECRET_KEY
-    availability:
-      - BUILD
-      - RUNTIME
+    availability: [BUILD, RUNTIME]
+  - variable: STRIPE_WEBHOOK_SECRET
+    secret: STRIPE_WEBHOOK_SECRET
+    availability: [BUILD, RUNTIME]
+  - variable: STRIPE_PRICE_PLUS_MONTHLY
+    secret: STRIPE_PRICE_PLUS_MONTHLY
+    availability: [BUILD, RUNTIME]
+  - variable: STRIPE_PRICE_PLUS_YEARLY
+    secret: STRIPE_PRICE_PLUS_YEARLY
+    availability: [BUILD, RUNTIME]
+  - variable: STRIPE_PRICE_TOKENS_100
+    secret: STRIPE_PRICE_TOKENS_100
+    availability: [BUILD, RUNTIME]
+  - variable: STRIPE_PRICE_TOKENS_220
+    secret: STRIPE_PRICE_TOKENS_220
+    availability: [BUILD, RUNTIME]
+  - variable: STRIPE_PRICE_TOKENS_600
+    secret: STRIPE_PRICE_TOKENS_600
+    availability: [BUILD, RUNTIME]
+  - variable: STRIPE_PRICE_TOKENS_1400
+    secret: STRIPE_PRICE_TOKENS_1400
+    availability: [BUILD, RUNTIME]
+  - variable: RESEND_API_KEY
+    secret: RESEND_API_KEY
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_VAPID_PUBLIC_KEY
+    secret: NEXT_PUBLIC_VAPID_PUBLIC_KEY
+    availability: [BUILD, RUNTIME]
+  - variable: VAPID_PRIVATE_KEY
+    secret: VAPID_PRIVATE_KEY
+    availability: [BUILD, RUNTIME]
+  - variable: VAPID_SUBJECT
+    secret: VAPID_SUBJECT
+    availability: [BUILD, RUNTIME]
+  - variable: GOOGLE_CALENDAR_REDIRECT_URI
+    secret: GOOGLE_CALENDAR_REDIRECT_URI
+    availability: [BUILD, RUNTIME]
+  - variable: PULSE_DEV_USER_ID
+    secret: PULSE_DEV_USER_ID
+    availability: [BUILD, RUNTIME]
+  - variable: CANON_MODE
+    secret: CANON_MODE
+    availability: [BUILD, RUNTIME]
+  - variable: SENTRY_AUTH_TOKEN
+    secret: SENTRY_AUTH_TOKEN
+    availability: [BUILD, RUNTIME]
