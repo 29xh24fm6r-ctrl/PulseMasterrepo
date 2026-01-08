@@ -10,10 +10,8 @@ env:
   - variable: OPENAI_API_KEY
     secret: OPENAI_API_KEY
     availability: [BUILD, RUNTIME]
-  - variable: BRAVE_SEARCH_API_KEY
-    secret: BRAVE_SEARCH_API_KEY
-    availability: [BUILD, RUNTIME]
-    availability: [BUILD, RUNTIME]
+
+
   - variable: PULSE_ADMIN_CLERK_IDS
     secret: PULSE_ADMIN_CLERK_IDS
     availability: [BUILD, RUNTIME]
