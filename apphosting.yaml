@@ -15,10 +15,10 @@ env:
 
   - variable: GOOGLE_CLIENT_ID
     secret: GOOGLE_CLIENT_ID
-    availability: [BUILD, RUNTIME]
+    availability: [RUNTIME]
   - variable: GOOGLE_CLIENT_SECRET
     secret: GOOGLE_CLIENT_SECRET
-    availability: [BUILD, RUNTIME]
+    availability: [RUNTIME]
   - variable: GOOGLE_GMAIL_REDIRECT_URI
     secret: GOOGLE_GMAIL_REDIRECT_URI
     availability: [BUILD, RUNTIME]
