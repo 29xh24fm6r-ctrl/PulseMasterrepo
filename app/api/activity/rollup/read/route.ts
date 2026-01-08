@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
     const authResult = await requireOpsAuth();
