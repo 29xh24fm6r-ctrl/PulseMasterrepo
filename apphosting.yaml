@@ -6,38 +6,13 @@ runConfig:
   concurrency: 80
 
 env:
-  - variable: NOTION_API_KEY
-    secret: NOTION_API_KEY
-    availability: [BUILD, RUNTIME]
-  - variable: NOTION_DATABASE_DEALS
-    secret: NOTION_DATABASE_DEALS
-    availability: [BUILD, RUNTIME]
-  - variable: NOTION_DATABASE_TASKS
-    secret: NOTION_DATABASE_TASKS
-    availability: [BUILD, RUNTIME]
-  - variable: NOTION_DATABASE_HABITS
-    secret: NOTION_DATABASE_HABITS
-    availability: [BUILD, RUNTIME]
-  - variable: NOTION_DATABASE_XP
-    secret: NOTION_DATABASE_XP
-    availability: [BUILD, RUNTIME]
-  - variable: NOTION_DATABASE_IDENTITY
-    secret: NOTION_DATABASE_IDENTITY
-    availability: [BUILD, RUNTIME]
-  - variable: NOTION_DATABASE_SECOND_BRAIN
-    secret: NOTION_DATABASE_SECOND_BRAIN
-    availability: [BUILD, RUNTIME]
+
   - variable: OPENAI_API_KEY
     secret: OPENAI_API_KEY
     availability: [BUILD, RUNTIME]
   - variable: BRAVE_SEARCH_API_KEY
     secret: BRAVE_SEARCH_API_KEY
     availability: [BUILD, RUNTIME]
-  - variable: NOTION_DATABASE_KNOWLEDGE_BASE
-    secret: NOTION_DATABASE_KNOWLEDGE_BASE
-    availability: [BUILD, RUNTIME]
-  - variable: NOTION_DATABASE_FOLLOW_UPS
-    secret: NOTION_DATABASE_FOLLOW_UPS
     availability: [BUILD, RUNTIME]
   - variable: PULSE_ADMIN_CLERK_IDS
     secret: PULSE_ADMIN_CLERK_IDS
