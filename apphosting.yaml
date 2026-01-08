@@ -12,9 +12,7 @@ env:
     availability: [BUILD, RUNTIME]
 
 
-  - variable: PULSE_ADMIN_CLERK_IDS
-    secret: PULSE_ADMIN_CLERK_IDS
-    availability: [BUILD, RUNTIME]
+
   - variable: GOOGLE_CLIENT_ID
     secret: GOOGLE_CLIENT_ID
     availability: [BUILD, RUNTIME]
@@ -34,9 +32,7 @@ env:
     secret: MICROSOFT_REDIRECT_URI
     availability: [BUILD, RUNTIME]
 
-  - variable: XP_LOG_DB
-    secret: XP_LOG_DB
-    availability: [BUILD, RUNTIME]
+
   - variable: CRON_SECRET
     secret: CRON_SECRET
     availability: [BUILD, RUNTIME]
