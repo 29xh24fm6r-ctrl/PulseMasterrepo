@@ -75,6 +75,7 @@ export async function POST(req: NextRequest) {
       .from("contacts")
       .insert({
         user_id_uuid: user.id,
+        owner_user_id_legacy: user.id,
         name: body.name,
         email: body.email,
         phone: body.phone,
