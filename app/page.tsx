@@ -74,27 +74,7 @@ export default function Home() {
               <p className="text-xl text-zinc-400 uppercase tracking-widest font-light">{dateString}</p>
             </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 0.6 }}
-              className="relative max-w-2xl mx-auto group"
-            >
-              <div className="absolute inset-0 bg-violet-500/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-              <div className="relative bg-zinc-900/40 backdrop-blur-xl border border-white/10 hover:border-violet-500/40 rounded-2xl p-2 flex items-center shadow-2xl transition-all duration-300 transform hover:scale-[1.02]">
-                <Search className="w-6 h-6 text-zinc-500 ml-4" />
-                <input
-                  type="text"
-                  placeholder="What is your focus, Commander?"
-                  className="bg-transparent border-0 ring-0 focus:ring-0 w-full text-lg px-4 py-3 text-white placeholder-zinc-500 font-light"
-                  autoFocus
-                />
-                <div className="hidden md:flex items-center gap-2 px-4 py-1.5 bg-white/5 rounded-lg border border-white/5 text-xs text-zinc-400 uppercase tracking-wider">
-                  <Command className="w-3 h-3" />
-                  <span>K</span>
-                </div>
-              </div>
-            </motion.div>
+
           </div>
 
           {/* Holographic Grid */}
