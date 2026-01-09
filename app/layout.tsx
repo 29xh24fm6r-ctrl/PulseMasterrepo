@@ -56,6 +56,7 @@ export default function RootLayout({
             <UserProvider>
               <ToastProvider>
                 <TheOrb />
+                <GlobalNav />
                 <OrbitalStream />
 
                 {children}
