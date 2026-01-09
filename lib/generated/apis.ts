@@ -68,6 +68,8 @@ export const GENERATED_APIS = [
   "/api/contacts/scoring",
   "/api/cortex/approve/[id]",
   "/api/cortex/sync",
+  "/api/cortex/thoughts",
+  "/api/crm/enrich",
   "/api/crm/followups/mark-done",
   "/api/crm/interactions/add",
   "/api/crm/oracle",

@@ -19,6 +19,7 @@ export const GENERATED_PAGES = [
   "/coaches",
   "/confidant",
   "/contact-scanner",
+  "/contacts",
   "/contacts/scoring",
   "/crm/people/[contactId]",
   "/cron",

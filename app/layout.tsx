@@ -4,7 +4,7 @@ import { assertServerEnv } from "@/lib/env/guard";
 assertServerEnv();
 
 import { ClerkProvider } from "@clerk/nextjs";
-import { CommandPalette } from "./components/command-palette";
+
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
@@ -36,6 +36,9 @@ export const viewport: Viewport = {
 
 import { WhisperFeed } from "@/components/WhisperFeed";
 import { TheOrb } from "@/components/TheOrb";
+import { OrbitalStream } from "@/components/ui/premium/OrbitalStream";
+
+
 
 export default function RootLayout({
   children,
@@ -48,13 +51,13 @@ export default function RootLayout({
         <head>
           <link rel="apple-touch-icon" href="/icons/icon-192.png" />
         </head>
-        <body className={`${inter.className} bg-slate-950 text-slate-100`}>
+        <body className={`${inter.className} bg-zinc-950 text-slate-100 overflow-x-hidden`}>
           <Providers>
             <UserProvider>
               <ToastProvider>
                 <TheOrb />
-                <GlobalNav />
-                <CommandPalette />
+                <OrbitalStream />
+
                 {children}
                 <ServiceWorkerRegistration />
                 <GlobalVoiceButton />

@@ -1,86 +1,172 @@
-import { AdaptiveStream } from "@/components/AdaptiveStream";
+"use client";
 
-export default function HomePage() {
-  return (
-    <div className="min-h-screen font-sans selection:bg-cyan-900 overflow-hidden relative">
-      {/* Background provided by globals.css + TheOrb in layout */}
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { motion } from "framer-motion";
+import {
+  Zap, Brain, Sparkles, Command,
+  Activity, Calendar, Search, ArrowRight,
+  ShieldCheck, Wifi
+} from "lucide-react";
+import { CinematicBackground } from "@/components/ui/premium/CinematicBackground";
+import { GlassCard } from "@/components/ui/premium/GlassCard";
 
-      {/* The Stream */}
-      <AdaptiveStream />
+// Mock Data
+const RECENT_INTEL = [
+  { id: 1, type: "crm", title: "Enriched Eleanor Pena", time: "2m ago", icon: Sparkles, color: "text-violet-400" },
+  { id: 2, type: "journal", title: "Evening Reflection Saved", time: "1h ago", icon: Brain, color: "text-emerald-400" },
+  { id: 3, type: "task", title: "Completed 'Q1 Strategy'", time: "3h ago", icon: ShieldCheck, color: "text-blue-400" },
+];
 
-      {/* Footer / Status */}
-      <div className="fixed bottom-6 left-0 right-0 text-center pointer-events-none">
-        <p className="text-[10px] uppercase tracking-[0.3em] text-white/20">Pulse OS Active</p>
-      </div>
-    </div>
-  );
-}
-
-function RecentActivity() {
-  const [items, setItems] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState<string | null>(null);
-
-  async function load() {
-    setLoading(true);
-    setErr(null);
-    try {
-      const r = await fetch("/api/activity/recent?limit=10", { cache: "no-store" });
-      const j = await r.json();
-      if (!j.ok) throw new Error(j.detail || j.error || "Failed to load activity");
-      setItems(j.items ?? []);
-    } catch (e: any) {
-      setErr(e?.message ?? String(e));
-    } finally {
-      setLoading(false);
-    }
-  }
+export default function Home() {
+  const [time, setTime] = useState(new Date());
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    load();
+    setMounted(true);
+    const timer = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(timer);
   }, []);
 
+  // Time formatting
+  const timeString = time.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  const dateString = time.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-3">
-      <div className="flex items-center justify-between">
-        <div className="font-semibold text-gray-200">Recent Activity</div>
-        <button
-          onClick={load}
-          className="text-xs opacity-80 hover:opacity-100 underline text-cyan-400"
-        >
-          Refresh
-        </button>
-      </div>
+    <div className="relative min-h-screen text-white font-sans selection:bg-cyan-500/30 overflow-hidden">
+      <CinematicBackground />
 
-      {loading && <div className="text-sm opacity-80 text-gray-500">Loading…</div>}
+      {/* Main Interface Layer */}
+      <div className="relative z-10 min-h-screen flex flex-col p-6 md:p-12">
 
-      {err && (
-        <div className="text-sm">
-          <div className="opacity-90 text-red-400">Failed to load: {err}</div>
-        </div>
-      )}
+        {/* Top HUD */}
+        <header className="flex justify-between items-start animate-in fade-in slide-in-from-top-10 duration-1000">
+          <div className="flex flex-col">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-xs uppercase tracking-[0.2em] text-emerald-500/80 font-semibold">System Online</span>
+            </div>
+            <div className="flex items-center gap-2 text-zinc-500 text-xs uppercase tracking-widest">
+              <Wifi className="w-3 h-3" />
+              <span>Pulse OS v4.2</span>
+            </div>
+          </div>
+          <div>
+            <Link href="/settings" className="p-2 rounded-full hover:bg-white/5 transition-colors text-zinc-400 hover:text-white">
+              <ShieldCheck className="w-5 h-5" />
+            </Link>
+          </div>
+        </header>
 
-      {!loading && !err && items.length === 0 && (
-        <div className="text-sm opacity-80 text-gray-500">No activity yet.</div>
-      )}
+        {/* Center Command */}
+        <main className="flex-1 flex flex-col justify-center max-w-5xl mx-auto w-full">
 
-      {!loading && !err && items.length > 0 && (
-        <ul className="space-y-2">
-          {items.map((x) => (
-            <li key={x.id} className="text-sm border-b border-white/5 pb-2 last:border-0 last:pb-0">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="font-medium text-gray-300">{x.title}</div>
-                  {x.detail ? <div className="opacity-80 truncate text-gray-500">{x.detail}</div> : null}
-                </div>
-                <div className="text-xs opacity-60 whitespace-nowrap text-gray-600">
-                  {new Date(x.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          {/* Hero Section */}
+          <div className="text-center mb-16 space-y-6">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+            >
+              <h1 className="text-7xl md:text-9xl font-bold tracking-tight text-white mb-2" style={{ textShadow: "0 0 40px rgba(255,255,255,0.1)" }}>
+                {timeString}
+              </h1>
+              <p className="text-xl text-zinc-400 uppercase tracking-widest font-light">{dateString}</p>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.6 }}
+              className="relative max-w-2xl mx-auto group"
+            >
+              <div className="absolute inset-0 bg-violet-500/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+              <div className="relative bg-zinc-900/40 backdrop-blur-xl border border-white/10 hover:border-violet-500/40 rounded-2xl p-2 flex items-center shadow-2xl transition-all duration-300 transform hover:scale-[1.02]">
+                <Search className="w-6 h-6 text-zinc-500 ml-4" />
+                <input
+                  type="text"
+                  placeholder="What is your focus, Commander?"
+                  className="bg-transparent border-0 ring-0 focus:ring-0 w-full text-lg px-4 py-3 text-white placeholder-zinc-500 font-light"
+                  autoFocus
+                />
+                <div className="hidden md:flex items-center gap-2 px-4 py-1.5 bg-white/5 rounded-lg border border-white/5 text-xs text-zinc-400 uppercase tracking-wider">
+                  <Command className="w-3 h-3" />
+                  <span>K</span>
                 </div>
               </div>
-            </li>
-          ))}
-        </ul>
-      )}
+            </motion.div>
+          </div>
+
+          {/* Holographic Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+            {/* Card 1: Network Intelligence */}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
+              <Link href="/contacts">
+                <GlassCard className="h-full p-6 group hover:border-violet-500/40 transition-all cursor-pointer">
+                  <div className="flex items-center justify-between mb-8">
+                    <div className="p-3 bg-violet-500/10 rounded-xl text-violet-400 group-hover:scale-110 transition-transform duration-300">
+                      <Sparkles className="w-6 h-6" />
+                    </div>
+                    <ArrowRight className="w-5 h-5 text-zinc-600 group-hover:text-white transition-colors -translate-x-2 opacity-0 group-hover:translate-x-0 group-hover:opacity-100" />
+                  </div>
+                  <h3 className="text-2xl font-semibold mb-2 group-hover:text-violet-300 transition-colors">Network<br />Intelligence</h3>
+                  <p className="text-sm text-zinc-400">Enrich contacts with God Mode.</p>
+                </GlassCard>
+              </Link>
+            </motion.div>
+
+            {/* Card 2: Cognitive Stream */}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
+              <Link href="/journal">
+                <GlassCard className="h-full p-6 group hover:border-emerald-500/40 transition-all cursor-pointer">
+                  <div className="flex items-center justify-between mb-8">
+                    <div className="p-3 bg-emerald-500/10 rounded-xl text-emerald-400 group-hover:scale-110 transition-transform duration-300">
+                      <Brain className="w-6 h-6" />
+                    </div>
+                    <ArrowRight className="w-5 h-5 text-zinc-600 group-hover:text-white transition-colors -translate-x-2 opacity-0 group-hover:translate-x-0 group-hover:opacity-100" />
+                  </div>
+                  <h3 className="text-2xl font-semibold mb-2 group-hover:text-emerald-300 transition-colors">Cognitive<br />Stream</h3>
+                  <p className="text-sm text-zinc-400">Reflect with neural AI insights.</p>
+                </GlassCard>
+              </Link>
+            </motion.div>
+
+            {/* Card 3: Recent Activity (Mini HUD) */}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}>
+              <GlassCard className="h-full p-6 relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-4 opacity-50">
+                  <Activity className="w-12 h-12 text-zinc-800" />
+                </div>
+                <h3 className="text-zinc-400 text-xs font-bold uppercase tracking-widest mb-6">Recent Intel</h3>
+                <div className="space-y-4">
+                  {RECENT_INTEL.map(item => (
+                    <div key={item.id} className="flex items-center gap-3 group cursor-pointer">
+                      <div className={`p-1.5 rounded-full bg-zinc-900 border border-white/5 ${item.color}`}>
+                        <item.icon className="w-3 h-3" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-zinc-200 group-hover:text-white transition-colors">{item.title}</p>
+                        <p className="text-[10px] text-zinc-500">{item.time}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
+            </motion.div>
+
+          </div>
+        </main>
+
+        {/* Footer Status */}
+        <footer className="py-6 flex justify-between items-end opacity-50 hover:opacity-100 transition-opacity">
+          <div className="flex gap-4 text-xs text-zinc-500 font-mono">
+            <span>CPU: 12%</span>
+            <span>MEM: 4.2GB</span>
+            <span>LAT: 24ms</span>
+          </div>
+        </footer>
+      </div>
     </div>
   );
 }
