@@ -3,7 +3,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
-import { CheckCircle, Clock, Zap, ArrowRight, ShieldAlert } from "lucide-react";
+import { CheckCircle, Clock, Zap, ArrowRight, ShieldAlert, Sparkles } from "lucide-react";
 import { usePulse } from "@/hooks/usePulse";
 import { createClient } from "@/lib/supabase/client";
 
@@ -174,10 +174,19 @@ export function AdaptiveStream() {
                     <StreamItem key={card.id} card={card} index={index} />
                 ))}
                 {cards.length === 0 && (
-                    <div className="text-center text-white/30 pt-20">
-                        <div className="animate-pulse mb-2">●</div>
-                        <p className="text-sm">System Idle. Waiting for input.</p>
-                    </div>
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="relative overflow-hidden rounded-3xl bg-white/5 border border-white/10 p-8 text-center backdrop-blur-xl"
+                    >
+                        <div className="mx-auto w-12 h-12 bg-violet-500/20 rounded-full flex items-center justify-center mb-4">
+                            <Sparkles className="w-6 h-6 text-violet-300" />
+                        </div>
+                        <h3 className="text-xl font-medium text-white mb-2">Ready to Start</h3>
+                        <p className="text-zinc-400 max-w-sm mx-auto">
+                            The system is standing by. Create a task, journal entry, or start a session to wake up the stream.
+                        </p>
+                    </motion.div>
                 )}
             </AnimatePresence>
         </div>
