@@ -3,8 +3,11 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 
+import { useEncounter } from "@/components/encounter/EncounterContext";
+
 export const TemporalPulse = () => {
     const [time, setTime] = useState<Date | null>(null);
+    const { state } = useEncounter();
 
     useEffect(() => {
         setTime(new Date());
@@ -18,31 +21,49 @@ export const TemporalPulse = () => {
     const minutes = time.toLocaleTimeString("en-US", { minute: "2-digit" });
     const dateString = time.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
+    // State-based Visuals (Pass 3)
+    const stateVisuals = {
+        CLEAR: { tracking: "tracking-tighter", scale: 1, gap: "gap-4", opacity: 0.9, blur: "blur(0px)" }, // Spacious, Calm
+        PRESSURE: { tracking: "tracking-tight", scale: 0.95, gap: "gap-2", opacity: 1, blur: "blur(0px)" }, // Compressed
+        HIGH_COST: { tracking: "tracking-normal", scale: 1.1, gap: "gap-0", opacity: 1, blur: "blur(0.5px)" } // Intense focus, slight blur on edges? Or sharp? Directive: "Visually narrows or sharpens focus" -> Let's go sharp and tight.
+    };
+
+    const visual = stateVisuals[state] || stateVisuals.CLEAR;
+
     return (
         <div className="relative flex flex-col items-center justify-center py-12 select-none">
             {/* Glow backing */}
-            <div className="absolute inset-0 bg-violet-500/5 blur-[100px] rounded-full pointer-events-none" />
+            <div className={`absolute inset-0 rounded-full pointer-events-none transition-all duration-1000
+                ${state === 'HIGH_COST' ? 'bg-red-500/10 blur-[80px]' :
+                    state === 'PRESSURE' ? 'bg-amber-500/5 blur-[90px]' :
+                        'bg-violet-500/5 blur-[100px]'}
+            `} />
 
             <motion.div
                 initial={{ opacity: 0, scale: 0.9, filter: "blur(10px)" }}
-                animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-                transition={{ duration: 1, ease: "easeOut" }}
-                className="relative z-10 flex items-baseline gap-2 font-bold tracking-tighter text-white/90"
-                style={{ textShadow: "0 0 80px rgba(139, 92, 246, 0.3)" }}
+                animate={{
+                    opacity: visual.opacity,
+                    scale: visual.scale,
+                    filter: visual.blur,
+                    gap: state === 'HIGH_COST' ? '0rem' : state === 'PRESSURE' ? '0.5rem' : '1rem'
+                }}
+                transition={{ duration: 1.5, ease: "easeInOut" }}
+                className={`relative z-10 flex items-baseline font-bold text-white/90 transition-all duration-1000 ${visual.gap}`}
+                style={{ textShadow: state === 'HIGH_COST' ? "0 0 40px rgba(220, 38, 38, 0.5)" : "0 0 80px rgba(139, 92, 246, 0.3)" }}
             >
-                <span className="text-8xl md:text-[10rem] leading-none font-sans bg-clip-text text-transparent bg-gradient-to-b from-white to-white/70">
+                <span className={`text-8xl md:text-[10rem] leading-none font-sans bg-clip-text text-transparent bg-gradient-to-b from-white to-white/70 transition-all duration-1000 ${visual.tracking}`}>
                     {hours}
                 </span>
 
                 <motion.span
                     animate={{ opacity: [0.4, 1, 0.4] }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                    transition={{ duration: state === 'PRESSURE' ? 1 : 2, repeat: Infinity, ease: "easeInOut" }}
                     className="text-6xl md:text-8xl text-violet-400/50 -translate-y-8"
                 >
                     :
                 </motion.span>
 
-                <span className="text-8xl md:text-[10rem] leading-none font-sans bg-clip-text text-transparent bg-gradient-to-b from-white to-white/70">
+                <span className={`text-8xl md:text-[10rem] leading-none font-sans bg-clip-text text-transparent bg-gradient-to-b from-white to-white/70 transition-all duration-1000 ${visual.tracking}`}>
                     {minutes}
                 </span>
             </motion.div>

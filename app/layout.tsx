@@ -9,10 +9,13 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 import { UserProvider } from "./providers/user-provider";
-import { GlobalNav } from "@/components/GlobalNav";
+// import { GlobalNav } from "@/components/GlobalNav"; // Deprecated
+import { QuantumDock } from "@/components/navigation/QuantumDock";
+import { OrbitalMind } from "@/components/navigation/OrbitalMind";
 import ServiceWorkerRegistration from "./components/ServiceWorkerRegistration";
 import { GlobalVoiceButton } from "@/components/GlobalVoiceButton";
 import { ToastProvider } from "@/components/ui/ToastProvider";
+import { EncounterLayout } from "@/components/encounter/EncounterLayout";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -55,14 +58,17 @@ export default function RootLayout({
           <Providers>
             <UserProvider>
               <ToastProvider>
-                <TheOrb />
-                <GlobalNav />
-                <OrbitalStream />
+                <EncounterLayout>
+                  <TheOrb />
+                  <QuantumDock />
+                  <OrbitalMind />
+                  <OrbitalStream />
 
-                {children}
-                <ServiceWorkerRegistration />
-                <GlobalVoiceButton />
-                <WhisperFeed />
+                  {children}
+                  <ServiceWorkerRegistration />
+                  <GlobalVoiceButton />
+                  <WhisperFeed />
+                </EncounterLayout>
               </ToastProvider>
             </UserProvider>
           </Providers>
