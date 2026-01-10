@@ -92,18 +92,20 @@ export const TheVoid = () => {
                     onMouseLeave={() => setIsHoveringCenter(false)}
                     className="flex flex-col items-center cursor-default p-20"
                 >
-                    <motion.h1
-                        initial={{ opacity: 0, y: 10, filter: "blur(10px)" }}
-                        animate={{
-                            opacity: hasRevealed ? 0.4 : 0.9,
-                            y: hasRevealed ? -20 : 0,
-                            filter: "blur(0px)"
-                        }}
-                        transition={{ duration: 1.5, ease: "easeOut" }}
-                        className="text-3xl md:text-4xl font-light tracking-tight text-white/90 text-center font-sans antialiased"
-                    >
-                        {situationText}
-                    </motion.h1>
+                    {situationText && (
+                        <motion.h1
+                            initial={{ opacity: 0, y: 10, filter: "blur(10px)" }}
+                            animate={{
+                                opacity: hasRevealed ? 0.4 : 0.9,
+                                y: hasRevealed ? -20 : 0,
+                                filter: "blur(0px)"
+                            }}
+                            transition={{ duration: 1.5, ease: "easeOut" }}
+                            className="text-3xl md:text-4xl font-light tracking-tight text-white/90 text-center font-sans antialiased"
+                        >
+                            {situationText}
+                        </motion.h1>
+                    )}
 
                     {/* The Reveal */}
                     <AnimatePresence>
