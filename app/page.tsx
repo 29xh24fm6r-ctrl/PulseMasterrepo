@@ -32,10 +32,8 @@ export default function Home() {
           </div>
         </div>
 
-        {/* The Mind (Orbital Stream) */}
-        <div className="px-6 mb-12">
-          <OrbitalStream />
-        </div>
+        {/* The Mind (Orbital Stream) - Moved to Layout */}
+        {/* <div className="px-6 mb-12"><OrbitalStream /></div> */}
 
         {/* Temporal Core */}
         <div className="flex-1 flex flex-col justify-center items-center mb-12">
@@ -47,8 +45,8 @@ export default function Home() {
 
       </div>
 
-      {/* LAYER 3: Orbit (Navigation) */}
-      <SpatialDock />
+      {/* LAYER 3: Orbit (Navigation) - Managed by Global Layout (QuantumDock) */}
+      {/* <SpatialDock /> Removed to prevent double docking */}
 
     </div>
   );

@@ -2,15 +2,17 @@
 
 import React from "react";
 import { EncounterProvider, useEncounter } from "./EncounterContext";
-import { TheVoid } from "./TheVoid";
+import { TheBriefing } from "./TheBriefing";
 import { AnimatePresence, motion } from "framer-motion";
+import { CanonGuard } from "../debug/CanonGuard";
 
 function EncounterInner({ children }: { children: React.ReactNode }) {
     const { isResolved } = useEncounter();
 
     return (
         <>
-            <TheVoid />
+            <CanonGuard />
+            <TheBriefing />
             <motion.div
                 initial={{ opacity: 0 }}
                 animate={{

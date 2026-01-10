@@ -8,6 +8,7 @@ import {
     Home, Briefcase, Zap, Heart, Leaf, Trophy, Compass, Crown,
     Settings, User, Map, Search, Command, X, Menu, Box
 } from "lucide-react";
+import { useEncounter } from "@/components/encounter/EncounterContext";
 
 // --- Navigation Data Structure ---
 const NAV_CONSTELLATIONS = [
@@ -115,13 +116,21 @@ const NAV_CONSTELLATIONS = [
     }
 ];
 
+// Wrapper to allow separate hook usage if needed, though mostly direct now to inner.
 export function QuantumDock() {
+    return <QuantumDockInner />;
+}
+
+function QuantumDockInner() {
+    const { state } = useEncounter();
     const mouseX = useMotionValue(Infinity);
     const pathname = usePathname();
 
     if (pathname?.startsWith("/sign-in") || pathname?.startsWith("/sign-up") || pathname === "/jarvis") {
         return null;
     }
+
+    if (state === 'CLEAR') return null; // Silence Discipline
 
     return (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
