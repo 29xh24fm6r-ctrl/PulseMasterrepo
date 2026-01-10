@@ -3,13 +3,25 @@
 import { useEncounter } from "@/components/encounter/EncounterContext";
 import { CoherenceGlobe } from "./CoherenceGlobe";
 import { BiometricPanel } from "./BiometricPanel";
+import { RightRail } from "./RightRail";
 import { motion } from "framer-motion";
 
 export const NerveCenter = () => {
     const { state, resolveEncounter, isResolved } = useEncounter();
 
-    // Map Encounter State to Tactical Status
-    const tacticalStatus = state === 'PRESSURE' || state === 'HIGH_COST' ? 'DRIFT' : 'NOMINAL';
+    // Strict State Machine Mapping: CALM | DRIFT | EXECUTION | CRISIS
+    const getSystemState = (s: string) => {
+        if (s === 'PRESSURE') return 'DRIFT';
+        if (s === 'HIGH_COST') return 'CRITICAL'; // Maps to CRISIS visual
+        return 'CALM';
+    };
+
+    const systemState = getSystemState(state);
+    const displayStatus = systemState === 'DRIFT' ? 'DRIFT DETECTED' : systemState === 'CALM' ? 'SYSTEMS CALM' : 'CRISIS ACTIVE';
+
+    const statusColor = systemState === 'DRIFT' ? 'border-amber-500 text-amber-500 bg-amber-500/10' :
+        systemState === 'CRITICAL' ? 'border-red-500 text-red-500 bg-red-500/10' :
+            'border-emerald-500 text-emerald-500 bg-emerald-500/10';
 
     if (isResolved) return null;
 
@@ -30,8 +42,8 @@ export const NerveCenter = () => {
                     </div>
                 </div>
                 <div className="flex items-center gap-6">
-                    <div className={`px-3 py-1 border border-opacity-30 text-[10px] font-mono tracking-widest uppercase ${tacticalStatus === 'DRIFT' ? 'border-amber-500 text-amber-500 bg-amber-500/10' : 'border-emerald-500 text-emerald-500 bg-emerald-500/10'}`}>
-                        Status: {tacticalStatus === 'DRIFT' ? 'Drift Active' : 'Nominal'}
+                    <div className={`px-3 py-1 border border-opacity-30 text-[10px] font-mono tracking-widest uppercase ${statusColor}`}>
+                        Status: {displayStatus}
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="text-right leading-none">
@@ -47,20 +59,20 @@ export const NerveCenter = () => {
             <div className="grid grid-cols-12 h-screen pt-12">
                 {/* Left Panel: Biometrics */}
                 <div className="hidden md:block md:col-span-3 border-r border-white/10 p-0">
-                    <BiometricPanel status={tacticalStatus} />
+                    <BiometricPanel status={systemState as any} />
                 </div>
 
                 {/* Main Viewport: Globe & Action */}
-                <div className="col-span-12 md:col-span-9 relative p-6 flex flex-col items-center justify-center">
+                <div className="col-span-12 md:col-span-8 relative p-6 flex flex-col items-center justify-center">
 
                     {/* The Globe Container */}
                     <div className="w-full max-w-4xl aspect-video relative">
-                        <CoherenceGlobe status={tacticalStatus} />
+                        <CoherenceGlobe status={systemState as any} />
                     </div>
 
                     {/* Action Console (Bottom) */}
                     <div className="mt-8 flex gap-4">
-                        {tacticalStatus === 'DRIFT' ? (
+                        {systemState === 'DRIFT' ? (
                             <button
                                 onClick={resolveEncounter}
                                 className="group relative px-8 py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold tracking-[0.2em] text-sm uppercase transition-all [clip-path:polygon(0_0,100%_0,100%_70%,92%_100%,0_100%)]"
