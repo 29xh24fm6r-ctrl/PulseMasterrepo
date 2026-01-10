@@ -3,7 +3,7 @@
 import { Activity, Moon, Zap, AlertTriangle } from "lucide-react";
 
 interface BiometricPanelProps {
-    status: "NOMINAL" | "DRIFT" | "CRITICAL";
+    status: "CALM" | "DRIFT" | "CRITICAL";
 }
 
 export const BiometricPanel = ({ status }: BiometricPanelProps) => {

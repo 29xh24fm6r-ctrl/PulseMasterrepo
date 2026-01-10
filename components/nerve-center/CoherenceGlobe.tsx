@@ -4,19 +4,19 @@ import { motion } from "framer-motion";
 import { useEffect, useRef } from "react";
 
 interface CoherenceGlobeProps {
-    status: "NOMINAL" | "DRIFT" | "CRITICAL";
+    status: "CALM" | "DRIFT" | "CRITICAL";
 }
 
 export const CoherenceGlobe = ({ status }: CoherenceGlobeProps) => {
     // Colors based on status
     const colors = {
-        NOMINAL: "text-emerald-500",
+        CALM: "text-emerald-500",
         DRIFT: "text-amber-500",
         CRITICAL: "text-red-600"
     };
 
     const glowColors = {
-        NOMINAL: "shadow-emerald-500/20",
+        CALM: "shadow-emerald-500/20",
         DRIFT: "shadow-amber-500/20",
         CRITICAL: "shadow-red-500/20"
     };
