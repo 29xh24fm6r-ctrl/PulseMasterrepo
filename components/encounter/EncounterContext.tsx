@@ -27,6 +27,7 @@ export const EncounterProvider = ({ children }: { children: React.ReactNode }) =
     const pathname = usePathname();
 
     // 2. Encounter State
+    const [state, setState] = useState<EncounterState>("CLEAR");
     const [situationText, setSituationText] = useState("");
     const [oneThing, setOneThing] = useState<string | null>(null);
     const [actionLabel, setActionLabel] = useState<string | null>(null);
