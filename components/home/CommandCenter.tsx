@@ -2,79 +2,86 @@
 
 import { motion } from "framer-motion";
 import { useEncounter } from "@/components/encounter/EncounterContext";
-import { LivingBackground } from "@/components/nerve-center/LivingBackground";
-import { ActiveMission } from "@/components/nerve-center/ActiveMission";
-import { TimeStream } from "@/components/nerve-center/TimeStream";
-import { CommandDeck } from "@/components/nerve-center/CommandDeck";
+import { AuroraBackground } from "@/components/nerve-center/AuroraBackground";
+import { FocusHero } from "@/components/nerve-center/FocusHero";
+import { VitalGauge } from "@/components/nerve-center/VitalGauge";
+import { PrismDock } from "@/components/nerve-center/PrismDock";
+import { PrismCard } from "@/components/nerve-center/PrismCard";
+import { Activity, Battery, Zap } from "lucide-react";
 
 export const CommandCenter = () => {
-    const { resolveEncounter, isResolved } = useEncounter();
+    const { isResolved } = useEncounter();
 
-    // MOCK DATA for the HUD (Fact-Based)
-    const MOCK_TIME_BLOCKS = [
-        { id: "1", time: "09:00", label: "Morning Brief", status: "PAST" as const },
-        { id: "2", time: "11:34", label: "Strategy Block", status: "CURRENT" as const },
-        { id: "3", time: "14:00", label: "Team Sync", status: "FUTURE" as const },
-        { id: "4", time: "17:00", label: "Shutdown", status: "FUTURE" as const },
-    ];
-
-    const MISSION = {
-        title: "Q1 Strategy",
-        subtitle: "Deep Work session active. 26m remaining in block.",
-        type: "FOCUS" as const // or EVENT, FREE
-    };
-
-    if (isResolved) return null;
+    // The Dashboard is ALWAYS visible in v6.0 (No more "Encounter" blocking it, it IS the encounter)
+    // We remove the if (isResolved) check to allow the dashboard to be the primary view.
+    // Ideally, the "Encounter" state simply modifies the content of the FocusHero.
 
     return (
         <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="w-full h-screen fixed inset-0 z-50 bg-black text-white font-sans overflow-hidden"
+            className="relative w-full h-screen bg-black text-white font-sans overflow-hidden"
         >
-            {/* 1. THE CANVAS */}
-            <LivingBackground />
+            {/* 1. BACKGROUND */}
+            <AuroraBackground />
 
-            {/* 2. THE HUD GRID */}
-            <div className="relative z-10 w-full h-full max-w-[1600px] mx-auto grid grid-cols-12 gap-8 px-8 py-12">
+            {/* 2. THE DASHBOARD (Bento Grid) */}
+            <div className="relative z-10 w-full h-full max-w-7xl mx-auto p-6 md:p-12 flex flex-col gap-6">
 
-                {/* Left Wing: TIME */}
-                <div className="hidden lg:block col-span-3 h-full">
-                    <TimeStream blocks={MOCK_TIME_BLOCKS} />
+                {/* TOP BAR (Context) */}
+                <div className="flex justify-between items-center opacity-80 mb-4">
+                    <div className="text-xs font-mono tracking-widest text-white/50">SATURDAY, JAN 10</div>
+                    <div className="text-xs font-mono tracking-widest text-white/50">PULSE v6.0 // PRISM</div>
                 </div>
 
-                {/* Center Stage: MISSION */}
-                <div className="col-span-12 lg:col-span-6 h-full flex items-center justify-center">
-                    <ActiveMission
-                        title={MISSION.title}
-                        subtitle={MISSION.subtitle}
-                        type={MISSION.type}
-                        onEngage={resolveEncounter}
-                    />
+                {/* MAIN GRID */}
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 h-[60vh] md:h-[65vh]">
+
+                    {/* HERO FOCUS (Main Activity) - Spans 8 cols */}
+                    <div className="col-span-1 md:col-span-8 h-full">
+                        <FocusHero />
+                    </div>
+
+                    {/* RIGHT COLUMN (Vitals & Quick Stats) - Spans 4 cols */}
+                    <div className="col-span-1 md:col-span-4 h-full flex flex-col gap-6">
+
+                        {/* Vitals Row */}
+                        <PrismCard className="flex-1 p-6 flex flex-col items-center justify-center gap-6">
+                            <h3 className="text-xs font-bold uppercase tracking-widest text-white/40 w-full text-center">Live Telemetry</h3>
+                            <div className="flex justify-center flex-wrap gap-4">
+                                <VitalGauge label="Energy" value={82} color="#d97706" icon={Battery} />
+                                <VitalGauge label="Flow" value={64} color="#7c3aed" icon={Zap} />
+                            </div>
+                        </PrismCard>
+
+                        {/* Recent Activity / Steps (Placeholder for future widgets) */}
+                        <PrismCard className="flex-1 p-6">
+                            <h3 className="text-xs font-bold uppercase tracking-widest text-white/40 mb-4">Active Steps</h3>
+                            <div className="flex flex-col gap-3">
+                                {[1, 2, 3].map((i) => (
+                                    <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors cursor-pointer group">
+                                        <div className="w-5 h-5 rounded-md border border-white/20 group-hover:border-emerald-400 transition-colors" />
+                                        <div className="flex-1">
+                                            <div className="h-2 w-24 bg-white/20 rounded-full mb-1" />
+                                            <div className="h-2 w-16 bg-white/10 rounded-full" />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </PrismCard>
+
+                    </div>
                 </div>
 
-                {/* Right Wing: LOAD (Placeholder for BioMetricNav in Phase 5.x) */}
-                <div className="hidden lg:flex col-span-3 h-full flex-col justify-center items-end pr-8 gap-8 opacity-60">
-                    {/* Simple Status/Load indicators */}
-                    <div className="flex flex-col items-end gap-1">
-                        <div className="text-[10px] uppercase tracking-widest text-zinc-500">System Load</div>
-                        <div className="flex gap-1">
-                            {[1, 2, 3, 4, 5].map(i => <div key={i} className={`w-1 h-4 ${i <= 2 ? 'bg-emerald-500' : 'bg-zinc-800'}`} />)}
-                        </div>
-                    </div>
-                    <div className="flex flex-col items-end gap-1">
-                        <div className="text-[10px] uppercase tracking-widest text-zinc-500">Cognitive Capacity</div>
-                        <div className="flex gap-1">
-                            {[1, 2, 3, 4, 5].map(i => <div key={i} className={`w-1 h-4 ${i <= 4 ? 'bg-indigo-500' : 'bg-zinc-800'}`} />)}
-                        </div>
-                    </div>
+                {/* BOTTOM RAIL (Timeline/Context) */}
+                <div className="flex-1">
+                    {/* Placeholder for Timeline Rail */}
                 </div>
 
             </div>
 
-            {/* 3. NAVIGATION (The Deck) */}
-            <CommandDeck />
+            {/* 3. NAVIGATION DOCK */}
+            <PrismDock />
 
         </motion.div>
     );
