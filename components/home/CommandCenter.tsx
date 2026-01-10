@@ -1,115 +1,132 @@
 "use client";
 
-import Link from "next/link";
 import { motion } from "framer-motion";
-import {
-    Zap, Brain, ShieldCheck, Activity,
-    ArrowRight, LayoutGrid, Radio, Terminal
-} from "lucide-react";
+import { Activity, Zap, Play, AlertTriangle, Battery } from "lucide-react";
 import { GlassCard } from "@/components/ui/premium/GlassCard";
-
-// Mock Data (To be replaced with real data hooks later)
-const RECENT_INTEL = [
-    { id: 1, type: "crm", title: "Enriched Eleanor Pena", time: "2m ago", icon: Zap, color: "text-violet-400" },
-    { id: 2, type: "journal", title: "Evening Reflection Saved", time: "1h ago", icon: Brain, color: "text-emerald-400" },
-    { id: 3, type: "task", title: "Completed 'Q1 Strategy'", time: "3h ago", icon: ShieldCheck, color: "text-blue-400" },
-];
+import { useEncounter } from "@/components/encounter/EncounterContext";
 
 const container = {
     hidden: { opacity: 0 },
     show: {
         opacity: 1,
-        transition: {
-            staggerChildren: 0.1
-        }
+        transition: { staggerChildren: 0.1 }
     }
 };
 
 const item = {
-    hidden: { opacity: 0, y: 20 },
+    hidden: { opacity: 0, y: 10 },
     show: { opacity: 1, y: 0 }
 };
-
-import { useEncounter } from "@/components/encounter/EncounterContext";
 
 export const CommandCenter = () => {
     const { state } = useEncounter();
 
-    // SILENCE DISCIPLINE: 
-    // If state is CLEAR, the screen should be "aggressively minimal".
-    // "Everything important already surfaced — nothing else needed."
-    if (state === 'CLEAR') {
-        return null; // Or a very subtle "Zen" indicator if strictly needed, but void handles silence.
-    }
+    // V2.0 PHILOSOPHY: ALWAYS ON.
+    // The Cockpit never goes dark. It is the control surface.
+    // We remove the 'if (state === CLEAR) return null' logic.
 
-    // Only show widgets in PRESSURE or HIGH_COST (when there's "Recognition" of something)
     return (
         <motion.div
             variants={container}
             initial="hidden"
             animate="show"
-            className="grid grid-cols-1 md:grid-cols-4 gap-6 w-full max-w-5xl mx-auto px-4 mt-8"
+            className="flex flex-col items-center w-full max-w-4xl mx-auto px-4 mt-8 space-y-8"
         >
-            {/* 1. System Health (Simplified) */}
-            <motion.div variants={item} className="md:col-span-1">
-                <GlassCard className="h-full p-6 flex flex-col justify-between group hover:bg-white/5 transition-all opacity-60 hover:opacity-100">
-                    <div className="flex justify-between items-start">
-                        <Activity className="w-5 h-5 text-zinc-600 group-hover:text-violet-400 transition-colors" />
+            {/* 1. THE MONITOR (System Status) */}
+            {/* "The Check Engine Light for the Human" */}
+            <motion.div variants={item} className="grid grid-cols-3 gap-4 w-full max-w-2xl">
+                {/* CAPACITY */}
+                <GlassCard className="p-4 flex flex-col items-center justify-center border-white/5 bg-zinc-900/40">
+                    <div className="text-[10px] uppercase tracking-widest text-zinc-500 mb-2">Capacity</div>
+                    <div className="flex items-center gap-2">
+                        <Zap className="w-4 h-4 text-violet-400" />
+                        <span className="text-sm font-medium text-zinc-200">GOOD</span>
                     </div>
-                    <div>
-                        <div className="text-2xl font-light text-zinc-300 mb-1">98%</div>
-                        <div className="text-xs text-zinc-500 uppercase tracking-widest">Cognitive Load</div>
+                </GlassCard>
+
+                {/* LOAD */}
+                <GlassCard className="p-4 flex flex-col items-center justify-center border-white/5 bg-zinc-900/40">
+                    <div className="text-[10px] uppercase tracking-widest text-zinc-500 mb-2">Load</div>
+                    <div className="flex items-center gap-2">
+                        <Activity className="w-4 h-4 text-emerald-400" />
+                        <span className="text-sm font-medium text-zinc-200">OPTIMAL</span>
+                    </div>
+                </GlassCard>
+
+                {/* BODY */}
+                <GlassCard className="p-4 flex flex-col items-center justify-center border-white/5 bg-zinc-900/40">
+                    <div className="text-[10px] uppercase tracking-widest text-zinc-500 mb-2">Body</div>
+                    <div className="flex items-center gap-2">
+                        <Battery className="w-4 h-4 text-zinc-400" />
+                        <span className="text-sm font-medium text-zinc-200">READY</span>
                     </div>
                 </GlassCard>
             </motion.div>
 
-            {/* 2. Focus Core (Minimalist) */}
-            <motion.div variants={item} className="md:col-span-1">
-                <Link href="/tasks">
-                    <GlassCard className="h-full p-6 flex flex-col justify-between group hover:border-blue-500/30 transition-all cursor-pointer">
-                        <div className="flex justify-between items-start">
-                            <Terminal className="w-5 h-5 text-zinc-500 group-hover:text-blue-400 transition-colors" />
-                            <ArrowRight className="w-4 h-4 text-zinc-700 -translate-x-2 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all" />
-                        </div>
-                        <div>
-                            <div className="text-2xl font-light text-white mb-1">12</div>
-                            <div className="text-xs text-zinc-500 uppercase tracking-widest">Active Tasks</div>
-                        </div>
-                    </GlassCard>
-                </Link>
+            {/* 2. THE STICK (Command Layer) */}
+            {/* "The Act of Will" - Single Dominant Action */}
+            <motion.div variants={item} className="w-full flex justify-center py-6">
+                <button
+                    className="group relative flex items-center justify-center gap-4 px-12 py-6 
+                               bg-zinc-100 hover:bg-white text-zinc-950 rounded-full 
+                               transition-all duration-300 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)]
+                               hover:shadow-[0_0_60px_-10px_rgba(255,255,255,0.5)] hover:scale-[1.02] active:scale-[0.98]"
+                >
+                    <div className="flex flex-col items-start">
+                        <span className="text-xs font-bold tracking-[0.2em] opacity-40 uppercase">Command</span>
+                        <span className="text-xl font-bold tracking-tight">ENGAGE FLOW</span>
+                    </div>
+                    <div className="w-8 h-8 rounded-full bg-zinc-950 text-white flex items-center justify-center group-hover:bg-violet-600 transition-colors">
+                        <Play className="w-3 h-3 fill-current ml-0.5" />
+                    </div>
+                </button>
             </motion.div>
 
-            {/* 3. Journal (Subtle) */}
-            <motion.div variants={item} className="md:col-span-1">
-                <Link href="/journal">
-                    <GlassCard className="h-full p-6 flex flex-col justify-between group hover:border-emerald-500/30 transition-all cursor-pointer">
-                        <Brain className="w-5 h-5 text-zinc-500 group-hover:text-emerald-400 transition-colors" />
-                        <div>
-                            <div className="text-sm text-zinc-400 group-hover:text-emerald-200 transition-colors">Log Intention</div>
-                        </div>
-                    </GlassCard>
-                </Link>
-            </motion.div>
+            {/* 3. THE RADAR (Situational Awareness) */}
+            {/* "Heads-Up Feed" - Hard Lines & Soft Lines */}
+            <motion.div variants={item} className="w-full max-w-2xl">
+                <div className="flex flex-col space-y-2">
+                    {/* Header */}
+                    <div className="flex justify-between items-end px-2 mb-2">
+                        <div className="text-[10px] uppercase tracking-widest text-zinc-600">Radar Contact</div>
+                    </div>
 
-            {/* 4. CRM (Subtle) */}
-            <motion.div variants={item} className="md:col-span-1">
-                <Link href="/contacts">
-                    <GlassCard className="h-full p-6 flex flex-col justify-between group hover:border-pink-500/30 transition-all cursor-pointer">
-                        <LayoutGrid className="w-5 h-5 text-zinc-500 group-hover:text-pink-400 transition-colors" />
-                        <div>
-                            <div className="text-sm text-zinc-400 group-hover:text-pink-200 transition-colors">Access Grid</div>
+                    {/* Timeline Item: The Hard Line (Next Meeting) */}
+                    <div className="w-full h-14 border border-zinc-800 bg-zinc-900/30 rounded-lg flex items-center px-6 justify-between opacity-50 grayscale">
+                        <div className="flex items-center gap-4">
+                            <span className="text-xs font-mono text-zinc-500">14:00</span>
+                            <div className="h-4 w-[1px] bg-zinc-800" />
+                            <span className="text-sm text-zinc-500">Strategy Sync</span>
                         </div>
-                    </GlassCard>
-                </Link>
-            </motion.div>
+                        <span className="text-[10px] uppercase tracking-wider text-zinc-600">Complete</span>
+                    </div>
 
-            {/* 5. Recent Intel - REMOVED for Silence Discipline (Only Surface if Critical in v2) */}
-            {/* 
-                User Directive: "Target ~20–30% reduction in visible elements."
-                "Limit visible widgets. Prefer conditional surfacing."
-                We removed the feed entirely to reduce noise. 
-                If the user wants it back, we can bring it back as a 'Satellite' in Quantum Dock.
-            */}
+                    {/* Timeline Item: The Soft Line (Current Window) */}
+                    <div className="w-full h-20 border-l-2 border-l-violet-500 bg-gradient-to-r from-violet-500/5 to-transparent rounded-r-lg flex items-center px-6 justify-between">
+                        <div className="flex items-center gap-4">
+                            <span className="text-xs font-mono text-violet-400">NOW</span>
+                            <div className="h-4 w-[1px] bg-violet-500/30" />
+                            <div>
+                                <div className="text-sm font-medium text-white">Open Window</div>
+                                <div className="text-xs text-zinc-500">Deep Work Opportunity</div>
+                            </div>
+                        </div>
+                        <div className="text-right">
+                            <div className="text-lg font-light text-zinc-300">45m</div>
+                            <div className="text-[10px] uppercase tracking-wider text-zinc-600">Remaining</div>
+                        </div>
+                    </div>
+
+                    {/* Timeline Item: The Inbound (Future) */}
+                    <div className="w-full h-14 border border-zinc-800/50 bg-zinc-900/20 rounded-lg flex items-center px-6 justify-between">
+                        <div className="flex items-center gap-4">
+                            <span className="text-xs font-mono text-zinc-500">17:30</span>
+                            <div className="h-4 w-[1px] bg-zinc-800" />
+                            <span className="text-sm text-zinc-400">Wrap Up</span>
+                        </div>
+                    </div>
+                </div>
+            </motion.div>
         </motion.div>
     );
 };
