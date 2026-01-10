@@ -2,7 +2,7 @@
 
 import React from "react";
 import { EncounterProvider, useEncounter } from "./EncounterContext";
-import { TheBriefing } from "./TheBriefing";
+import { NerveCenter } from "../nerve-center/NerveCenter";
 import { AnimatePresence, motion } from "framer-motion";
 import { CanonGuard } from "../debug/CanonGuard";
 
@@ -12,7 +12,7 @@ function EncounterInner({ children }: { children: React.ReactNode }) {
     return (
         <>
             <CanonGuard />
-            <TheBriefing />
+            <NerveCenter />
             <motion.div
                 initial={{ opacity: 0 }}
                 animate={{
