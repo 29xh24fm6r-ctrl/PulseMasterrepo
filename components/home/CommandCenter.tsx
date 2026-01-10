@@ -30,7 +30,19 @@ const item = {
     show: { opacity: 1, y: 0 }
 };
 
+import { useEncounter } from "@/components/encounter/EncounterContext";
+
 export const CommandCenter = () => {
+    const { state } = useEncounter();
+
+    // SILENCE DISCIPLINE: 
+    // If state is CLEAR, the screen should be "aggressively minimal".
+    // "Everything important already surfaced — nothing else needed."
+    if (state === 'CLEAR') {
+        return null; // Or a very subtle "Zen" indicator if strictly needed, but void handles silence.
+    }
+
+    // Only show widgets in PRESSURE or HIGH_COST (when there's "Recognition" of something)
     return (
         <motion.div
             variants={container}

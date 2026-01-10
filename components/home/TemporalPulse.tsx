@@ -21,11 +21,14 @@ export const TemporalPulse = () => {
     const minutes = time.toLocaleTimeString("en-US", { minute: "2-digit" });
     const dateString = time.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
-    // State-based Visuals (Pass 3)
+    // State-based Visuals (Pass 3 & Authoritative Refinement)
     const stateVisuals = {
-        CLEAR: { tracking: "tracking-tighter", scale: 1, gap: "gap-4", opacity: 0.9, blur: "blur(0px)" }, // Spacious, Calm
-        PRESSURE: { tracking: "tracking-tight", scale: 0.95, gap: "gap-2", opacity: 1, blur: "blur(0px)" }, // Compressed
-        HIGH_COST: { tracking: "tracking-normal", scale: 1.1, gap: "gap-0", opacity: 1, blur: "blur(0.5px)" } // Intense focus, slight blur on edges? Or sharp? Directive: "Visually narrows or sharpens focus" -> Let's go sharp and tight.
+        // CLEAR: Spacious, slow, open. Gap increased to gap-8 for distinct "breathing room".
+        CLEAR: { tracking: "tracking-widest", scale: 1, gap: "gap-8", opacity: 0.8, blur: "blur(0px)" },
+        // PRESSURE: Subtle compression. Gap reduced, tracking tightened.
+        PRESSURE: { tracking: "tracking-tight", scale: 0.95, gap: "gap-2", opacity: 1, blur: "blur(0px)" },
+        // HIGH_COST: Narrow focus. Zero gap, slight overlap?
+        HIGH_COST: { tracking: "tracking-tighter", scale: 1.1, gap: "gap-0", opacity: 1, blur: "blur(0.5px)" }
     };
 
     const visual = stateVisuals[state] || stateVisuals.CLEAR;

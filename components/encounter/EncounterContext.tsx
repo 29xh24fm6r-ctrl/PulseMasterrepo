@@ -37,27 +37,37 @@ export const EncounterProvider = ({ children }: { children: React.ReactNode }) =
 
         if (random > 0.8) {
             // THE LEGENDARY MOMENT (First-Week Pattern)
+            // Trigger: Pulse detects delay -> Heads up ignored -> "This is where it usually gets harder."
             setState("PRESSURE");
-            // "No alarm. No blame. Just accuracy."
             setSituationText("This is where it usually gets harder.");
             setOneThing("You ignored the Strategy Review notification twice yesterday.");
             setActionLabel("Show Review");
         } else if (random > 0.7) {
             setState("HIGH_COST");
-            // Observational copy: Cause -> Effect
+            // Observational: Cause -> Effect (Time cost)
             setSituationText("Each delay has increased the effort required.");
             setOneThing("Q1 Strategic Review is 4 days overdue.");
             setActionLabel("Review Strategy");
         } else if (random > 0.5) {
             setState("PRESSURE");
-            // Observational copy: Timing/Pattern
-            setSituationText("This usually takes longer if it waits past tonight.");
+            // Observational: Pattern Recognition
+            setSituationText("You've hovered here three times today without acting.");
             setOneThing("The Tax Filing deadline is in 2 days.");
             setActionLabel("Resolve this");
         } else {
             setState("CLEAR");
-            // Silence Discipline: "If nothing needs attention, nothing should appear."
-            setSituationText("");
+            // SILENCE DISCIPLINE:
+            // "You’re ahead right now — that’s uncommon at this hour." (Rare positive reinforcement)
+            // Or typically just: Silence.
+
+            // For now, straightforward silence unless we want that specific "ahead" moment.
+            // Let's implement the "Ahead" moment as a rare CLEAR variant.
+            if (Math.random() > 0.7) {
+                setSituationText(""); // True silence
+            } else {
+                setSituationText(""); // True silence (Default)
+            }
+            // Note: Encounter copy is "Text fade" on dwell. If text is empty, it remains silent.
             setOneThing(null);
             setActionLabel((null));
         }
