@@ -23,11 +23,11 @@ export const TemporalPulse = () => {
 
     // State-based Visuals (Pass 3 & Authoritative Refinement)
     const stateVisuals = {
-        // CLEAR: Spacious, slow, open. Gap increased to gap-8 for distinct "breathing room".
-        CLEAR: { tracking: "tracking-widest", scale: 1, gap: "gap-8", opacity: 0.8, blur: "blur(0px)" },
+        // CLEAR: Silence Discipline. Almost invisible.
+        CLEAR: { tracking: "tracking-widest", scale: 0.8, gap: "gap-12", opacity: 0.2, blur: "blur(0px)" }, // Recessed
         // PRESSURE: Subtle compression. Gap reduced, tracking tightened.
         PRESSURE: { tracking: "tracking-tight", scale: 0.95, gap: "gap-2", opacity: 1, blur: "blur(0px)" },
-        // HIGH_COST: Narrow focus. Zero gap, slight overlap?
+        // HIGH_COST: Narrow focus. Zero gap, slight overlap.
         HIGH_COST: { tracking: "tracking-tighter", scale: 1.1, gap: "gap-0", opacity: 1, blur: "blur(0.5px)" }
     };
 

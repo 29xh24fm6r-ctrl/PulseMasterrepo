@@ -28,16 +28,46 @@ export const TheVoid = () => {
         }
     }, [mouseX, mouseY]);
 
-    // Dwell Logic for Reveal
+    // Auto-Reveal Logic (Canon Fix #1 - State Dependent)
     useEffect(() => {
         let timer: NodeJS.Timeout;
-        if (isHoveringCenter && !hasRevealed && state !== 'CLEAR') {
-            timer = setTimeout(() => {
-                setHasRevealed(true);
-            }, 600); // 600ms dwell
+
+        if (!hasRevealed && situationText) {
+            // TIMING BUDGETS (Canon Law):
+            // CLEAR: 200-350ms (Quick check -> Gone)
+            // PRESSURE: 800-1500ms (Read time -> Gone)
+            // HIGH_COST: NO AUTO-RESOLVE (Must dismiss manually)
+
+            let delay = 0;
+            let shouldAutoResolve = false;
+
+            if (state === 'CLEAR') {
+                delay = 300; // Fast
+                shouldAutoResolve = true;
+            } else if (state === 'PRESSURE') {
+                delay = 1500; // Read time
+                shouldAutoResolve = true;
+            } else {
+                // HIGH_COST: Manual interaction only
+                shouldAutoResolve = false;
+            }
+
+            if (shouldAutoResolve) {
+                timer = setTimeout(() => {
+                    setHasRevealed(true);
+                    // For CLEAR/PRESSURE, we act as if "revealed" means "done/dismissing" or "showing content"?
+                    // Actually, "hasRevealed" usually shows the "One Thing" + Button.
+                    // If CLEAR, we want to RESOLVE (dismiss) quickly.
+
+                    if (state === 'CLEAR') {
+                        // In CLEAR, "Reveal" essentially means "Transition to resolved"
+                        resolveEncounter();
+                    }
+                }, delay);
+            }
         }
         return () => clearTimeout(timer);
-    }, [isHoveringCenter, hasRevealed, state]);
+    }, [hasRevealed, state, situationText, resolveEncounter]);
 
     // Colors mapping
     const bgColors = {

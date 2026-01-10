@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, ArrowRight } from "lucide-react";
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
+import { useEncounter } from "@/components/encounter/EncounterContext";
 
 interface Thought {
     text: string;
@@ -53,10 +54,13 @@ export function OrbitalStream() {
 
     const currentThought = thoughts[thoughtIndex];
 
-    if (!currentThought && !loading) return null;
+    const { state } = useEncounter();
+
+    // Silence Discipline (Fix 3): Hide in CLEAR state
+    if ((!currentThought && !loading) || state === 'CLEAR') return null;
 
     return (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center justify-center pointer-events-none">
+        <div className="fixed top-8 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center justify-center pointer-events-none">
             <motion.div
                 className="
           flex items-center gap-4 px-6 py-3 

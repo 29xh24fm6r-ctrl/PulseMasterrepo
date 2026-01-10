@@ -4,12 +4,14 @@ import React from "react";
 import { EncounterProvider, useEncounter } from "./EncounterContext";
 import { TheVoid } from "./TheVoid";
 import { AnimatePresence, motion } from "framer-motion";
+import { CanonGuard } from "../debug/CanonGuard";
 
 function EncounterInner({ children }: { children: React.ReactNode }) {
     const { isResolved } = useEncounter();
 
     return (
         <>
+            <CanonGuard />
             <TheVoid />
             <motion.div
                 initial={{ opacity: 0 }}

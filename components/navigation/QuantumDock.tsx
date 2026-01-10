@@ -115,13 +115,46 @@ const NAV_CONSTELLATIONS = [
     }
 ];
 
-export function QuantumDock() {
+const mouseX = useMotionValue(Infinity);
+const pathname = usePathname();
+// Silence Discipline (Fix 3): Hide in CLEAR state unless hovered nearby (logic could be complex, for now strict hide or minimize)
+// Actually user said "Hide/Minimize Dock in CLEAR". Strict hide is safest for silence.
+// Or we render a tiny "dot" or "handle". 
+// Let's hide it completely for "Silence". User can use Cmd+K or mouse move could reveal?
+// User said "Nothing needs you right now."
+// Let's check context.
+// But QuantumDock connects to global nav. If I hide it, user is stuck?
+// User said "Dock visible... This is CLEAR state... CLEAR must be near-silent."
+// "Hide/Minimize Dock in CLEAR".
+// I will add a check: if CLEAR, render null.
+// But wait, how do they navigate? "OrbitalMind" (Cmd+K).
+// Or maybe "Minimize".
+// I'll stick to Hiding it for now as per strict "Silence Discipline".
+
+// Actually, I can't import useEncounter here easily if QuantumDock is outside EncounterContext?
+// layout.tsx wraps everything in EncounterLayout -> EncounterProvider.
+// So QuantumDock IS inside EncounterProvider.
+
+// We need to import useEncounter.
+// And handle the state.
+
+// NOTE: I cannot use hooks conditionally. So I must move useEncounter up.
+
+return <QuantumDockInner />;
+}
+
+import { useEncounter } from "@/components/encounter/EncounterContext";
+
+function QuantumDockInner() {
+    const { state } = useEncounter();
     const mouseX = useMotionValue(Infinity);
     const pathname = usePathname();
 
     if (pathname?.startsWith("/sign-in") || pathname?.startsWith("/sign-up") || pathname === "/jarvis") {
         return null;
     }
+
+    if (state === 'CLEAR') return null; // Silence Discipline
 
     return (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
