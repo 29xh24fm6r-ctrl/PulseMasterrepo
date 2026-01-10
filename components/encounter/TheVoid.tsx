@@ -32,7 +32,7 @@ export const TheVoid = () => {
     useEffect(() => {
         let timer: NodeJS.Timeout;
 
-        if (!hasRevealed && situationText) {
+        if (!hasRevealed) {
             // TIMING BUDGETS (Canon Law):
             // CLEAR: 200-350ms (Quick check -> Gone)
             // PRESSURE: 800-1500ms (Read time -> Gone)
