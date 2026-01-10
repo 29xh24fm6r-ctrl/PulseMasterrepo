@@ -20,9 +20,9 @@ export const BiometricPanel = ({ status }: BiometricPanelProps) => {
                     <div className="absolute top-0 right-0 p-1">
                         <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse block" />
                     </div>
-                    <div className="text-[10px] text-red-400 uppercase tracking-widest mb-1">System Energy</div>
-                    <div className="text-lg font-bold text-white mb-1">Energy Alert</div>
-                    <div className="text-xs text-red-300/70 mb-2">Dip predicted in 42m</div>
+                    <div className="text-[10px] text-red-400 uppercase tracking-widest mb-1">Energy Dropping</div>
+                    <div className="text-lg font-bold text-white mb-1">Alert</div>
+                    <div className="text-xs text-red-300/70 mb-2">You'll feel tired in ~40 mins</div>
                     <div className="w-full h-1 bg-zinc-800 rounded-full overflow-hidden">
                         <div className="w-2/3 h-full bg-amber-500" />
                     </div>
@@ -32,24 +32,24 @@ export const BiometricPanel = ({ status }: BiometricPanelProps) => {
             {/* Metrics Grid */}
             <div className="space-y-6">
                 <MetricItem
-                    label="HRV Variability"
-                    value="42ms"
+                    label="Stress Handling"
+                    value="Low"
                     trend="down"
-                    subtext="Reduced stress tolerance"
+                    subtext="You'll get overwhelmed faster than usual"
                     color="text-red-400"
                 />
                 <MetricItem
-                    label="Sleep Debt"
-                    value="1.5h"
+                    label="Sleep"
+                    value="Slightly Low"
                     trend="nominal"
-                    subtext="Executive function nominal"
+                    subtext="You can still think clearly today"
                     color="text-emerald-400"
                 />
                 <MetricItem
-                    label="Cog. Load"
-                    value="42%"
+                    label="Mental Load"
+                    value="Normal"
                     trend="nominal"
-                    subtext="Bandwidth optimal"
+                    subtext="You have room to focus"
                     color="text-zinc-300"
                 />
             </div>
