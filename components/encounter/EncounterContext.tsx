@@ -28,19 +28,27 @@ export const EncounterProvider = ({ children }: { children: React.ReactNode }) =
         // For now, we simulate a check. In a real scenario, this would fetch from an API.
 
         // Simulation of observational logic:
-        // "Clear" = 60% chance
-        // "Pressure" = 30% chance (e.g. Tax Deadline)
-        // "High Cost" = 10% chance (e.g. Strategic Review overdue)
+        // "Clear" = 50% chance
+        // "Pressure" = 20% chance
+        // "High Cost" = 10% chance
+        // "Legendary Moment" = 20% chance (First-Week Moment)
 
         const random = Math.random();
 
-        if (random > 0.9) {
+        if (random > 0.8) {
+            // THE LEGENDARY MOMENT (First-Week Pattern)
+            setState("PRESSURE");
+            // "No alarm. No blame. Just accuracy."
+            setSituationText("This is where it usually gets harder.");
+            setOneThing("You ignored the Strategy Review notification twice yesterday.");
+            setActionLabel("Show Review");
+        } else if (random > 0.7) {
             setState("HIGH_COST");
             // Observational copy: Cause -> Effect
             setSituationText("Each delay has increased the effort required.");
             setOneThing("Q1 Strategic Review is 4 days overdue.");
             setActionLabel("Review Strategy");
-        } else if (random > 0.6) {
+        } else if (random > 0.5) {
             setState("PRESSURE");
             // Observational copy: Timing/Pattern
             setSituationText("This usually takes longer if it waits past tonight.");
@@ -49,7 +57,6 @@ export const EncounterProvider = ({ children }: { children: React.ReactNode }) =
         } else {
             setState("CLEAR");
             // Silence Discipline: "If nothing needs attention, nothing should appear."
-            // We set empty string or minimal "Presence" text if needed, but the void handles the silence.
             setSituationText("");
             setOneThing(null);
             setActionLabel((null));
