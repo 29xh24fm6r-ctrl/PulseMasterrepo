@@ -57,7 +57,10 @@ export const LivingAtmosphere = () => {
 
             {/* 3. Interactive Neural Mesh (Parallax) */}
             <motion.div
-                style={{ x: useTransform(smoothX, (value) => (value - window.innerWidth / 2) / 50), y: useTransform(smoothY, (value) => (value - window.innerHeight / 2) / 50) }}
+                style={{
+                    x: useTransform(smoothX, (value) => typeof window !== 'undefined' ? (value - window.innerWidth / 2) / 50 : 0),
+                    y: useTransform(smoothY, (value) => typeof window !== 'undefined' ? (value - window.innerHeight / 2) / 50 : 0)
+                }}
                 className="absolute inset-0"
             >
                 <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/5 rounded-full blur-[80px]" />
