@@ -20,7 +20,7 @@ export const OrbitalStream = () => {
 
                     <input
                         type="text"
-                        placeholder="Ask Pulse..."
+                        placeholder="Command System..."
                         className="w-full bg-transparent border-none px-4 py-4 text-white placeholder-zinc-500 focus:outline-none focus:ring-0 text-lg font-light tracking-wide"
                         onFocus={() => setIsFocused(true)}
                         onBlur={() => setIsFocused(false)}

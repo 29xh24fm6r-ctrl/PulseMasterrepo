@@ -1,115 +1,81 @@
 "use client";
 
-import Link from "next/link";
 import { motion } from "framer-motion";
-import {
-    Zap, Brain, ShieldCheck, Activity,
-    ArrowRight, LayoutGrid, Radio, Terminal
-} from "lucide-react";
-import { GlassCard } from "@/components/ui/premium/GlassCard";
-
-// Mock Data (To be replaced with real data hooks later)
-const RECENT_INTEL = [
-    { id: 1, type: "crm", title: "Enriched Eleanor Pena", time: "2m ago", icon: Zap, color: "text-violet-400" },
-    { id: 2, type: "journal", title: "Evening Reflection Saved", time: "1h ago", icon: Brain, color: "text-emerald-400" },
-    { id: 3, type: "task", title: "Completed 'Q1 Strategy'", time: "3h ago", icon: ShieldCheck, color: "text-blue-400" },
-];
-
-const container = {
-    hidden: { opacity: 0 },
-    show: {
-        opacity: 1,
-        transition: {
-            staggerChildren: 0.1
-        }
-    }
-};
-
-const item = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0 }
-};
-
 import { useEncounter } from "@/components/encounter/EncounterContext";
+import { LivingBackground } from "@/components/nerve-center/LivingBackground";
+import { ActiveMission } from "@/components/nerve-center/ActiveMission";
+import { TimeStream } from "@/components/nerve-center/TimeStream";
+import { CommandDeck } from "@/components/nerve-center/CommandDeck";
 
 export const CommandCenter = () => {
-    const { state } = useEncounter();
+    const { resolveEncounter, isResolved } = useEncounter();
 
-    // SILENCE DISCIPLINE: 
-    // If state is CLEAR, the screen should be "aggressively minimal".
-    // "Everything important already surfaced — nothing else needed."
-    if (state === 'CLEAR') {
-        return null; // Or a very subtle "Zen" indicator if strictly needed, but void handles silence.
-    }
+    // MOCK DATA for the HUD (Fact-Based)
+    const MOCK_TIME_BLOCKS = [
+        { id: "1", time: "09:00", label: "Morning Brief", status: "PAST" as const },
+        { id: "2", time: "11:34", label: "Strategy Block", status: "CURRENT" as const },
+        { id: "3", time: "14:00", label: "Team Sync", status: "FUTURE" as const },
+        { id: "4", time: "17:00", label: "Shutdown", status: "FUTURE" as const },
+    ];
 
-    // Only show widgets in PRESSURE or HIGH_COST (when there's "Recognition" of something)
+    const MISSION = {
+        title: "Q1 Strategy",
+        subtitle: "Deep Work session active. 26m remaining in block.",
+        type: "FOCUS" as const // or EVENT, FREE
+    };
+
+    if (isResolved) return null;
+
     return (
         <motion.div
-            variants={container}
-            initial="hidden"
-            animate="show"
-            className="grid grid-cols-1 md:grid-cols-4 gap-6 w-full max-w-5xl mx-auto px-4 mt-8"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="w-full h-screen fixed inset-0 z-50 bg-black text-white font-sans overflow-hidden"
         >
-            {/* 1. System Health (Simplified) */}
-            <motion.div variants={item} className="md:col-span-1">
-                <GlassCard className="h-full p-6 flex flex-col justify-between group hover:bg-white/5 transition-all opacity-60 hover:opacity-100">
-                    <div className="flex justify-between items-start">
-                        <Activity className="w-5 h-5 text-zinc-600 group-hover:text-violet-400 transition-colors" />
+            {/* 1. THE CANVAS */}
+            <LivingBackground />
+
+            {/* 2. THE HUD GRID */}
+            <div className="relative z-10 w-full h-full max-w-[1600px] mx-auto grid grid-cols-12 gap-8 px-8 py-12">
+
+                {/* Left Wing: TIME */}
+                <div className="hidden lg:block col-span-3 h-full">
+                    <TimeStream blocks={MOCK_TIME_BLOCKS} />
+                </div>
+
+                {/* Center Stage: MISSION */}
+                <div className="col-span-12 lg:col-span-6 h-full flex items-center justify-center">
+                    <ActiveMission
+                        title={MISSION.title}
+                        subtitle={MISSION.subtitle}
+                        type={MISSION.type}
+                        onEngage={resolveEncounter}
+                    />
+                </div>
+
+                {/* Right Wing: LOAD (Placeholder for BioMetricNav in Phase 5.x) */}
+                <div className="hidden lg:flex col-span-3 h-full flex-col justify-center items-end pr-8 gap-8 opacity-60">
+                    {/* Simple Status/Load indicators */}
+                    <div className="flex flex-col items-end gap-1">
+                        <div className="text-[10px] uppercase tracking-widest text-zinc-500">System Load</div>
+                        <div className="flex gap-1">
+                            {[1, 2, 3, 4, 5].map(i => <div key={i} className={`w-1 h-4 ${i <= 2 ? 'bg-emerald-500' : 'bg-zinc-800'}`} />)}
+                        </div>
                     </div>
-                    <div>
-                        <div className="text-2xl font-light text-zinc-300 mb-1">98%</div>
-                        <div className="text-xs text-zinc-500 uppercase tracking-widest">Cognitive Load</div>
+                    <div className="flex flex-col items-end gap-1">
+                        <div className="text-[10px] uppercase tracking-widest text-zinc-500">Cognitive Capacity</div>
+                        <div className="flex gap-1">
+                            {[1, 2, 3, 4, 5].map(i => <div key={i} className={`w-1 h-4 ${i <= 4 ? 'bg-indigo-500' : 'bg-zinc-800'}`} />)}
+                        </div>
                     </div>
-                </GlassCard>
-            </motion.div>
+                </div>
 
-            {/* 2. Focus Core (Minimalist) */}
-            <motion.div variants={item} className="md:col-span-1">
-                <Link href="/tasks">
-                    <GlassCard className="h-full p-6 flex flex-col justify-between group hover:border-blue-500/30 transition-all cursor-pointer">
-                        <div className="flex justify-between items-start">
-                            <Terminal className="w-5 h-5 text-zinc-500 group-hover:text-blue-400 transition-colors" />
-                            <ArrowRight className="w-4 h-4 text-zinc-700 -translate-x-2 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all" />
-                        </div>
-                        <div>
-                            <div className="text-2xl font-light text-white mb-1">12</div>
-                            <div className="text-xs text-zinc-500 uppercase tracking-widest">Active Tasks</div>
-                        </div>
-                    </GlassCard>
-                </Link>
-            </motion.div>
+            </div>
 
-            {/* 3. Journal (Subtle) */}
-            <motion.div variants={item} className="md:col-span-1">
-                <Link href="/journal">
-                    <GlassCard className="h-full p-6 flex flex-col justify-between group hover:border-emerald-500/30 transition-all cursor-pointer">
-                        <Brain className="w-5 h-5 text-zinc-500 group-hover:text-emerald-400 transition-colors" />
-                        <div>
-                            <div className="text-sm text-zinc-400 group-hover:text-emerald-200 transition-colors">Log Intention</div>
-                        </div>
-                    </GlassCard>
-                </Link>
-            </motion.div>
+            {/* 3. NAVIGATION (The Deck) */}
+            <CommandDeck />
 
-            {/* 4. CRM (Subtle) */}
-            <motion.div variants={item} className="md:col-span-1">
-                <Link href="/contacts">
-                    <GlassCard className="h-full p-6 flex flex-col justify-between group hover:border-pink-500/30 transition-all cursor-pointer">
-                        <LayoutGrid className="w-5 h-5 text-zinc-500 group-hover:text-pink-400 transition-colors" />
-                        <div>
-                            <div className="text-sm text-zinc-400 group-hover:text-pink-200 transition-colors">Access Grid</div>
-                        </div>
-                    </GlassCard>
-                </Link>
-            </motion.div>
-
-            {/* 5. Recent Intel - REMOVED for Silence Discipline (Only Surface if Critical in v2) */}
-            {/* 
-                User Directive: "Target ~20–30% reduction in visible elements."
-                "Limit visible widgets. Prefer conditional surfacing."
-                We removed the feed entirely to reduce noise. 
-                If the user wants it back, we can bring it back as a 'Satellite' in Quantum Dock.
-            */}
         </motion.div>
     );
 };

@@ -23,7 +23,7 @@ export const TemporalPulse = () => {
 
     // State-based Visuals (Pass 3 & Authoritative Refinement)
     const stateVisuals = {
-        // CLEAR: Silence Discipline. Almost invisible.
+        // CLEAR: Stable State. System Nominal.
         CLEAR: { tracking: "tracking-widest", scale: 0.8, gap: "gap-12", opacity: 0.2, blur: "blur(0px)" }, // Recessed
         // PRESSURE: Subtle compression. Gap reduced, tracking tightened.
         PRESSURE: { tracking: "tracking-tight", scale: 0.95, gap: "gap-2", opacity: 1, blur: "blur(0px)" },
