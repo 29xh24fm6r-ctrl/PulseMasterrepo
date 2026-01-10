@@ -27,6 +27,7 @@
         "@picovoice/porcupine-react": "^3.0.3",
         "@picovoice/web-voice-processor": "^4.0.9",
         "@sentry/nextjs": "^10.32.1",
+        "@supabase/ssr": "^0.8.0",
         "@supabase/supabase-js": "^2.86.2",
         "@types/ws": "^8.18.1",
         "chrono-node": "^2.9.0",
