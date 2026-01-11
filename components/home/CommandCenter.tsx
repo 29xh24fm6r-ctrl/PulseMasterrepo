@@ -1,40 +1,46 @@
 "use client";
 
-import { DashboardShell } from "@/components/dashboard/DashboardShell";
-import { CurrentFocusCard } from "@/components/dashboard/widgets/CurrentFocusCard";
-import { DayTimeline } from "@/components/dashboard/widgets/DayTimeline";
-import { CriticalTaskList } from "@/components/dashboard/widgets/CriticalTaskList";
-import { PeopleRow } from "@/components/dashboard/widgets/PeopleRow";
+import { motion } from "framer-motion";
+import { MissionControl } from "@/components/nerve-center/MissionControl";
+import { TemporalHero } from "@/components/nerve-center/TemporalHero";
+import { PressureRail } from "@/components/nerve-center/PressureRail";
+import { PresenceField } from "@/components/nerve-center/PresenceField";
 
 export const CommandCenter = () => {
     return (
-        <DashboardShell>
-            {/* 3-Column Grid for larger screens, stacking for smaller */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full max-w-[1600px] mx-auto">
+        <div className="relative w-full h-screen bg-[#050505] text-white font-sans overflow-hidden selection:bg-red-500/30">
 
-                {/* COLUMN 1: Main (Focus & People) - Spans 7 cols */}
-                <div className="lg:col-span-7 flex flex-col gap-6">
-                    {/* Size: tall hero */}
-                    <div className="flex-1 min-h-[300px]">
-                        <CurrentFocusCard />
-                    </div>
-                    {/* Size: short row */}
-                    <div className="h-[140px]">
-                        <PeopleRow />
-                    </div>
-                </div>
+            {/* 1. AMBIENT GRADIENT (The Void) */}
+            <div className="absolute inset-0 bg-radial-gradient from-zinc-900/20 to-transparent pointer-events-none" />
 
-                {/* COLUMN 2: Agenda (Timeline) - Spans 3 cols */}
-                <div className="lg:col-span-3 h-full min-h-[400px]">
-                    <DayTimeline />
-                </div>
-
-                {/* COLUMN 3: Must-Dos (Tasks) - Spans 2 cols */}
-                <div className="lg:col-span-2 h-full min-h-[400px]">
-                    <CriticalTaskList />
-                </div>
-
+            {/* 2. MISSION CONTROL (Top Right - Hardware) */}
+            <div className="absolute top-8 right-8 z-50">
+                <MissionControl />
             </div>
-        </DashboardShell>
+
+            {/* 3. THE CENTER (The Monolith) */}
+            <div className="absolute inset-0 flex items-center justify-center z-10">
+                <TemporalHero />
+            </div>
+
+            {/* 4. PRESSURE RAIL (The Stream - Right Edge) */}
+            <div className="absolute top-0 bottom-0 right-12 z-20 hidden lg:block">
+                <PressureRail />
+            </div>
+
+            {/* 5. PRESENCE FIELD (The Field - Bottom) */}
+            <div className="absolute bottom-12 left-0 right-0 flex justify-center z-20">
+                <PresenceField />
+            </div>
+
+            {/* 6. CONTEXT SIDEBAR (Left - Receded/Minimal) */}
+            {/* Kept minimal or hidden during Focus Mode to ensure dominance */}
+            <div className="absolute top-8 left-8 flex flex-col gap-4 opacity-30 hover:opacity-100 transition-opacity duration-500 z-30">
+                <div className="w-8 h-8 bg-zinc-800 rounded-lg" />
+                <div className="w-8 h-8 bg-zinc-900 rounded-lg" />
+                <div className="w-8 h-8 bg-zinc-900 rounded-lg" />
+            </div>
+
+        </div>
     );
 };
