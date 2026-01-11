@@ -1,7 +1,7 @@
 "use client";
 
 import { FocusSection } from "./FocusSection";
-import { Inbox, list } from "lucide-react";
+import { Inbox, List } from "lucide-react";
 
 const INBOX_ITEMS = [
     { title: "Review Q4 Financials", context: "Finance", time: "2h ago" },
@@ -16,26 +16,28 @@ const TASK_ITEMS = [
 
 export const TheDesk = () => {
     return (
-        <div className="h-full overflow-y-auto px-8 py-8 scrollbar-hide">
+        <div className="h-full overflow-y-auto px-10 py-8 scrollbar-hide">
             {/* 1. FOCUS HEAD */}
             <FocusSection />
 
             {/* 2. INBOX TRIAGE */}
-            <div className="mb-8">
-                <div className="flex items-center justify-between mb-3 border-b border-zinc-800 pb-2">
+            <div className="mb-10">
+                <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-2">
                     <div className="flex items-center gap-2">
-                        <Inbox className="w-4 h-4 text-zinc-500" />
-                        <h3 className="text-sm font-semibold text-zinc-300">Inbox</h3>
+                        <Inbox className="w-3.5 h-3.5 text-zinc-500" />
+                        <h3 className="text-xs font-semibold text-zinc-400 tracking-wide uppercase">Inbox</h3>
                     </div>
-                    <span className="text-xs font-medium text-zinc-600 bg-zinc-900 px-2 py-0.5 rounded-full border border-zinc-800">3</span>
+                    <span className="text-[10px] font-mono font-bold text-zinc-300 bg-zinc-800 px-1.5 py-0.5 rounded border border-white/5">
+                        3
+                    </span>
                 </div>
-                <div className="space-y-2">
+                <div className="flex flex-col gap-1">
                     {INBOX_ITEMS.map((item, i) => (
-                        <div key={i} className="group flex items-center justify-between p-3 rounded-lg bg-zinc-900/30 border border-zinc-800/50 hover:bg-zinc-900 hover:border-zinc-700 transition-all cursor-pointer">
-                            <span className="text-sm text-zinc-300 font-medium">{item.title}</span>
-                            <div className="flex items-center gap-3">
-                                <span className="text-[10px] text-zinc-500 uppercase tracking-wide">{item.context}</span>
-                                <span className="text-[10px] text-zinc-600 tabular-nums">{item.time}</span>
+                        <div key={i} className="group flex items-center justify-between p-3 rounded-md border border-transparent hover:bg-zinc-900 hover:border-white/5 hover:shadow-lg transition-all cursor-pointer">
+                            <span className="text-sm text-zinc-300 font-medium group-hover:text-white transition-colors">{item.title}</span>
+                            <div className="flex items-center gap-4">
+                                <span className="text-[10px] font-mono text-zinc-600 uppercase tracking-wider group-hover:text-zinc-500 transition-colors">{item.context}</span>
+                                <span className="text-[10px] font-mono text-zinc-700 tabular-nums group-hover:text-zinc-500 transition-colors">{item.time}</span>
                             </div>
                         </div>
                     ))}
@@ -44,21 +46,21 @@ export const TheDesk = () => {
 
             {/* 3. CRITICAL TASKS */}
             <div>
-                <div className="flex items-center justify-between mb-3 border-b border-zinc-800 pb-2">
+                <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-2">
                     <div className="flex items-center gap-2">
-                        <list className="w-4 h-4 text-zinc-500" />
-                        <h3 className="text-sm font-semibold text-zinc-300">Must Do</h3>
+                        <List className="w-3.5 h-3.5 text-zinc-500" />
+                        <h3 className="text-xs font-semibold text-zinc-400 tracking-wide uppercase">Critical Actions</h3>
                     </div>
                 </div>
-                <div className="space-y-2">
+                <div className="flex flex-col gap-1">
                     {TASK_ITEMS.map((item, i) => (
-                        <div key={i} className="flex items-center gap-3 p-3 rounded-lg border border-transparent hover:bg-zinc-900/50 hover:border-zinc-800 transition-all group">
-                            <div className="w-4 h-4 rounded border border-zinc-600 group-hover:border-zinc-400 cursor-pointer flex items-center justify-center transition-colors hover:bg-zinc-800" />
+                        <div key={i} className="flex items-center gap-3 p-3 rounded-md border border-transparent hover:bg-zinc-900 hover:border-white/5 hover:shadow-lg transition-all group cursor-pointer">
+                            <div className="w-3.5 h-3.5 rounded-[3px] border border-zinc-700 group-hover:border-zinc-500 flex items-center justify-center transition-all bg-zinc-900/50 hover:bg-zinc-800" />
                             <div className="flex-1 flex flex-col justify-center">
-                                <span className="text-sm text-zinc-300">{item.title}</span>
-                                <span className="text-[10px] text-zinc-600">{item.context}</span>
+                                <span className="text-sm text-zinc-300 font-medium group-hover:text-white transition-colors">{item.title}</span>
+                                <span className="text-[10px] text-zinc-600 group-hover:text-zinc-500 transition-colors">{item.context}</span>
                             </div>
-                            <span className="text-[10px] font-medium text-amber-500/80 bg-amber-500/10 px-1.5 py-0.5 rounded">{item.due}</span>
+                            <span className="text-[9px] font-mono font-bold text-amber-500/80 bg-amber-500/5 border border-amber-500/10 px-1.5 py-0.5 rounded uppercase tracking-wider group-hover:bg-amber-500/10 transition-colors">{item.due}</span>
                         </div>
                     ))}
                 </div>
