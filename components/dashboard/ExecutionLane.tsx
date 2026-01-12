@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { PulseSystemId, SYSTEM_COLORS } from './PulseColorMap';
+import ChefTile from '@/components/dashboard/ChefTile';
 
 interface ExecutionItem {
     id: string;
@@ -20,6 +21,9 @@ const DEMO_TASKS: ExecutionItem[] = [
 export const ExecutionLane: React.FC = () => {
     return (
         <div className="w-[320px] h-full flex flex-col pt-8 pr-8 pb-8 gap-6 z-20">
+            {/* Phase 6: Pulse Chef Tile */}
+            <ChefTile />
+
             <h3 className="text-xs font-bold text-white/40 uppercase tracking-widest px-2">Execution Queue</h3>
 
             <div className="flex flex-col gap-3">
