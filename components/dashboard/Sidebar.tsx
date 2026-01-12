@@ -13,18 +13,18 @@ const SECTIONS = [
     {
         title: "Perspective",
         items: [
-            { icon: LayoutGrid, label: "Dashboard", href: "/" },
-            { icon: Calendar, label: "Schedule", href: "/schedule" },
-            { icon: Sun, label: "Today", href: "/today" },
+            { icon: LayoutGrid, label: "Dashboard", href: "/", color: "text-blue-400" },
+            { icon: Calendar, label: "Schedule", href: "/schedule", color: "text-cyan-400" },
+            { icon: Sun, label: "Today", href: "/today", color: "text-amber-400" },
         ]
     },
     {
         title: "Areas",
         items: [
-            { icon: CheckSquare, label: "Tasks", href: "/tasks" },
-            { icon: Users, label: "People", href: "/people" },
-            { icon: BookOpen, label: "Journal", href: "/journal" },
-            { icon: Briefcase, label: "Projects", href: "/projects" },
+            { icon: CheckSquare, label: "Tasks", href: "/tasks", color: "text-orange-400" },
+            { icon: Users, label: "People", href: "/people", color: "text-teal-400" },
+            { icon: BookOpen, label: "Journal", href: "/journal", color: "text-violet-400" },
+            { icon: Briefcase, label: "Projects", href: "/projects", color: "text-indigo-400" },
         ]
     },
     {
@@ -44,15 +44,16 @@ const SECTIONS = [
     }
 ];
 
-const NavItem = ({ icon: Icon, label, href, active }: any) => (
+const NavItem = ({ icon: Icon, label, href, active, color }: any) => (
     <Link
         href={href}
         className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-md transition-all group ${active
-                ? 'bg-blue-600 text-white shadow-sm font-medium'
-                : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
+            ? 'bg-blue-600 text-white shadow-sm font-medium'
+            : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
             }`}
     >
         <Icon className={`w-4 h-4 ${active ? 'text-white' : 'text-zinc-500 group-hover:text-zinc-300'}`} />
+        {color && !active && <div className={`w-1 h-1 rounded-full ${color.replace('text-', 'bg-')} opacity-50`} />}
         <span className="text-[13px] tracking-wide leading-none pb-px">{label}</span>
     </Link>
 );
