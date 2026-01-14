@@ -1,13 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-function env(name: string) {
-    const v = process.env[name];
-    if (!v) throw new Error(`Missing env: ${name}`);
-    return v;
-}
-
-const supabase = createClient(env("SUPABASE_URL"), env("SUPABASE_SERVICE_ROLE_KEY"));
+import { createAdminClient } from "../_lib/env";
 
 function mapTwilioStatusToSessionStatus(twilioStatus?: string) {
     const s = (twilioStatus || "").toLowerCase();
@@ -18,11 +12,14 @@ function mapTwilioStatusToSessionStatus(twilioStatus?: string) {
 }
 
 export async function POST(req: NextRequest) {
+    const supabase = createAdminClient();
     const form = await req.formData();
     const CallSid = String(form.get("CallSid") || "");
     const CallStatus = String(form.get("CallStatus") || "");
     const ErrorCode = String(form.get("ErrorCode") || "");
     const ErrorMessage = String(form.get("ErrorMessage") || "");
+
+    console.log(`[TwilioStatus] ${CallSid} ${CallStatus} Code:${ErrorCode} Msg:${ErrorMessage}`);
 
     // Find call_session by twilio_call_sid
     const { data: session, error: findErr } = await supabase

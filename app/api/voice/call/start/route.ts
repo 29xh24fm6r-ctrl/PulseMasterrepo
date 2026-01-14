@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import twilio from "twilio";
-import { createClient } from "@supabase/supabase-js";
+import { createAdminClient } from "../../_lib/env";
 
 type VoiceMode = "MACRO" | "DYNAMIC" | "CONVERSATION";
 type StartBody = {
@@ -89,8 +89,8 @@ export async function POST(req: NextRequest) {
             if (!streamWss) {
                 throw new Error("Missing env var: PULSE_VOICE_STREAM_WSS_URL (required for mode=DYNAMIC)");
             }
-            if (!streamWss.startsWith("wss://")) {
-                throw new Error(`PULSE_VOICE_STREAM_WSS_URL must start with wss:// (got: ${streamWss})`);
+            if (!streamWss.startsWith("wss://") && !streamWss.startsWith("ws://")) {
+                throw new Error(`PULSE_VOICE_STREAM_WSS_URL must start with wss:// or ws:// (got: ${streamWss})`);
             }
         }
 
@@ -99,10 +99,7 @@ export async function POST(req: NextRequest) {
         const TWILIO_AUTH_TOKEN = getEnv("TWILIO_AUTH_TOKEN");
         const TWILIO_FROM_NUMBER = getEnv("TWILIO_FROM_NUMBER");
 
-        const SUPABASE_URL = getEnv("SUPABASE_URL");
-        const SUPABASE_SERVICE_ROLE_KEY = getEnv("SUPABASE_SERVICE_ROLE_KEY");
-
-        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+        const supabase = createAdminClient();
 
         // Lazy Twilio init (avoids boot crashes)
         const client = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
@@ -132,7 +129,7 @@ export async function POST(req: NextRequest) {
         const callSessionId = sessionInsert.data.id as string;
 
         // Build callback URLs (Twilio must be able to reach these)
-        const webhookUrl = `${publicBase}/api/voice/webhook`;     // TwiML
+        const webhookUrl = `${publicBase}/api/voice/webhook?session_id=${callSessionId}`;     // TwiML
         const statusUrl = `${publicBase}/api/voice/status`;       // status callbacks
         const recordingUrl = `${publicBase}/api/voice/recording`; // recording callbacks
 

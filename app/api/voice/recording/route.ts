@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-function env(name: string) {
-    const v = process.env[name];
-    if (!v) throw new Error(`Missing env: ${name}`);
-    return v;
-}
-const supabase = createClient(env("SUPABASE_URL"), env("SUPABASE_SERVICE_ROLE_KEY"));
+import { createAdminClient } from "../_lib/env";
 
 export async function POST(req: NextRequest) {
+    const supabase = createAdminClient();
     const form = await req.formData();
     const CallSid = String(form.get("CallSid") || "");
     const RecordingSid = String(form.get("RecordingSid") || "");

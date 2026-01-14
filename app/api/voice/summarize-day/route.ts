@@ -3,12 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { createClient } from "@supabase/supabase-js";
 import { llmJson } from "@/lib/llm/client";
 
-function getSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
+import { createAdminClient } from "../_lib/env";
 
 export async function GET(req: NextRequest) {
   const { userId } = await auth();
@@ -16,7 +11,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const supabase = getSupabase();
+  const supabase = createAdminClient();
   const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split("T")[0];
 
   // Try to get existing summary
@@ -85,7 +80,7 @@ Return JSON:
 
   try {
     const result = await llmJson({ prompt });
-    
+
     return NextResponse.json({
       ...result,
       spoken: `Yesterday: ${result.summary} Your emotional theme was ${result.emotional_theme || "mixed"}. ${result.identity_signal ? `Identity-wise, ${result.identity_signal}.` : ""}`

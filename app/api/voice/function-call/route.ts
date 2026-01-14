@@ -2,10 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { createClient } from "@supabase/supabase-js";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { createAdminClient } from "../_lib/env";
 
 // Parse natural language time into ISO datetime
 function parseTimeExpression(timeStr: string, baseDate = new Date()): Date {
@@ -60,6 +57,7 @@ function parseTimeExpression(timeStr: string, baseDate = new Date()): Date {
 }
 
 export async function POST(req: NextRequest) {
+  const supabase = createAdminClient();
   try {
     const { userId } = await auth();
     if (!userId) {

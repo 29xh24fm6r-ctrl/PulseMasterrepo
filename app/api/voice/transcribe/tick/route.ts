@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-function env(name: string) {
-    const v = process.env[name];
-    if (!v) throw new Error(`Missing env: ${name}`);
-    return v;
-}
-const supabase = createClient(env("SUPABASE_URL"), env("SUPABASE_SERVICE_ROLE_KEY"));
+import { createAdminClient } from "../../_lib/env";
 
 async function transcribeRecordingStub(_recordingSid: string): Promise<{ lines: string[]; summary: string }> {
     // Phase 2 stub. Replace with your real transcription.
@@ -20,6 +15,7 @@ async function transcribeRecordingStub(_recordingSid: string): Promise<{ lines: 
 }
 
 export async function POST(_req: NextRequest) {
+    const supabase = createAdminClient();
     const { data: sessions, error } = await supabase
         .from("pulse_call_sessions")
         .select("id, twilio_recording_sid")
