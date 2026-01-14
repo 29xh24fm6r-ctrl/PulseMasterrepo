@@ -2,13 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { createClient } from "@supabase/supabase-js";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { createAdminClient } from "../_lib/env";
 
 // GET /api/voice/alerts - Get pending voice alerts
 export async function GET(req: NextRequest) {
+  const supabase = createAdminSupabase();
   try {
     const { userId } = await auth();
     if (!userId) {
@@ -115,6 +113,7 @@ export async function GET(req: NextRequest) {
 
 // POST /api/voice/alerts - Create a manual voice alert
 export async function POST(req: NextRequest) {
+  const supabase = createAdminClient();
   try {
     const { userId } = await auth();
     if (!userId) {

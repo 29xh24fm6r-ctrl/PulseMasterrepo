@@ -8,6 +8,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/calls(.*)',
   '/api/sms(.*)',
   '/api/webhooks(.*)',
+  '/api/voice(.*)', // Allow voice routes to handle their own auth (and dev bypass)
   '/api/stripe/webhook',
   '/api/health',
 ])

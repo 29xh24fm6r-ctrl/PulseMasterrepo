@@ -1,0 +1,6 @@
+{
+    "targetPhone": "+14044831998",
+    "taskType": "PHASE_3_1_SMOKE",
+    "intentSummary": "Phase 3.1 dynamic stream smoke test",
+    "mode": "DYNAMIC"
+}

@@ -2,13 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { createClient } from "@supabase/supabase-js";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { createAdminClient } from "../_lib/env";
 
 // POST /api/voice/log - Log voice interaction or session
 export async function POST(req: NextRequest) {
+  const supabase = createAdminSupabase();
   try {
     const { userId } = await auth();
     if (!userId) {
@@ -83,6 +81,7 @@ export async function POST(req: NextRequest) {
 
 // GET /api/voice/log - Get voice history
 export async function GET(req: NextRequest) {
+  const supabase = createAdminClient();
   try {
     const { userId } = await auth();
     if (!userId) {

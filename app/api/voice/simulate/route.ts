@@ -3,12 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { createClient } from "@supabase/supabase-js";
 import { llmJson } from "@/lib/llm/client";
 
-function getSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
+import { createAdminClient } from "../_lib/env";
 
 export async function POST(req: NextRequest) {
   const { userId } = await auth();
@@ -21,7 +16,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Scenario required" }, { status: 400 });
   }
 
-  const supabase = getSupabase();
+  const supabase = createAdminClient();
 
   // Step 1: Parse scenario into assumptions
   const parsePrompt = `Parse this life scenario into structured assumptions.
