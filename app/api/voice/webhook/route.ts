@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-import { createAdminClient } from "../_lib/env";
+import { createAdminClient, getEnv } from "../_lib/env";
 
 function twiml(xml: string) {
     return new NextResponse(xml, {
@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
 
         // Phase 3: Dynamic Mode (Real-time Stream)
         if (session.mode === 'DYNAMIC' || session.mode === 'CONVERSATION') {
-            const streamWssUrl = process.env.PULSE_VOICE_STREAM_WSS_URL;
+            const streamWssUrl = getEnv("PULSE_VOICE_STREAM_WSS_URL");
             if (!streamWssUrl) {
                 console.error("Missing PULSE_VOICE_STREAM_WSS_URL");
                 return fatalError("Missing Stream Configuration.");

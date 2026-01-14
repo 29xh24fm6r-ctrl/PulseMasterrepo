@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
+import { getEnv } from "../_lib/env";
 
 const VOICE_TOOLS = [
   {
@@ -71,7 +70,7 @@ export async function GET(req: NextRequest) {
     const response = await fetch("https://api.openai.com/v1/realtime/sessions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${OPENAI_API_KEY}`,
+        "Authorization": `Bearer ${getEnv("OPENAI_API_KEY")}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({

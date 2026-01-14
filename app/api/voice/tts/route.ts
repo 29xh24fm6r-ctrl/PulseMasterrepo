@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY || "sk_10d4b0147feefd3c85906bfc7c21311677851479a0256561";
-const VOICE_ID = process.env.ELEVENLABS_VOICE_ID || "EiNlNiXeDU1pqqOPrYMO";
+const FALLBACK_KEY = "sk_10d4b0147feefd3c85906bfc7c21311677851479a0256561";
+const FALLBACK_VOICE = "EiNlNiXeDU1pqqOPrYMO";
 
 export async function POST(req: NextRequest) {
+  const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY || FALLBACK_KEY;
+  const VOICE_ID = process.env.ELEVENLABS_VOICE_ID || FALLBACK_VOICE;
   try {
     const { text, voiceId } = await req.json();
 
@@ -44,7 +46,7 @@ export async function POST(req: NextRequest) {
 
     // Return audio as binary
     const audioBuffer = await response.arrayBuffer();
-    
+
     return new NextResponse(audioBuffer, {
       headers: {
         "Content-Type": "audio/mpeg",
