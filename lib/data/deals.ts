@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/lib/supabase";
+import { createAdminClient } from "@/lib/supabase";
 
 export type Deal = {
     id: string;
@@ -29,10 +29,11 @@ function mapDealFromDB(d: any): Deal {
 }
 
 export async function createDeal(userId: string, input: CreateDealInput) {
+    const admin = createAdminClient();
     // Destructure title to map to name, and keep rest
     const { title, ...rest } = input;
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await admin
         .from("deals")
         .insert({
             ...rest,
@@ -48,7 +49,8 @@ export async function createDeal(userId: string, input: CreateDealInput) {
 }
 
 export async function updateDealStatus(userId: string, dealId: string, stage: string) {
-    const { data, error } = await supabaseAdmin
+    const admin = createAdminClient();
+    const { data, error } = await admin
         .from("deals")
         .update({ stage, updated_at: new Date().toISOString() })
         .eq("id", dealId)
@@ -61,6 +63,7 @@ export async function updateDealStatus(userId: string, dealId: string, stage: st
 }
 
 export async function updateDeal(userId: string, dealId: string, updates: Partial<Deal>) {
+    const admin = createAdminClient();
     // Map title to name for updates
     const { title, ...rest } = updates;
     const dbUpdates = {
@@ -69,7 +72,7 @@ export async function updateDeal(userId: string, dealId: string, updates: Partia
         updated_at: new Date().toISOString()
     };
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await admin
         .from("deals")
         .update(dbUpdates)
         .eq("id", dealId)
@@ -82,7 +85,8 @@ export async function updateDeal(userId: string, dealId: string, updates: Partia
 }
 
 export async function getDeals(userId: string) {
-    const { data, error } = await supabaseAdmin
+    const admin = createAdminClient();
+    const { data, error } = await admin
         .from("deals")
         .select("*")
         .eq("user_id_uuid", userId)

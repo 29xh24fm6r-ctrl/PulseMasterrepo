@@ -29,6 +29,24 @@
     --glass-bg: 0 0% 100% / 0.05;
     --glass-blur: 12px;
 
+    /* Power Surface Tokens (Canon) */
+    --surface-base: 240 10% 3.9%;
+    /* Deep Zinc */
+    --surface-raised: 240 5% 10%;
+    /* Slightly Lighter */
+    --surface-glass: 0 0% 100% / 0.03;
+
+    --border-hairline: 0 0% 100% / 0.08;
+    --border-glow: 0 0% 100% / 0.15;
+
+    /* Status Instruments */
+    --status-good: 150 100% 50%;
+    /* Emerald */
+    --status-warning: 45 100% 50%;
+    /* Amber */
+    --status-critical: 0 100% 60%;
+    /* Rose */
+
     /* Orb Colors */
     --orb-idle: 260 100% 60%;
     /* Violet */
