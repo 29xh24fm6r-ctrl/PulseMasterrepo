@@ -1,4 +1,4 @@
-import { createClient } from '@/utils/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { FinanceSnapshot } from './types';
 
 export async function getFinanceSnapshot(userId: string): Promise<FinanceSnapshot> {
