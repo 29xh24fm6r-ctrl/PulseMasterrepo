@@ -2,10 +2,9 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles, ArrowRight, Zap, Target } from 'lucide-react';
 import {
-    BridgeCard,
+    NowCard as BridgeCard,
     StatusText,
-    SecondaryButton,
-    GlassPanel
+    SecondaryButton
 } from '../atoms';
 
 interface BridgeFirstRunProps {
@@ -14,7 +13,7 @@ interface BridgeFirstRunProps {
 
 export default function BridgeFirstRun({ onExit }: BridgeFirstRunProps) {
     return (
-        <BridgeCard border="blue">
+        <BridgeCard>
             <div className="flex flex-col items-center text-center space-y-6 max-w-lg mx-auto py-8">
 
                 {/* Hero Icon */}
