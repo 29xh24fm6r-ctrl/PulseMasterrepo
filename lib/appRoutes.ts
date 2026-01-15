@@ -7,7 +7,7 @@ export type AppRoute = {
 
 export const APP_ROUTES: AppRoute[] = [
     { href: "/life", label: "Life Intelligence", group: "Home" },
-    { href: "/home", label: "Dashboard Home", group: "Home" },
+    { href: "/bridge", label: "Command Bridge", group: "Home" },
 
     { href: "/tasks", label: "Tasks", group: "Productivity" },
     { href: "/planner", label: "Day Planner", group: "Productivity" },

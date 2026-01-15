@@ -77,14 +77,14 @@ export default function MorningBriefPage() {
       try {
         const saved = localStorage.getItem(IDENTITY_STATE_KEY);
         if (saved) identityState = JSON.parse(saved);
-      } catch {}
+      } catch { }
 
       // Get autonomy settings
       let settings = null;
       try {
         const savedSettings = localStorage.getItem("pulse-autonomy-settings");
         if (savedSettings) settings = JSON.parse(savedSettings);
-      } catch {}
+      } catch { }
 
       const res = await fetch("/api/morning-brief", {
         method: "POST",
@@ -206,7 +206,7 @@ export default function MorningBriefPage() {
                 View all →
               </Link>
             </div>
-            
+
             <div className="flex gap-4 mb-4 text-sm">
               <div className="text-slate-400">
                 <span className="text-white font-medium">{brief.tasks.total}</span> open
@@ -295,7 +295,7 @@ export default function MorningBriefPage() {
                 <Sparkles className="w-5 h-5 text-violet-400" />
                 Identity
               </h2>
-              <Link href="/identity/dashboard" className="text-sm text-violet-400 hover:text-violet-300">
+              <Link href="/bridge" className="text-sm text-violet-400 hover:text-violet-300">
                 Dashboard →
               </Link>
             </div>
@@ -325,11 +325,11 @@ export default function MorningBriefPage() {
                     key={i}
                     className={`
                       p-3 rounded-lg border
-                      ${insight.priority === "high" 
-                        ? "bg-amber-500/10 border-amber-500/30" 
+                      ${insight.priority === "high"
+                        ? "bg-amber-500/10 border-amber-500/30"
                         : insight.priority === "medium"
-                        ? "bg-slate-700/30 border-slate-600/30"
-                        : "bg-slate-800/30 border-slate-700/30"
+                          ? "bg-slate-700/30 border-slate-600/30"
+                          : "bg-slate-800/30 border-slate-700/30"
                       }
                     `}
                   >
@@ -358,7 +358,7 @@ export default function MorningBriefPage() {
               <div className="text-center py-4">
                 <p className="text-slate-500 text-sm mb-2">Start tracking identity actions</p>
                 <Link
-                  href="/identity/dashboard"
+                  href="/bridge"
                   className="inline-flex items-center gap-1 text-sm text-violet-400 hover:text-violet-300"
                 >
                   Go to Dashboard
@@ -397,7 +397,7 @@ export default function MorningBriefPage() {
             Journal
           </Link>
           <Link
-            href="/identity/dashboard"
+            href="/bridge"
             className="px-4 py-2 bg-violet-600 hover:bg-violet-500 rounded-lg text-sm transition-colors"
           >
             Identity Dashboard

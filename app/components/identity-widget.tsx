@@ -118,7 +118,7 @@ export function IdentityWidget() {
             <span className="font-medium">Identity</span>
           </div>
           <Link
-            href="/identity/dashboard"
+            href="/bridge"
             className="text-xs text-violet-400 hover:text-violet-300 flex items-center gap-1"
           >
             Start <ChevronRight className="w-3 h-3" />
@@ -130,7 +130,7 @@ export function IdentityWidget() {
             Track who you&apos;re becoming
           </p>
           <Link
-            href="/identity/dashboard"
+            href="/bridge"
             className="inline-flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 rounded-lg text-sm font-medium transition-colors"
           >
             <Target className="w-4 h-4" />
@@ -154,7 +154,7 @@ export function IdentityWidget() {
             <span className="font-medium">Identity</span>
           </div>
           <Link
-            href="/identity/dashboard"
+            href="/bridge"
             className="text-xs text-violet-400 hover:text-violet-300 flex items-center gap-1"
           >
             Dashboard <ChevronRight className="w-3 h-3" />
@@ -258,7 +258,7 @@ export function IdentityWidget() {
         {/* CTA if no north star */}
         {!hasNorthStar && (
           <Link
-            href="/identity/dashboard"
+            href="/bridge"
             className="block p-3 bg-zinc-800/50 hover:bg-zinc-800 rounded-xl border border-zinc-700/50 text-center text-sm text-zinc-400 hover:text-white transition-colors"
           >
             <Compass className="w-4 h-4 inline mr-2" />
