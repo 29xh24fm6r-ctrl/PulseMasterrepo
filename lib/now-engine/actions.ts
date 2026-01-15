@@ -29,15 +29,38 @@ export async function logUserEvent(userId: string, type: 'DEFER_NOW' | 'OVERRIDE
     if (error) console.error("Failed to log bridge event", error);
 }
 
-export async function performAction(userId: string, actionPayload: any) {
-    // Determine op
-    const { op, ref_id } = actionPayload;
+import { CommandResult } from './types';
 
-    if (op === 'complete_action') {
-        const { error } = await supabaseAdmin.from('tasks').update({ status: 'done', completed_at: new Date().toISOString() }).eq('id', ref_id).eq('user_id_uuid', userId);
-        if (error) throw error;
+// Phase M: Command Router
+export async function executeCommand(userId: string, payload: any): Promise<CommandResult> {
+    const { op, ref_id } = payload;
+
+    try {
+        if (op === 'complete_action') {
+            // Safe DB update
+            const { error } = await supabaseAdmin
+                .from('tasks')
+                .update({ status: 'done', completed_at: new Date().toISOString() })
+                .eq('id', ref_id)
+                .eq('user_id_uuid', userId);
+
+            if (error) return { ok: false, error: error.message };
+            return { ok: true };
+        }
+
+        // TODO: Implement other ops
+        if (['resolve_blocker', 'resume_session', 'open_decision', 'open'].includes(op)) {
+            // No-op side effects for now, just success
+            return { ok: true };
+        }
+
+        return { ok: false, error: `Unknown operation: ${op}` };
+
+    } catch (e: any) {
+        console.error("Command Execution Failed", e);
+        return { ok: false, error: e.message || "Execution failed" };
     }
-
-    // Other ops: 'resolve_blocker', 'resume_session' (maybe create new journal entry linked to old?)
-    // For V1, primarily handle 'complete_action'
 }
+
+// Deprecated alias if needed, or remove
+export const performAction = executeCommand;

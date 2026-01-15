@@ -38,6 +38,10 @@ export type Candidate = {
     score: number;                     // float
     confidence: number;                // 0..1
     reasons: string[];                 // 1-3
+    explanation?: {
+        drivers: string[];
+        suppressors?: string[];
+    };
     recommended_action: RecommendedAction;
 };
 
@@ -47,6 +51,14 @@ export type RecommendedAction = {
     payload: Record<string, any>;      // UI-executable payload
 };
 
+export interface NowFuture {
+    id: string;
+    title: string;
+    confidence: number;
+    horizon: "next" | "later_today" | "tomorrow";
+    original_candidate?: Candidate; // For UI promotion
+}
+
 export type NowResult =
     | {
         status: "resolved_now";
@@ -54,11 +66,13 @@ export type NowResult =
         confidence_score: number;
         supporting_reasons: string[];
         recommended_action: RecommendedAction;
+        futures?: NowFuture[];
     }
     | {
         status: "no_clear_now";
         explanation: string;
         fallback_action?: RecommendedAction;
+        futures?: NowFuture[]; // Futures might exist even if no clear now?
     }
     | {
         status: "deferred";
@@ -74,3 +88,14 @@ export type NowResult =
         message: string;
         retryable: boolean;
     };
+// Phase M: Command Execution
+export interface Command {
+    type: 'EXECUTE' | 'DEFER' | 'OVERRIDE';
+    payload: Record<string, any>; // Should contain op, ref_id etc.
+}
+
+export interface CommandResult {
+    ok: boolean;
+    error?: string;
+    result?: any;
+}

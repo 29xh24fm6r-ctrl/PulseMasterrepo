@@ -6,6 +6,7 @@ import DeferredNow from './states/DeferredNow';
 
 import AuthMissing from './states/AuthMissing';
 import FetchError from './states/FetchError';
+import { logNowEvent } from '@/lib/now-engine/telemetry';
 
 interface NowDisplayProps {
     result: NowResult;
@@ -57,6 +58,18 @@ import BridgeFirstRun from './states/BridgeFirstRun';
 export default function NowDisplay(props: NowDisplayProps) {
     const { result } = props;
     const { isFirstRun, isLoaded, markSeen } = useFirstRun();
+
+    // Phase J: Telemetry (now_presented)
+    React.useEffect(() => {
+        if (result?.status) {
+            logNowEvent({
+                event: "now_presented",
+                now_status: result.status,
+                ui_state: result.status, // Granular state if needed
+                timestamp: Date.now()
+            });
+        }
+    }, [result?.status]);
 
     // Handling First Run Overlay
     // We only show this if loaded to avoid hydration mismatch, 

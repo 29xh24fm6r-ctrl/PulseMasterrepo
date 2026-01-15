@@ -7,6 +7,7 @@ import NowDisplay from '@/components/bridge/NowDisplay';
 import { useNowEngine } from '@/lib/hooks/useNowEngine';
 import { useGlobalKeybindings } from '@/lib/hooks/useGlobalKeybindings';
 import { RecommendedAction } from '@/lib/now-engine/types';
+import { logNowEvent } from '@/lib/now-engine/telemetry';
 
 export default function BridgePage() {
     const result = useNowEngine();
@@ -19,6 +20,16 @@ export default function BridgePage() {
                 method: 'POST',
                 body: JSON.stringify({ type: 'EXECUTE', payload: action.payload })
             });
+
+            // Phase J: Telemetry (now_action_taken)
+            logNowEvent({
+                event: "now_action_taken",
+                action_id: action.action_type, // or label if ID missing, types.ts says label/action_type
+                intent: action.action_type,
+                source: "primary",
+                timestamp: Date.now()
+            });
+
             // Reload engine state
             window.location.reload(); // Simple refresh for V1, or trigger re-fetch in hook
         } catch (e) {
@@ -32,6 +43,14 @@ export default function BridgePage() {
             await fetch('/api/pulse/now/actions', {
                 method: 'POST',
                 body: JSON.stringify({ type: 'DEFER', payload: { last_focus_candidate: result.status === 'resolved_now' ? result.primary_focus : null } })
+            });
+
+            logNowEvent({
+                event: "now_action_taken",
+                action_id: "defer",
+                intent: "defer",
+                source: "secondary",
+                timestamp: Date.now()
             });
             window.location.reload();
         } catch (e) {

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { logUserEvent, performAction } from '@/lib/now-engine/actions';
+import { logUserEvent, executeCommand } from '@/lib/now-engine/actions';
 import { auth } from '@clerk/nextjs/server';
 
 export async function POST(req: Request) {
@@ -14,8 +14,14 @@ export async function POST(req: Request) {
         if (type === 'DEFER') {
             await logUserEvent(userId, 'DEFER_NOW', payload);
         } else if (type === 'EXECUTE') {
-            // 1. Perform the side-effect (e.g. close task)
-            await performAction(userId, payload);
+            // Phase M: explicit command execution
+            const result = await executeCommand(userId, payload);
+
+            if (!result.ok) {
+                // Return error to client so it can surface inline
+                return NextResponse.json({ success: false, error: result.error }, { status: 400 });
+            }
+
             // 2. Log it
             await logUserEvent(userId, 'EXECUTED_ACTION', payload);
         } else if (type === 'OVERRIDE') {
