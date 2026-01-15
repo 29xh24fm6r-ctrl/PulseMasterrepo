@@ -24,7 +24,18 @@ export function useNowEngine() {
                 }
 
                 const res = await fetch('/api/pulse/now', { headers });
+
+                // Task I.2: Robust Fetch Handling (prevent JSON crashes)
+                const contentType = res.headers.get("content-type") || "";
+                const isJson = contentType.includes("application/json");
+
                 if (res.ok) {
+                    if (!isJson) {
+                        // API returned HTML (likely 404 or redirect), which is fatal for the client
+                        const text = await res.text();
+                        throw new Error(`API returned ${contentType} instead of JSON. Preview/Env issue? Preview: ${text.slice(0, 100)}...`);
+                    }
+
                     const data = await res.json();
 
                     // Task F.3: Basic contract validation could trigger here
@@ -35,7 +46,11 @@ export function useNowEngine() {
                     }
 
                 } else {
-                    throw new Error(`API Error: ${res.status} ${res.statusText}`);
+                    if (!isJson) {
+                        throw new Error(`API Error ${res.status}: Non-JSON response (${contentType})`);
+                    }
+                    const errData = await res.json().catch(() => ({}));
+                    throw new Error(errData.message || `API Error: ${res.status} ${res.statusText}`);
                 }
             } catch (e: any) {
                 console.error("Failed to fetch Now state", e);

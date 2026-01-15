@@ -69,7 +69,8 @@ export default clerkMiddleware(async (auth, request) => {
 
 export const config = {
   matcher: [
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)|monitoring).*)',
-    '/(api|trpc)(.*)',
+    // Exclude /api routes entirely from middleware to prevent redirect loops or HTML responses
+    '/((?!api|_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)|monitoring).*)',
+    '/((?!api|trpc).*)', // Safety fallback for tRPC pattern if used later
   ],
 }
