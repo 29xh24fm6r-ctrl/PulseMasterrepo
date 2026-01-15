@@ -4,6 +4,9 @@ import ResolvedNow from './states/ResolvedNow';
 import NoClearNow from './states/NoClearNow';
 import DeferredNow from './states/DeferredNow';
 
+import AuthMissing from './states/AuthMissing';
+import FetchError from './states/FetchError';
+
 interface NowDisplayProps {
     result: NowResult;
     onExecute: (action: RecommendedAction) => void;
@@ -36,6 +39,18 @@ function assertDeferred(
     }
 }
 
+function assertAuthMissing(
+    r: any
+): asserts r is Extract<NowResult, { status: "auth_missing" }> {
+    if (!r.message) throw new Error("Invalid auth_missing payload");
+}
+
+function assertFetchError(
+    r: any
+): asserts r is Extract<NowResult, { status: "fetch_error" }> {
+    if (!r.message) throw new Error("Invalid fetch_error payload");
+}
+
 export default function NowDisplay(props: NowDisplayProps) {
     const { result } = props;
 
@@ -57,6 +72,18 @@ export default function NowDisplay(props: NowDisplayProps) {
     }
 
     switch (result.status) {
+        case "auth_missing":
+            try {
+                assertAuthMissing(result);
+                return <AuthMissing result={result} />;
+            } catch (e) { console.error(e); break; }
+
+        case "fetch_error":
+            try {
+                assertFetchError(result);
+                return <FetchError result={result} />;
+            } catch (e) { console.error(e); break; }
+
         case "resolved_now":
             try {
                 assertResolved(result);

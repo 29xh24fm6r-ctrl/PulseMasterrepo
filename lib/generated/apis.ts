@@ -258,6 +258,8 @@ export const GENERATED_APIS = [
   "/api/pulse/intelligent",
   "/api/pulse/intent",
   "/api/pulse/micro-tasks",
+  "/api/pulse/now",
+  "/api/pulse/now/actions",
   "/api/pulse/proactive",
   "/api/quests/claim",
   "/api/quests/complete",
