@@ -9,13 +9,10 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 import { UserProvider } from "./providers/user-provider";
-// import { GlobalNav } from "@/components/GlobalNav"; // Deprecated
-import { QuantumDock } from "@/components/navigation/QuantumDock";
-import { OrbitalMind } from "@/components/navigation/OrbitalMind";
 import ServiceWorkerRegistration from "./components/ServiceWorkerRegistration";
-import { GlobalVoiceButton } from "@/components/GlobalVoiceButton";
 import { ToastProvider } from "@/components/ui/ToastProvider";
-import { EncounterLayout } from "@/components/encounter/EncounterLayout";
+import { PrimaryNav } from "@/components/nav/PrimaryNav";
+import { WhisperFeed } from "@/components/WhisperFeed";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -37,12 +34,6 @@ export const viewport: Viewport = {
   maximumScale: 1,
 };
 
-import { WhisperFeed } from "@/components/WhisperFeed";
-import { TheOrb } from "@/components/TheOrb";
-import { OrbitalStream } from "@/components/ui/premium/OrbitalStream";
-
-
-
 export default function RootLayout({
   children,
 }: {
@@ -54,21 +45,18 @@ export default function RootLayout({
         <head>
           <link rel="apple-touch-icon" href="/icons/icon-192.png" />
         </head>
-        <body className={`${inter.className} bg-zinc-950 text-slate-100 overflow-x-hidden`}>
+        <body className={`${inter.className} bg-zinc-950 text-slate-100 overflow-hidden`}>
           <Providers>
             <UserProvider>
               <ToastProvider>
-                <EncounterLayout>
-                  <TheOrb />
-                  <QuantumDock />
-                  <OrbitalMind />
-                  <OrbitalStream />
-
-                  {children}
-                  <ServiceWorkerRegistration />
-                  {/* <GlobalVoiceButton /> Removed to prevent double toolbar (Voice is in Dock) */}
-                  <WhisperFeed />
-                </EncounterLayout>
+                <div className="flex h-screen w-full bg-zinc-50 dark:bg-black">
+                  <PrimaryNav />
+                  <main className="flex-1 h-full overflow-y-auto relative scrollbar-hide">
+                    {children}
+                    <WhisperFeed />
+                    <ServiceWorkerRegistration />
+                  </main>
+                </div>
               </ToastProvider>
             </UserProvider>
           </Providers>

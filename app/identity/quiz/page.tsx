@@ -101,7 +101,7 @@ export default function IdentityQuizPage() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 
       // Navigate to dashboard
-      router.push("/identity/dashboard");
+      router.push("/bridge");
     } catch (err) {
       console.error("Failed to save quiz results:", err);
     } finally {
@@ -139,7 +139,7 @@ export default function IdentityQuizPage() {
               <ChevronRight className="w-5 h-5" />
             </button>
             <button
-              onClick={() => router.push("/identity/dashboard")}
+              onClick={() => router.push("/bridge")}
               className="text-zinc-500 hover:text-zinc-300 text-sm"
             >
               Skip for now

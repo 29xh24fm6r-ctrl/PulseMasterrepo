@@ -183,7 +183,7 @@ export function QuickActionsFAB() {
     { type: "contact" as const, icon: Users, label: "Add Contact", color: "from-pink-500 to-rose-500", shortcut: "C" },
     { type: "deal" as const, icon: Briefcase, label: "Add Deal", color: "from-green-500 to-emerald-500", shortcut: "D" },
     { type: "journal" as const, icon: BookOpen, label: "Journal", color: "from-violet-500 to-purple-500", shortcut: "J", href: "/journal" },
-    { type: "identity" as const, icon: Sparkles, label: "Track Identity", color: "from-amber-500 to-orange-500", shortcut: "I", href: "/identity/dashboard" },
+    { type: "identity" as const, icon: Sparkles, label: "Track Identity", color: "from-amber-500 to-orange-500", shortcut: "I", href: "/bridge" },
   ];
 
   return (
@@ -254,7 +254,7 @@ export function QuickActionsFAB() {
       {activeModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={closeModal} />
-          
+
           {/* Task Modal */}
           {activeModal === "task" && (
             <div className="relative w-full max-w-md bg-zinc-900 border border-zinc-700 rounded-2xl p-6 shadow-2xl">
