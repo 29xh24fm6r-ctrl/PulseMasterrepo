@@ -10,7 +10,7 @@ Pulse is a comprehensive **Life Operating System** designed to act as the centra
 3.  **High-Density**: The interface assumes intelligence, prioritizing data density over simplicity.
 
 ## Current State (Phases 7–13)
-*   **Phase 13**: Power Surface (Command Bridge & Life State Model) - *Active*
+*   **Phase 13**: Power Surface (Command Bridge & Life State Model) - *Active* - `/bridge` is the canonical entry point.
 *   **Phase 12**: Feedback Loops
 *   **Phase 11**: Autonomy (Constrained)
 *   **Phase 10**: Trust Architecture

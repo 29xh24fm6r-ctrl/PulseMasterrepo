@@ -48,6 +48,7 @@ export const GENERATED_PAGES = [
   "/journal",
   "/journal/history",
   "/keyboard-shortcuts",
+  "/legacy/today",
   "/life",
   "/life-intelligence/simulation",
   "/live-coach",

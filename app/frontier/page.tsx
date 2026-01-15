@@ -16,7 +16,7 @@ export default function FrontierPage() {
 
   useEffect(() => {
     if (!isLoaded || !userId) return;
-    
+
     async function fetchData() {
       try {
         const res = await fetch("/api/frontier/dashboard");
@@ -30,7 +30,7 @@ export default function FrontierPage() {
         setLoading(false);
       }
     }
-    
+
     fetchData();
   }, [userId, isLoaded]);
 
@@ -58,7 +58,7 @@ export default function FrontierPage() {
           <h1 className="text-4xl font-bold bg-gradient-to-r from-violet-400 via-pink-400 to-orange-400 bg-clip-text text-transparent">
             Frontier
           </h1>
-          <p className="text-zinc-400 mt-2">Your AI-powered life intelligence dashboard</p>
+          <p className="text-zinc-400 mt-2">Your AI-powered life intelligence environment</p>
         </div>
 
         {/* Main Grid */}
@@ -72,9 +72,9 @@ export default function FrontierPage() {
 
           {/* Right Column */}
           <div className="space-y-6">
-            <EmotionPulse 
-              recentStates={data?.emotionData?.recentStates || []} 
-              profile={data?.emotionData?.profile || null} 
+            <EmotionPulse
+              recentStates={data?.emotionData?.recentStates || []}
+              profile={data?.emotionData?.profile || null}
             />
             <SimulationTeaser />
           </div>
