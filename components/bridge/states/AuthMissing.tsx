@@ -9,14 +9,21 @@ interface AuthMissingProps {
 
 export default function AuthMissing({ result }: AuthMissingProps) {
     const handleSetDevUser = () => {
-        // Only in dev/preview
+        // Self-Healing Logic:
+        // 1. Try to get ID from Env Var (Preferred)
+        // 2. Fallback to generating a new random UUID
         const envUserId = process.env.NEXT_PUBLIC_DEV_PULSE_OWNER_USER_ID;
-        if (envUserId) {
-            localStorage.setItem('pulse_owner_user_id', envUserId);
-            window.location.reload();
-        } else {
-            alert("No NEXT_PUBLIC_DEV_PULSE_OWNER_USER_ID found in env.");
-        }
+        // Use crypto.randomUUID if available (modern browsers), else fallback mock
+        const fallbackId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : '12345678-1234-1234-1234-1234567890ab';
+
+        const userIdToSet = envUserId || fallbackId;
+
+        localStorage.setItem('pulse_owner_user_id', userIdToSet);
+
+        // Log for debugging
+        console.info(`[AuthMissing] Auto-fixed auth with ID: ${userIdToSet} (Source: ${envUserId ? 'Env' : 'Generated'})`);
+
+        window.location.reload();
     };
 
     return (
