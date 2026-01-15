@@ -53,6 +53,10 @@ export function computeNow(bundle: SignalBundle): NowResult {
         let score = weightedScore(features);
         c.score = applyIgnoreDecay(c, bundle, score);
         c.reasons = deriveReasons(features, bundle, c);
+        c.explanation = {
+            drivers: c.reasons,
+            suppressors: [] // TODO: Implement suppressors (e.g. "Low Energy", "Too Soon")
+        };
         c.recommended_action = deriveAction(c, features, bundle);
     }
 
@@ -79,12 +83,24 @@ export function computeNow(bundle: SignalBundle): NowResult {
     // 7) Finalize reasons
     top.reasons = clampReasons(top.reasons, MIN_REASONS, MAX_REASONS);
 
+    // 8) Compute Futures (Phase L)
+    const futures = candidates
+        .slice(1, 4) // Next 3
+        .map(c => ({
+            id: c.ref_id,
+            title: c.title,
+            confidence: c.confidence || 0.5,
+            horizon: "next" as const, // Simplification for now, could be calculated
+            original_candidate: c
+        }));
+
     return {
         status: "resolved_now",
         primary_focus: top,
         confidence_score: top.confidence,
         supporting_reasons: top.reasons,
-        recommended_action: top.recommended_action
+        recommended_action: top.recommended_action,
+        futures
     };
 }
 

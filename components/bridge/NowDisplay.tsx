@@ -6,6 +6,7 @@ import DeferredNow from './states/DeferredNow';
 
 import AuthMissing from './states/AuthMissing';
 import FetchError from './states/FetchError';
+import { logNowEvent } from '@/lib/now-engine/telemetry';
 
 interface NowDisplayProps {
     result: NowResult;
@@ -58,6 +59,18 @@ export default function NowDisplay(props: NowDisplayProps) {
     const { result } = props;
     const { isFirstRun, isLoaded, markSeen } = useFirstRun();
 
+    // Phase J: Telemetry (now_presented)
+    React.useEffect(() => {
+        if (result?.status) {
+            logNowEvent({
+                event: "now_presented",
+                now_status: result.status,
+                ui_state: result.status, // Granular state if needed
+                timestamp: Date.now()
+            });
+        }
+    }, [result?.status]);
+
     // Handling First Run Overlay
     // We only show this if loaded to avoid hydration mismatch, 
     // and if auth/fetch are NOT erroring (we want errors to take precedence or at least show first?)
@@ -69,7 +82,7 @@ export default function NowDisplay(props: NowDisplayProps) {
 
     const isErrorState = result?.status === 'auth_missing' || result?.status === 'fetch_error';
 
-    if (isLoaded && isFirstRun && !isErrorState) {
+    if (isLoaded && isFirstRun) {
         return <BridgeFirstRun onExit={(intent) => {
             console.log("Onboarding Intent:", intent);
             markSeen();
