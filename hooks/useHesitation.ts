@@ -168,5 +168,5 @@ export function HesitationProvider({ children }: HesitationProviderProps) {
 }>
     { children }
     </HesitationContext.Provider>
-  );
+    );
 }

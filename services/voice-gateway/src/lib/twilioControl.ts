@@ -22,7 +22,7 @@ export async function sendDtmf(callSid: string, digits: string, redirectUrl?: st
 export async function sayText(callSid: string, text: string, redirectUrl?: string) {
     const body = twimlResponse(
         [
-            `<Say>${escapeXmlText(text)}</Say>`,
+            `<Say voice="Polly.Matthew-Neural">${escapeXmlText(text)}</Say>`,
             `<Pause length="1"/>`,
             redirectUrl ? `<Redirect method="POST">${escapeXmlText(redirectUrl)}</Redirect>` : ""
         ].join("")

@@ -5,60 +5,17 @@
  * Persistent memory with semantic search, patterns, and context recall
  */
 
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "../supabase";
 import OpenAI from "openai";
+import { Memory, MemoryType, MemoryPattern, MemoryContext, MemoryLayer } from "./types";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// ============================================
-// TYPES
-// ============================================
-
-export interface Memory {
-  id: string;
-  userId: string;
-  type: MemoryType;
-  category: string;
-  content: string;
-  context?: string;
-  importance: number; // 1-10
-  embedding?: number[];
-  tags: string[];
-  source?: string;
-  sourceId?: string;
-  expiresAt?: Date;
-  accessCount: number;
-  lastAccessedAt?: Date;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export type MemoryType =
-  | "fact"           // User stated fact
-  | "preference"     // User preference
-  | "pattern"        // Detected behavior pattern
-  | "insight"        // AI-generated insight
-  | "decision"       // Past decision
-  | "goal"           // User goal
-  | "relationship"   // Relationship info
-  | "event"          // Significant event
-  | "feedback";      // User feedback on AI
-
-export interface MemoryPattern {
-  id: string;
-  userId: string;
-  patternType: string;
-  description: string;
-  frequency: number;
-  confidence: number;
-  lastOccurred: Date;
-  data: Record<string, any>;
-}
-
-export interface MemoryContext {
-  relevantMemories: Memory[];
-  patterns: MemoryPattern[];
-  summary: string;
+let openaiInstance: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (!openaiInstance) {
+    openaiInstance = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  }
+  return openaiInstance;
 }
 
 // ============================================
@@ -68,10 +25,14 @@ export interface MemoryContext {
 /**
  * Store a new memory
  */
+/**
+ * Store a new memory
+ */
 export async function storeMemory(
   userId: string,
   memory: {
     type: MemoryType;
+    layer?: MemoryLayer; // Explicit assignment
     category: string;
     content: string;
     context?: string;
@@ -80,9 +41,19 @@ export async function storeMemory(
     source?: string;
     sourceId?: string;
     expiresAt?: Date;
+    meta?: Record<string, any>;
   }
 ): Promise<Memory | null> {
   const now = new Date().toISOString();
+
+  // Auto-stratification logic if layer is not provided
+  let targetLayer = memory.layer;
+  if (!targetLayer) {
+    if (memory.type === 'narrative_anchor') targetLayer = 'M5_Core';
+    else if (memory.type === 'pattern' || memory.type === 'insight') targetLayer = 'M3_LongTerm';
+    else if ((memory.importance || 5) >= 8) targetLayer = 'M3_LongTerm';
+    else targetLayer = 'M2_ShortTerm';
+  }
 
   // Generate embedding for semantic search
   const embedding = await generateEmbedding(memory.content);
@@ -90,8 +61,9 @@ export async function storeMemory(
   const { data, error } = await supabaseAdmin
     .from("memories")
     .insert({
-      user_id: userId,
+      owner_user_id: userId, // Updated to owner_user_id to match schema patterns
       type: memory.type,
+      layer: targetLayer,
       category: memory.category,
       content: memory.content,
       context: memory.context,
@@ -104,11 +76,15 @@ export async function storeMemory(
       access_count: 0,
       created_at: now,
       updated_at: now,
+      meta: memory.meta || {},
     })
     .select()
     .single();
 
-  if (error || !data) return null;
+  if (error || !data) {
+    if (error) console.error("Memory Store Error:", error);
+    return null;
+  }
   return mapMemory(data);
 }
 
@@ -266,7 +242,7 @@ export async function deleteMemory(userId: string, memoryId: string): Promise<bo
 export async function detectPatterns(userId: string): Promise<MemoryPattern[]> {
   // Get recent memories and activities
   const memories = await getRecentMemories(userId, 100);
-  
+
   if (memories.length < 10) return [];
 
   const prompt = `Analyze these user memories and activities for patterns:
@@ -286,7 +262,7 @@ Respond in JSON:
 }`;
 
   try {
-    const completion = await openai.chat.completions.create({
+    const completion = await getOpenAI().chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
       response_format: { type: "json_object" },
@@ -384,7 +360,7 @@ ${patterns.map((p) => `- ${p.description}`).join("\n") || "None"}
 Current query: "${query}"`;
 
     try {
-      const completion = await openai.chat.completions.create({
+      const completion = await getOpenAI().chat.completions.create({
         model: "gpt-4o-mini",
         messages: [{ role: "user", content: prompt }],
         max_tokens: 150,
@@ -430,7 +406,7 @@ Respond in JSON:
 Only extract genuinely important, long-term relevant information. If nothing important, return empty array.`;
 
   try {
-    const completion = await openai.chat.completions.create({
+    const completion = await getOpenAI().chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
       response_format: { type: "json_object" },
@@ -463,7 +439,7 @@ Only extract genuinely important, long-term relevant information. If nothing imp
 
 async function generateEmbedding(text: string): Promise<number[] | null> {
   try {
-    const response = await openai.embeddings.create({
+    const response = await getOpenAI().embeddings.create({
       model: "text-embedding-3-small",
       input: text,
     });
@@ -491,5 +467,7 @@ function mapMemory(row: any): Memory {
     lastAccessedAt: row.last_accessed_at ? new Date(row.last_accessed_at) : undefined,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
+    meta: row.meta || {},
+    layer: row.layer as MemoryLayer || 'M2_ShortTerm',
   };
 }

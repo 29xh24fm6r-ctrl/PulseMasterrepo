@@ -13,7 +13,7 @@ type GeminiResponse = {
 // If your project already has an official SDK wrapper, swap this file only.
 export class GeminiProvider implements LLMProvider {
     public readonly name = "gemini" as const;
-    public readonly defaultModel = "gemini-1.5-flash";
+    public readonly defaultModel = "gemini-2.0-flash-exp";
 
     private readonly apiKey: string;
 

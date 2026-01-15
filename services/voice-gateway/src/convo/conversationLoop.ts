@@ -125,6 +125,7 @@ export class ConversationLoop {
             return assistantText;
         } catch (err) {
             const message = err instanceof Error ? err.message : String(err);
+            console.error("[ConversationLoop] Error:", message, err);
 
             await this.emit({
                 type: "convo.error",

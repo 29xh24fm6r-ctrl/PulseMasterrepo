@@ -14,17 +14,29 @@ export function createDeepgramStream(): SttStream {
         "&punctuate=true" +
         "&interim_results=true" +
         "&endpointing=100" +
-        "&vad_events=true";
+        "&vad_events=true" +
+        "&keywords=Pulse:2";
 
     const ws = new WebSocket(url, {
         headers: { Authorization: `Token ${apiKey}` }
     });
 
+    ws.on("error", (err) => {
+        console.error("[Deepgram] WebSocket Error (Invalid Key?):", err.message);
+    });
+
     const handlers: Array<(seg: SttSegment) => void> = [];
+    const speechStartedHandlers: Array<() => void> = [];
 
     ws.on("message", (raw) => {
         try {
             const msg = JSON.parse(raw.toString());
+
+            // Handle VAD "SpeechStarted"
+            if (msg.type === "SpeechStarted") {
+                speechStartedHandlers.forEach(h => h());
+                return;
+            }
 
             // Deepgram response shape varies; this handles the common transcript payload
             const alt = msg?.channel?.alternatives?.[0];
@@ -50,6 +62,10 @@ export function createDeepgramStream(): SttStream {
         handlers.push(cb);
     }
 
+    function onSpeechStarted(cb: () => void) {
+        speechStartedHandlers.push(cb);
+    }
+
     function close() {
         try {
             if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "CloseStream" }));
@@ -59,5 +75,5 @@ export function createDeepgramStream(): SttStream {
         } catch { }
     }
 
-    return { writeAudioMulaw8k, onSegment, close };
+    return { writeAudioMulaw8k, onSegment, onSpeechStarted, close };
 }

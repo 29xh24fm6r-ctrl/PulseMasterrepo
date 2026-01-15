@@ -1,36 +1,31 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Pulse System
 
-## Getting Started
+**Pulse is not an app that does many things. Pulse is the environment in which everything else happens.**
 
-First, run the development server:
+Pulse is a comprehensive **Life Operating System** designed to act as the central nervous system for human agency. It integrates Finance, Health, Time, and Energy into a single, cohesive power surface.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Core Philosophy
+1.  **Brain-First**: Pulse models the user's cognitive state, not just their tasks.
+2.  **Autonomy-Safe**: AI agents operate under strict "Constrained Autonomy" protocols (`L0` to `L3`).
+3.  **High-Density**: The interface assumes intelligence, prioritizing data density over simplicity.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Current State (Phases 7–13)
+*   **Phase 13**: Power Surface (Command Bridge & Life State Model) - *Active*
+*   **Phase 12**: Feedback Loops
+*   **Phase 11**: Autonomy (Constrained)
+*   **Phase 10**: Trust Architecture
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Contributor Protocols (Hardened)
+*   **The root directory is sacred.** No logs, scratch files, or unauthorized scripts.
+*   **No debugging artifacts in git.** Use local `.env` or non-tracked files only.
+*   **Specs > Code.** All major changes must be spec'd in `/docs` before implementation.
+*   **Canon is Law.** Follow the architectural patterns defined in `/docs/architecture`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Documentation
+See `/docs` for authoritative specifications:
+*   `/docs/architecture`: System design and core engines.
+*   `/docs/phases`: Historical and active phase contexts.
+*   `/docs/decisions`: ADRs and philosophical constraints.
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+*Pulse OS. Inevitable.*
