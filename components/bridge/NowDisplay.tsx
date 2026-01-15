@@ -69,7 +69,7 @@ export default function NowDisplay(props: NowDisplayProps) {
 
     const isErrorState = result?.status === 'auth_missing' || result?.status === 'fetch_error';
 
-    if (isLoaded && isFirstRun && !isErrorState) {
+    if (isLoaded && isFirstRun) {
         return <BridgeFirstRun onExit={(intent) => {
             console.log("Onboarding Intent:", intent);
             markSeen();
