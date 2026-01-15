@@ -8,10 +8,6 @@
  * real data without requiring a full auth handshake in local environments.
  */
 export function devBootstrapPulseOwnerUserId() {
-    if (process.env.NODE_ENV !== "development") {
-        return;
-    }
-
     if (typeof window === "undefined") {
         return;
     }
@@ -19,10 +15,17 @@ export function devBootstrapPulseOwnerUserId() {
     const STORAGE_KEY = "pulse_owner_user_id";
     const DEV_USER_ID = process.env.NEXT_PUBLIC_DEV_PULSE_OWNER_USER_ID;
 
+    // Strict Gating: Only run if the Env Var is explicitly set.
+    // This allows Preview environments (which run as "production") to enable Dev Auth 
+    // by simply setting this variable in Vercel Project Settings.
     if (!DEV_USER_ID) {
-        console.warn(
-            "[dev-auth] NEXT_PUBLIC_DEV_PULSE_OWNER_USER_ID is not set in .env.local. Bridge data fetching may fail."
-        );
+        // In true production (no env var), we do nothing.
+        // In local dev (if missing), we warn.
+        if (process.env.NODE_ENV === "development") {
+            console.warn(
+                "[dev-auth] NEXT_PUBLIC_DEV_PULSE_OWNER_USER_ID is not set in .env.local. Bridge data fetching may fail."
+            );
+        }
         return;
     }
 
@@ -30,12 +33,14 @@ export function devBootstrapPulseOwnerUserId() {
 
     if (!existingId) {
         localStorage.setItem(STORAGE_KEY, DEV_USER_ID);
+
+        const isPreview = process.env.NODE_ENV === "production";
+        const envLabel = isPreview ? "PREVIEW" : "DEV";
+        const color = isPreview ? "color: #f59e0b; font-weight: bold;" : "color: #10b981; font-weight: bold;";
+
         console.info(
-            `%c[dev-auth] Bootstrapped ${STORAGE_KEY} to "${DEV_USER_ID}"`,
-            "color: #10b981; font-weight: bold;"
+            `%c[dev-auth:${envLabel}] Bootstrapped ${STORAGE_KEY} (Auth Bypass Enable)`,
+            color
         );
-    } else {
-        // Optional: Log that we found an ID, just for confirmation
-        // console.debug(`[dev-auth] Found existing ${STORAGE_KEY}: "${existingId}"`);
     }
 }
