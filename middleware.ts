@@ -27,12 +27,18 @@ function shouldTrack(pathname: string) {
 }
 
 export default clerkMiddleware(async (auth, request) => {
+  const { pathname } = request.nextUrl;
+
+  // Phase D1: Hard Redirect Enforcement (Legacy Routes)
+  if (pathname === '/dashboard' || pathname === '/today') {
+    return NextResponse.redirect(new URL('/bridge', request.url));
+  }
+
   if (!isPublicRoute(request)) {
     await auth.protect()
   }
 
   const res = NextResponse.next();
-  const pathname = request.nextUrl.pathname;
 
   if (shouldTrack(pathname)) {
     // Fire-and-forget: do NOT slow the request

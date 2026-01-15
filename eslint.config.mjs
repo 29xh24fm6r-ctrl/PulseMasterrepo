@@ -13,6 +13,11 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  {
+    rules: {
+      // Phase D5: Legacy imports removed. Rule cleaned up.
+    }
+  }
 ]);
 
 export default eslintConfig;

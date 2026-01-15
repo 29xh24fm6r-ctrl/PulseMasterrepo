@@ -13,9 +13,9 @@ const SECTIONS = [
     {
         title: "Perspective",
         items: [
-            { icon: LayoutGrid, label: "Dashboard", href: "/", color: "text-blue-400" },
+            { icon: LayoutGrid, label: "Bridge", href: "/", color: "text-blue-400" },
             { icon: Calendar, label: "Schedule", href: "/schedule", color: "text-cyan-400" },
-            { icon: Sun, label: "Today", href: "/today", color: "text-amber-400" },
+            { icon: Sun, label: "Now", href: "/bridge", color: "text-amber-400" },
         ]
     },
     {

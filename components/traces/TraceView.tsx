@@ -67,9 +67,9 @@ export default function TraceView({ traceId }: { traceId: string }) {
                     </div>
                     <a
                         className="px-4 py-2 rounded-xl border border-zinc-800 bg-zinc-950/20 text-zinc-200 text-sm hover:bg-zinc-900/40"
-                        href={`/today`}
+                        href={`/bridge`}
                     >
-                        Back to Today
+                        Back to Bridge
                     </a>
                     <div className="flex gap-2">
                         <button
