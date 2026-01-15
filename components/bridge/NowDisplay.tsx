@@ -4,6 +4,9 @@ import ResolvedNow from './states/ResolvedNow';
 import NoClearNow from './states/NoClearNow';
 import DeferredNow from './states/DeferredNow';
 
+import AuthMissing from './states/AuthMissing';
+import FetchError from './states/FetchError';
+
 interface NowDisplayProps {
     result: NowResult;
     onExecute: (action: RecommendedAction) => void;
@@ -36,11 +39,43 @@ function assertDeferred(
     }
 }
 
+function assertAuthMissing(
+    r: any
+): asserts r is Extract<NowResult, { status: "auth_missing" }> {
+    if (!r.message) throw new Error("Invalid auth_missing payload");
+}
+
+function assertFetchError(
+    r: any
+): asserts r is Extract<NowResult, { status: "fetch_error" }> {
+    if (!r.message) throw new Error("Invalid fetch_error payload");
+}
+
+import { useFirstRun } from '@/lib/hooks/useFirstRun';
+import BridgeFirstRun from './states/BridgeFirstRun';
+
 export default function NowDisplay(props: NowDisplayProps) {
     const { result } = props;
+    const { isFirstRun, isLoaded, markSeen } = useFirstRun();
 
-    // Defensive try-catch or safe render logic can be added, 
-    // but strictly switching on status ensures mutual exclusivity.
+    // Handling First Run Overlay
+    // We only show this if loaded to avoid hydration mismatch, 
+    // and if auth/fetch are NOT erroring (we want errors to take precedence or at least show first?)
+    // Actually spec says "First-run UI takes precedence" over NoClear/Deferred, 
+    // but Phase F says "Fail Loudly". 
+    // IF result.status is auth_missing, we MUST show AuthMissing.
+    // IF result.status is fetch_error, we probably should show that too.
+    // SO: Only show FirstRun if status is NOT error.
+
+    const isErrorState = result?.status === 'auth_missing' || result?.status === 'fetch_error';
+
+    if (isLoaded && isFirstRun && !isErrorState) {
+        return <BridgeFirstRun onExit={(intent) => {
+            console.log("Onboarding Intent:", intent);
+            markSeen();
+            // In a future iter, we would preload the input with `intent`
+        }} />;
+    }
 
     if (!result || !result.status) {
         // Emergency fallback if result is malformed
@@ -57,6 +92,18 @@ export default function NowDisplay(props: NowDisplayProps) {
     }
 
     switch (result.status) {
+        case "auth_missing":
+            try {
+                assertAuthMissing(result);
+                return <AuthMissing result={result} />;
+            } catch (e) { console.error(e); break; }
+
+        case "fetch_error":
+            try {
+                assertFetchError(result);
+                return <FetchError result={result} />;
+            } catch (e) { console.error(e); break; }
+
         case "resolved_now":
             try {
                 assertResolved(result);

@@ -64,4 +64,13 @@ export type NowResult =
         status: "deferred";
         last_known_focus?: Candidate;
         cooldown_until: Timestamp;
+    }
+    | {
+        status: "auth_missing";
+        message: string;
+    }
+    | {
+        status: "fetch_error";
+        message: string;
+        retryable: boolean;
     };

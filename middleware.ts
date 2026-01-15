@@ -9,6 +9,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/sms(.*)',
   '/api/webhooks(.*)',
   '/api/voice(.*)', // Allow voice routes to handle their own auth (and dev bypass)
+  '/api/pulse(.*)', // Allow pulse routes to handle their own auth (and dev bypass)
   '/api/stripe/webhook',
   '/api/health',
 ])
@@ -35,7 +36,12 @@ export default clerkMiddleware(async (auth, request) => {
   }
 
   if (!isPublicRoute(request)) {
-    await auth.protect()
+    // Phase F: Allow Dev Auth Bypass for Bridge
+    const isDevBridge = process.env.NODE_ENV === 'development' && request.nextUrl.pathname.startsWith('/bridge');
+
+    if (!isDevBridge) {
+      await auth.protect()
+    }
   }
 
   const res = NextResponse.next();
