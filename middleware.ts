@@ -1,82 +1,77 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
-import { NextRequest, NextResponse } from "next/server";
+import { clerkMiddleware } from '@clerk/nextjs/server'
+import { NextResponse } from "next/server";
 
-const isPublicRoute = createRouteMatcher([
-  '/sign-in(.*)',
-  '/sign-up(.*)',
-  '/api/comm(.*)',
-  '/api/calls(.*)',
-  '/api/sms(.*)',
-  '/api/webhooks(.*)',
-  '/api/voice(.*)', // Allow voice routes to handle their own auth (and dev bypass)
-  '/api/pulse(.*)', // Allow pulse routes to handle their own auth (and dev bypass)
-  '/api/stripe/webhook',
-  '/api/health',
-])
+const PUBLIC_FILE = /\.(.*)$/;
 
-const TRACK_EXCLUDE_PREFIXES = [
-  "/api",
-  "/_next",
-  "/favicon",
-  "/assets",
-  "/monitoring",
-];
+export default clerkMiddleware(async (auth, req) => {
+  const { pathname } = req.nextUrl;
+  const isDevOrPreview = process.env.NODE_ENV !== 'production' || process.env.VERCEL_ENV !== 'production';
 
-function shouldTrack(pathname: string) {
-  if (!pathname || pathname === "/") return true;
-  return !TRACK_EXCLUDE_PREFIXES.some((p) => pathname.startsWith(p));
-}
+  // Helper to safely set headers only in dev/preview
+  const setDebugHeader = (res: NextResponse, value: string) => {
+    if (isDevOrPreview) {
+      res.headers.set("X-Pulse-MW", value);
+    }
+  };
 
-export default clerkMiddleware(async (auth, request) => {
-  const { pathname } = request.nextUrl;
+  // 1) Fix Middleware: MUST Allow Next.js Internals + Public Files
+  // Antigravity MUST ensure these paths are never auth-checked, redirected, or rewritten:
+  if (
+    pathname.startsWith("/_next") ||
+    pathname === "/favicon.ico" ||
+    pathname === "/manifest.json" ||
+    pathname === "/robots.txt" ||
+    pathname === "/sitemap.xml" ||
+    pathname.startsWith("/icons") ||
+    pathname.startsWith("/images") ||
+    PUBLIC_FILE.test(pathname)
+  ) {
+    const res = NextResponse.next();
+    setDebugHeader(res, "allow_public_asset");
+    return res;
+  }
 
-  // Directive 2: Mandatory Ordering & Allowlist
-  if (pathname.startsWith("/api/dev/bootstrap")) return NextResponse.next();
+  // 2) Preview/Dev: Hard Bypass Auth If Dev Owner Env Var Is Present AND Explicitly Enabled
+  // Double-gate safety: Requires BOTH the User ID AND the Enable Flag.
+  const devOwner = process.env.NEXT_PUBLIC_DEV_PULSE_OWNER_USER_ID;
+  const devBypassEnabled = process.env.PULSE_ENABLE_DEV_BYPASS === 'true';
+
+  if (devOwner && devBypassEnabled) {
+    const res = NextResponse.next();
+    setDebugHeader(res, "allow_dev_bypass");
+    return res;
+  }
+
+  // 3) Ensure /sign-in is Public and Real
+  if (pathname.startsWith("/sign-in") || pathname.startsWith("/sign-up")) {
+    const res = NextResponse.next();
+    setDebugHeader(res, "allow_auth");
+    return res;
+  }
+
+  // 4) API Must Stay Excluded (Reconfirm)
+  if (pathname.startsWith("/api")) {
+    const res = NextResponse.next();
+    setDebugHeader(res, "allow_api");
+    return res;
+  }
 
   // Phase D1: Hard Redirect Enforcement (Legacy Routes)
+  // Preserving critical redirects
   if (pathname === '/dashboard' || pathname === '/today') {
-    return NextResponse.redirect(new URL('/bridge', request.url));
+    return NextResponse.redirect(new URL('/bridge', req.url));
   }
 
-  if (!isPublicRoute(request)) {
-    // Phase F: Allow Dev Auth Bypass for Bridge
-    // Directive 3.2: Check for Dev Cookie and allow pass-through if present.
-    // This allows Preview environments (which run as prod) to use dev auth.
-    const isDevBridge = process.env.NODE_ENV === 'development' && request.nextUrl.pathname.startsWith('/bridge');
-    const hasDevCookie = request.cookies.get('x-pulse-dev-user-id')?.value;
-
-    if (!isDevBridge && !hasDevCookie) {
-      await auth.protect()
-    }
-  }
+  // Default Auth Gate
+  // If we reached here, it's a protected route (e.g. /bridge) and we are NOT in dev bypass mode.
+  await auth.protect();
 
   const res = NextResponse.next();
-
-  if (shouldTrack(pathname)) {
-    // Fire-and-forget: do NOT slow the request
-    // We construct absolute URL because fetch needs it
-    const url = new URL("/api/activity/track", request.url);
-
-    fetch(url, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        // forward auth cookies so the route can identify user
-        cookie: request.headers.get("cookie") ?? "",
-      },
-      body: JSON.stringify({ path: pathname }),
-      cache: "no-store",
-      keepalive: true,
-    }).catch(() => { });
-  }
-
+  setDebugHeader(res, "protected_content");
   return res;
 })
 
 export const config = {
-  matcher: [
-    // Exclude /api routes entirely from middleware to prevent redirect loops or HTML responses
-    '/((?!api|_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)|monitoring).*)',
-    '/((?!api|trpc).*)', // Safety fallback for tRPC pattern if used later
-  ],
-}
+  // 4) API Must Stay Excluded (Reconfirm) - config matcher
+  matcher: ["/((?!api).*)"],
+};
