@@ -37,9 +37,12 @@ export default clerkMiddleware(async (auth, request) => {
 
   if (!isPublicRoute(request)) {
     // Phase F: Allow Dev Auth Bypass for Bridge
+    // Directive 3.2: Check for Dev Cookie and allow pass-through if present.
+    // This allows Preview environments (which run as prod) to use dev auth.
     const isDevBridge = process.env.NODE_ENV === 'development' && request.nextUrl.pathname.startsWith('/bridge');
+    const hasDevCookie = request.cookies.get('x-pulse-dev-user-id')?.value;
 
-    if (!isDevBridge) {
+    if (!isDevBridge && !hasDevCookie) {
       await auth.protect()
     }
   }

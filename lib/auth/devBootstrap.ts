@@ -29,17 +29,18 @@ export function devBootstrapPulseOwnerUserId() {
         return;
     }
 
-    const existingId = localStorage.getItem(STORAGE_KEY);
-
-    if (!existingId) {
+    if (!existingId || !document.cookie.includes('x-pulse-dev-user-id')) {
         localStorage.setItem(STORAGE_KEY, DEV_USER_ID);
+
+        // Required: Set cookie for Middleware bypass
+        document.cookie = `x-pulse-dev-user-id=${encodeURIComponent(DEV_USER_ID)}; path=/; samesite=lax`;
 
         const isPreview = process.env.NODE_ENV === "production";
         const envLabel = isPreview ? "PREVIEW" : "DEV";
         const color = isPreview ? "color: #f59e0b; font-weight: bold;" : "color: #10b981; font-weight: bold;";
 
         console.info(
-            `%c[dev-auth:${envLabel}] Bootstrapped ${STORAGE_KEY} (Auth Bypass Enable)`,
+            `%c[dev-auth:${envLabel}] Bootstrapped ${STORAGE_KEY} & Cookie (Auth Bypass Enable)`,
             color
         );
     }
