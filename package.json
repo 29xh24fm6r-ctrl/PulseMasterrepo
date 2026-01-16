@@ -14,9 +14,10 @@
         "obs:qa": "node scripts/obs-qa.mjs",
         "audit": "node scripts/audit-routes.mjs",
         "routes:gen": "node scripts/generate-routes.mjs",
+        "middleware:verify": "tsx scripts/verify_middleware.ts",
         "audit:parity": "node scripts/audit-parity.mjs",
         "audit:all": "npm run routes:gen && node scripts/audit-parity.mjs",
-        "prebuild": "npm run routes:gen",
+        "prebuild": "npm run routes:gen && npm run middleware:verify",
         "prepare": "husky",
         "test": "echo \"no tests\""
     },
