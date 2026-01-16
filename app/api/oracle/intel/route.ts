@@ -3,7 +3,7 @@ import OpenAI from "openai";
 import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase";
 
-const openai = new OpenAI();
+// const openai = new OpenAI();
 
 export async function POST(req: NextRequest) {
   try {
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
           .eq("contact_id", contactId)
           .order("created_at", { ascending: false })
           .limit(10);
-        
+
         if (data && data.length > 0) {
           interactions = data.map(i => `${i.type}: ${i.summary || i.notes}`).join("\n");
         }
@@ -45,6 +45,7 @@ Recent Interactions: ${interactions || "None"}
 Return JSON only:
 {"summary":"2-3 sentences","relationshipHealth":"brief assessment","insights":["insight1","insight2"],"suggestedActions":["action1"],"talkingPoints":["point1","point2"],"nextBestAction":"single most important step"}`;
 
+    const openai = new OpenAI();
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],

@@ -6,9 +6,9 @@ import OpenAI from "openai";
 import { refreshAccessToken } from "@/app/lib/gmail-utils";
 import { getContacts } from "@/lib/data/journal";
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+// const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
-const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+// const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
 function normalizeDatabaseId(id: string): string {
   return id.replace(/-/g, "");
@@ -381,6 +381,8 @@ Respond with a JSON array:
 Respond ONLY with the JSON array.`;
 
     try {
+      const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+      const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [{ role: "user", content: prompt }],

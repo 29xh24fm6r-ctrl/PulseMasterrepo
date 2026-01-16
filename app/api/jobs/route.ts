@@ -2,13 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { createClient } from "@supabase/supabase-js";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// The global supabase client using the service role key is being moved.
+// For GET requests, a new client will be initialized if needed, or the existing one will be used if it's for public access.
 
 // GET - Fetch job taxonomy
 export async function GET(req: NextRequest) {
+  // Initialize Supabase client for GET requests.
+  // If this GET endpoint is intended for public access without service role privileges,
+  // consider using process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY instead of SERVICE_ROLE_KEY.
+  // For now, we'll use the service role key as it was used globally before.
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
   try {
     const { searchParams } = new URL(req.url);
     const search = searchParams.get("search");

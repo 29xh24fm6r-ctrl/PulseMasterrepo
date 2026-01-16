@@ -11,7 +11,7 @@ import { supabaseSpan } from "@/services/observability/supabaseSpan";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
+// const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 const ALGO_VERSION = "v1";
 
 function utcDay(): string {
@@ -148,7 +148,9 @@ function buildSeedsFromTop(catalog: CatalogQuest[], signals: any): Seed[] {
 }
 
 async function maybeAiRerank(seeds: Seed[], signals: any): Promise<Seed[]> {
-    if (!openai) return seeds;
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) return seeds;
+    const openai = new OpenAI({ apiKey });
 
     // Very small, safe rerank: keep same 3, just reorder (no hallucinated new quests)
     try {

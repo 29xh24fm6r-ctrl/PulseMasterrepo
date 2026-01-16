@@ -1,10 +1,11 @@
 import { auth } from '@clerk/nextjs/server';
 import { canMakeAICall, trackAIUsage } from '@/services/usage';
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import { getOpenAI } from "@/lib/llm/client";
+// import OpenAI from 'openai';
 import { loadKernel, loadRelevantModules, detectRelevantModules } from '../../../lib/brain-loader';
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // Message type for conversation history
 interface Message {
@@ -71,6 +72,7 @@ ${contacts.slice(0, 5).map(c => `- ${c.name}${c.company ? ` (${c.company})` : ''
 }
 
 export async function POST(request: NextRequest) {
+  const openai = getOpenAI();
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const usageCheck = await canMakeAICall(userId, "pulse_chat", 5);

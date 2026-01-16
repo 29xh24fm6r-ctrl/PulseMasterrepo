@@ -2,9 +2,11 @@ import { canMakeAICall, trackAIUsage } from "@/services/usage";
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 
-const openai = new OpenAI();
+// const openai = new OpenAI();
+import { getOpenAI } from "@/lib/llm/client";
 
 export async function POST(request: Request) {
+  const openai = getOpenAI();
   try {
     const { task } = await request.json();
 

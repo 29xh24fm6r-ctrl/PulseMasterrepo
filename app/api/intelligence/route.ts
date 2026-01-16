@@ -7,14 +7,14 @@ import OpenAI from "openai";
 export const maxDuration = 120; // 2 minutes for deep scan
 export const dynamic = 'force-dynamic';
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+// const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const BRAVE_API_KEY = process.env.BRAVE_SEARCH_API_KEY;
 
-if (!OPENAI_API_KEY) {
-  throw new Error("Missing OPENAI_API_KEY");
-}
+// if (!OPENAI_API_KEY) {
+//   throw new Error("Missing OPENAI_API_KEY");
+// }
 
-const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+// const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
 // ============================================
 // Types
@@ -198,6 +198,10 @@ Create a comprehensive profile (JSON):
 }`;
 
   try {
+    const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+    if (!OPENAI_API_KEY) throw new Error("Missing OPENAI_API_KEY");
+    const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
@@ -348,6 +352,10 @@ export async function POST(req: NextRequest) {
       const { analysis, confidence } = await researchContact(name, company, role, email, existingContext);
 
       const briefingPrompt = `Create pre-call briefing for ${name} (${company}). Intel: ${JSON.stringify(analysis)}`;
+      const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+      if (!OPENAI_API_KEY) throw new Error("Missing OPENAI_API_KEY");
+      const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+
       const briefingCompletion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [{ role: "user", content: briefingPrompt }],

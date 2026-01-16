@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from "@clerk/nextjs/server";
-import OpenAI from 'openai';
+import { getOpenAI } from "@/lib/llm/client";
+// import OpenAI from 'openai';
 import { createContact } from "@/lib/data/journal";
 
 // Keep OpenAI for enrichment
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// Keep OpenAI for enrichment
+// const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export async function POST(request: NextRequest) {
+  const openai = getOpenAI();
   try {
     const { userId } = await auth();
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

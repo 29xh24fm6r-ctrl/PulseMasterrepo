@@ -11,7 +11,7 @@ import { logHabitCompletion, getHabits } from '@/lib/data/habits';
 import { getDeals } from '@/lib/data/deals';
 import { createFollowUp } from '@/lib/data/followups';
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// // const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // ============================================
 // MAIN API HANDLER
@@ -134,6 +134,7 @@ If just chatting with no action, use CONVERSATION.
 Output ONLY valid JSON:`;
 
   try {
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [{ role: 'user', content: prompt }],
@@ -395,6 +396,7 @@ Respond naturally to acknowledge what you did. If you created something, confirm
 Keep it SHORT and CONVERSATIONAL. No bullet points. No formal language.`;
 
   try {
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [

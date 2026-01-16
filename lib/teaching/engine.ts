@@ -6,9 +6,10 @@
  */
 
 import { supabaseAdmin } from "@/lib/supabase";
-import OpenAI from "openai";
+import { getOpenAI } from "@/lib/llm/client";
+// import OpenAI from "openai";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // ============================================
 // TYPES
@@ -360,6 +361,7 @@ export async function extractTeachingFromText(
   userId: string,
   text: string
 ): Promise<Teaching | null> {
+  const openai = getOpenAI();
   const prompt = `Extract a teaching/instruction from this user input:
 
 "${text}"

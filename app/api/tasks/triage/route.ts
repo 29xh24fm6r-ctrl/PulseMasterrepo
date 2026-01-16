@@ -10,7 +10,7 @@ import { jsonError, rateLimitOrThrow, withTimeout } from "@/lib/api/guards";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
+// const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 
 type TriageBody = {
     task_id: string;
@@ -38,7 +38,8 @@ function safeIsoOrNull(x: any): string | null {
 
 async function runTriageLLM(input: { title: string; description: string | null }): Promise<TriageResult> {
     // Deterministic fallback if no OpenAI key
-    if (!openai) {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
         return {
             priority: 2,
             context: null,
@@ -49,6 +50,7 @@ async function runTriageLLM(input: { title: string; description: string | null }
             rationale: "Fallback triage (OPENAI_API_KEY not set).",
         };
     }
+    const openai = new OpenAI({ apiKey });
 
     const system = [
         "You are Pulse, an execution triage engine.",

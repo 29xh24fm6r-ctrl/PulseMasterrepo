@@ -6,16 +6,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { getContacts, type Contact } from "@/lib/data/journal";
 import { auth } from "@clerk/nextjs/server";
 import { createClient } from "@supabase/supabase-js";
-import OpenAI from "openai";
+import { getOpenAI } from "@/lib/llm/client";
+// import OpenAI from "openai";
 import { loadKernel, loadRelevantModules, detectRelevantModules } from "@/app/lib/brain-loader";
 import { canMakeAICall, trackAIUsage } from "@/services/usage";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
-const openai = new OpenAI();
+// Lazy init moved to handler
+// const supabase = ...
+// const openai = ...
 
 // Types for the unified response
 interface PulseInsight {
@@ -84,6 +82,11 @@ interface PulseCoreResponse {
 }
 
 export async function POST(req: NextRequest) {
+  const openai = getOpenAI();
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
   try {
     const { userId } = await auth();
     if (!userId) {

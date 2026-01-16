@@ -4,7 +4,8 @@ import { Resend } from "resend";
 const FROM_EMAIL = "Pulse OS <onboarding@resend.dev>";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://pulselifeos.com";
 
-function getResendClient() {
+// Export for shared use
+export function getResendClient() {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
     console.warn("RESEND_API_KEY missing - email service disabled");

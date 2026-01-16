@@ -6,10 +6,10 @@ import { auth } from "@clerk/nextjs/server";
 import { createClient } from "@supabase/supabase-js";
 import { loadMentor } from "@/app/lib/brain-loader";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// const supabase = createClient(
+//   process.env.NEXT_PUBLIC_SUPABASE_URL!,
+//   process.env.SUPABASE_SERVICE_ROLE_KEY!
+// );
 
 // Mentor definitions
 const MENTORS = {
@@ -133,7 +133,7 @@ const BELT_RANKS = [
 function getBeltRank(xp: number): { name: string; progress: number } {
   let currentBelt = BELT_RANKS[0];
   let nextBelt = BELT_RANKS[1];
-  
+
   for (let i = BELT_RANKS.length - 1; i >= 0; i--) {
     if (xp >= BELT_RANKS[i].minXP) {
       currentBelt = BELT_RANKS[i];
@@ -141,11 +141,11 @@ function getBeltRank(xp: number): { name: string; progress: number } {
       break;
     }
   }
-  
+
   const xpInBelt = xp - currentBelt.minXP;
   const xpNeeded = nextBelt.minXP - currentBelt.minXP;
   const progress = Math.min(100, Math.floor((xpInBelt / xpNeeded) * 100));
-  
+
   return { name: currentBelt.name, progress };
 }
 
@@ -252,7 +252,7 @@ export async function POST(req: NextRequest) {
 
       // Update streak
       const today = new Date().toISOString().split("T")[0];
-      
+
       const { data: profile } = await supabase
         .from("user_profiles")
         .select("philosophy_streak, philosophy_last_practice")
@@ -261,7 +261,7 @@ export async function POST(req: NextRequest) {
 
       const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
       const lastPractice = profile?.philosophy_last_practice;
-      
+
       let newStreak = 1;
       if (lastPractice === yesterday) {
         newStreak = (profile?.philosophy_streak || 0) + 1;
@@ -279,8 +279,8 @@ export async function POST(req: NextRequest) {
           updated_at: new Date().toISOString(),
         }, { onConflict: "user_id" });
 
-      return NextResponse.json({ 
-        success: true, 
+      return NextResponse.json({
+        success: true,
         xpAwarded: 25,
         newStreak,
       });

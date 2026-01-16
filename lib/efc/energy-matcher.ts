@@ -2,15 +2,8 @@
 // Tracks user energy and matches tasks to current state
 
 import { createClient } from "@supabase/supabase-js";
-import OpenAI from "openai";
-import {
-  EnergyState,
-  EnergyLevel,
-  ActionType,
-  PrioritizedAction,
-} from "./types";
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// import OpenAI from "openai";
+// const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 function getSupabase() {
   return createClient(

@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { readTraceHeaders, traceFromBody } from "@/lib/executions/traceHeaders";
 import { linkArtifact } from "@/lib/executions/artifactLinks";
-import { Resend } from "resend";
+import { getResendClient } from "@/services/email/transactional";
+// import { Resend } from "resend";
 import { logActivityEvent } from "@/lib/activity/log";
 import { bumpScore } from "@/lib/work/scoreboard";
 import { logActivity } from "@/lib/activity/logActivity";
@@ -11,7 +12,8 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 // Instantiate Resend client
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Instantiate Resend client
+// const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM_EMAIL = "Pulse OS <onboarding@resend.dev>"; // Fallback default
 
 type SendEmailOptions = {
@@ -26,7 +28,8 @@ type SendEmailOptions = {
 
 // Local helper to match the user's pattern
 async function sendEmail({ to, subject, text, html, replyTo, headers }: SendEmailOptions) {
-    if (!process.env.RESEND_API_KEY) {
+    const resend = getResendClient();
+    if (!resend) {
         throw new Error("Missing RESEND_API_KEY");
     }
 

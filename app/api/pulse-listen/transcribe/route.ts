@@ -3,15 +3,14 @@ import OpenAI from "openai";
 import fs from "fs";
 import path from "path";
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-
-if (!OPENAI_API_KEY) {
-  throw new Error("OPENAI_API_KEY is not set");
-}
-
-const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+// const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
 export async function POST(req: Request) {
+  const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+  if (!OPENAI_API_KEY) {
+    throw new Error("OPENAI_API_KEY is not set");
+  }
+  const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
   try {
     const formData = await req.formData();
     const audioFile = formData.get("audio") as File;

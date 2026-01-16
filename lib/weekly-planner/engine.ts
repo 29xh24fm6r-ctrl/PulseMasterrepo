@@ -6,9 +6,10 @@
  */
 
 import { supabaseAdmin } from "@/lib/supabase";
-import OpenAI from "openai";
+import { getOpenAI } from "@/lib/llm/client";
+// import OpenAI from "openai";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // ============================================
 // TYPES
@@ -200,6 +201,7 @@ export async function generateWeeklyPlanSuggestions(
   suggestedGoals: WeeklyGoal[];
   aiAdvice: string;
 }> {
+  const openai = getOpenAI();
   const prompt = `You are a productivity coach helping plan the week ahead.
 
 CONTEXT:
@@ -291,6 +293,7 @@ export async function generateWeeklyReview(
   const completedPriorities = priorities.filter((p: any) => p.completed).length;
   const completedGoals = goals.filter((g: any) => g.completed).length;
 
+  const openai = getOpenAI();
   const prompt = `Summarize this week's performance:
 
 Theme: ${plan.theme || "Not set"}

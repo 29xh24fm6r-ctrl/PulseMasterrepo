@@ -10,8 +10,8 @@ import { createTask, getTasks } from '@/lib/data/tasks';
 import { createFollowUp, getFollowUps } from '@/lib/data/followups';
 import { createContact, getContacts } from '@/lib/data/journal';
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+// const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+// const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
 // ============================================
 // BLOCKED DOMAINS & PATTERNS
@@ -284,6 +284,8 @@ If an email is automated (job listing, property alert, newsletter, training remi
 Respond ONLY with valid JSON.`;
 
     try {
+      const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+      const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [{ role: "user", content: prompt }],

@@ -3,15 +3,14 @@ import { NextResponse } from "next/server";
 import { updateContact, getContact } from "@/lib/data/journal";
 import OpenAI from "openai";
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-
-if (!OPENAI_API_KEY) {
-  throw new Error("OPENAI_API_KEY is not set");
-}
-
-const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+// const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
 export async function POST(req: Request) {
+  const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+  if (!OPENAI_API_KEY) {
+    throw new Error("OPENAI_API_KEY is not set");
+  }
+  const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
   try {
     const { userId } = await auth();
     if (!userId) {

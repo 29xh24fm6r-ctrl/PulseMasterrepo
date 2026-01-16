@@ -5,7 +5,7 @@ import { createDeal } from "@/lib/data/deals";
 import { PulseCortex } from "@/lib/cortex";
 
 // Keep OpenAI for enrichment
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // Define valid stages
 type DealStage = 'Prospecting' | 'Qualification' | 'Proposal' | 'Negotiation' | 'Closed Won' | 'Closed Lost';
@@ -103,6 +103,7 @@ export async function POST(request: NextRequest) {
     
     Return JSON: { industry, companySize, suggestedValue, aiInsights }`;
 
+            const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
             const completion = await openai.chat.completions.create({
               model: 'gpt-4o-mini',
               messages: [{ role: 'user', content: aiPrompt }],

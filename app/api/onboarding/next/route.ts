@@ -5,19 +5,26 @@ import { canMakeAICall, trackAIUsage } from "@/services/usage";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { createClient } from "@supabase/supabase-js";
-import OpenAI from "openai";
+import { getOpenAI } from "@/lib/llm/client";
+// import OpenAI from "openai";
 import { ONBOARDING_SYSTEM_PROMPT, FIRST_QUESTION, OnboardingResponse } from "@/lib/onboarding/system";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// const supabase = createClient(
+//   process.env.NEXT_PUBLIC_SUPABASE_URL!,
+//   process.env.SUPABASE_SERVICE_ROLE_KEY!
+// );
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-});
+// const openai = new OpenAI({
+//   apiKey: process.env.OPENAI_API_KEY!,
+// });
 
 export async function POST(req: NextRequest) {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  const openai = getOpenAI();
   try {
     const { userId } = await auth();
     if (!userId) {
@@ -212,7 +219,7 @@ export async function POST(req: NextRequest) {
         }, { onConflict: "user_id" });
 
       // Create initial dashboard layout
-      await createDashboardLayout(userId, aiResponse.profile);
+      await createDashboardLayout(userId, aiResponse.profile, supabase);
 
       return NextResponse.json({
         isComplete: true,
@@ -270,7 +277,7 @@ function deepMerge(target: Record<string, unknown>, source: Record<string, unkno
 }
 
 // Helper: Create dashboard layout based on profile
-async function createDashboardLayout(userId: string, profile: any) {
+async function createDashboardLayout(userId: string, profile: any, supabase: any) {
   const widgets = profile.dashboardConfig?.widgets || getDefaultWidgets(profile);
 
   const layoutData = {

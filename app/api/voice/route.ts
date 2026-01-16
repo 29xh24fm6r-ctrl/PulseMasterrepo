@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import { getOpenAI } from "@/lib/llm/client";
 import { toFile } from 'openai/uploads';
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// Lazy init
+// const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // Transcribe audio to text using Whisper
 export async function POST(request: NextRequest) {
+  const openai = getOpenAI();
   try {
     const formData = await request.formData();
     const action = formData.get('action') as string;
@@ -13,7 +15,7 @@ export async function POST(request: NextRequest) {
     // Speech-to-Text
     if (action === 'transcribe') {
       const audioBlob = formData.get('audio') as Blob;
-      
+
       if (!audioBlob) {
         return NextResponse.json({ error: 'No audio provided' }, { status: 400 });
       }
@@ -28,16 +30,16 @@ export async function POST(request: NextRequest) {
         language: 'en',
       });
 
-      return NextResponse.json({ 
+      return NextResponse.json({
         text: transcription.text,
-        success: true 
+        success: true
       });
     }
 
     // Text-to-Speech
     if (action === 'speak') {
       const text = formData.get('text') as string;
-      
+
       if (!text) {
         return NextResponse.json({ error: 'No text provided' }, { status: 400 });
       }
@@ -52,7 +54,7 @@ export async function POST(request: NextRequest) {
 
       // Convert to buffer and send as audio
       const audioBuffer = Buffer.from(await mp3Response.arrayBuffer());
-      
+
       return new NextResponse(audioBuffer, {
         headers: {
           'Content-Type': 'audio/mpeg',

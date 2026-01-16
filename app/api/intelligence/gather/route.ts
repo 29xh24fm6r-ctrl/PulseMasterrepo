@@ -5,13 +5,13 @@ import OpenAI from "openai";
 
 export const maxDuration = 60; // 1 minute timeout
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+// const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
-if (!OPENAI_API_KEY) {
-  throw new Error("Missing required environment variables");
-}
+// if (!OPENAI_API_KEY) {
+//   throw new Error("Missing required environment variables");
+// }
 
-const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+// const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
 async function searchWeb(query: string): Promise<any> {
   try {
@@ -147,6 +147,10 @@ ${intelligenceSummary}
 }
 
 **CRITICAL:** Keep ALL responses SHORT. Only include info from search results. Respond ONLY with valid JSON.`;
+
+    const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+    if (!OPENAI_API_KEY) throw new Error("Missing required environment variables");
+    const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",

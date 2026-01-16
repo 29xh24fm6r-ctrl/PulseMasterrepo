@@ -6,8 +6,8 @@ import OpenAI from "openai";
 import { refreshAccessToken } from "@/app/lib/gmail-utils";
 import { getContactByEmail } from "@/lib/data/journal";
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+// const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+// const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
 // ============================================
 // BLOCKED DOMAINS - Skip entirely
@@ -248,6 +248,8 @@ Be STRICT. When in doubt, mark as NOT actionable. We only want REAL person-to-pe
 Respond ONLY with JSON array.`;
 
     try {
+      const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+      const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [{ role: "user", content: prompt }],
@@ -366,6 +368,8 @@ If an email has NO actionable items or is automated, don't include it.
 Respond ONLY with the JSON array.`;
 
     try {
+      const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+      const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [{ role: "user", content: prompt }],

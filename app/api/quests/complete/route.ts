@@ -6,10 +6,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { createClient } from "@supabase/supabase-js";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// const supabase = createClient(
+//   process.env.NEXT_PUBLIC_SUPABASE_URL!,
+//   process.env.SUPABASE_SERVICE_ROLE_KEY!
+// );
 
 // XP rewards by quest type and difficulty
 const XP_REWARDS = {
@@ -65,9 +65,9 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (existingCompletion) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: "Quest already completed today",
-        alreadyCompleted: true 
+        alreadyCompleted: true
       }, { status: 400 });
     }
 
@@ -146,7 +146,7 @@ export async function POST(req: NextRequest) {
     // Award achievements
     for (const achievementKey of newAchievements) {
       const achievement = ACHIEVEMENTS[achievementKey as keyof typeof ACHIEVEMENTS];
-      
+
       // Check if already has achievement
       const { data: existing } = await supabase
         .from("achievements")
