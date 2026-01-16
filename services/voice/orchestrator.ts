@@ -5,7 +5,7 @@
  * Processes voice commands and generates spoken responses
  */
 
-import OpenAI from "openai";
+import { getOpenAI } from "@/lib/llm/client";
 import { supabaseAdmin } from "@/lib/supabase";
 import { callAIJson } from "@/lib/ai/call";
 import { getEmotionalState } from "@/lib/emotional/engine";
@@ -14,7 +14,8 @@ import { getLatestExecutiveSummary } from "@/lib/executive/engine";
 import { getSuggestedActions } from "@/lib/autonomy/engine";
 import { trackTTSUsage } from "@/services/usage";
 
-const openai = new OpenAI();
+// Removed top-level init
+// const openai = new OpenAI();
 
 // ============================================
 // TYPES
@@ -422,6 +423,7 @@ export async function generateSpeech(
   text: string,
   voice: "alloy" | "echo" | "fable" | "onyx" | "nova" | "shimmer" = "nova"
 ): Promise<Buffer> {
+  const openai = getOpenAI();
   const response = await openai.audio.speech.create({
     model: "tts-1",
     voice,

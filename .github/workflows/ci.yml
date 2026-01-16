@@ -11,6 +11,7 @@ jobs:
     env:
       OPENAI_API_KEY: ci_stub
       RESEND_API_KEY: ci_stub
+
     steps:
       - uses: actions/checkout@v4
 

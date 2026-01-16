@@ -4,9 +4,15 @@ import OpenAI from "openai";
 
 let openaiClient: OpenAI | null = null;
 
-function getOpenAI(): OpenAI {
+export function getOpenAI(): OpenAI {
   if (!openaiClient) {
-    openaiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const apiKey = process.env.OPENAI_API_KEY;
+    // Silent fail or throw? If we want lazy, we might throw here if missing, 
+    // but better to let OpenAI throw or handle gracefully.
+    // For now, pass what we have.
+    openaiClient = new OpenAI({ apiKey: apiKey || "dummy_key_for_build" });
+    // Note: Passing dummy key prevents crash if env missing, but calls will fail. 
+    // This is "build safe".
   }
   return openaiClient;
 }
@@ -27,15 +33,15 @@ interface LLMJsonParams {
 // Main JSON completion function (matches spec)
 export async function llmJson(params: LLMJsonParams): Promise<any> {
   const { prompt, schema, model = "gpt-4o-mini", maxRetries = 2 } = params;
-  
+
   let lastError: Error | null = null;
-  
+
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      const systemPrompt = schema 
+      const systemPrompt = schema
         ? `You are a helpful assistant that responds only in valid JSON matching this schema: ${JSON.stringify(schema)}. No markdown, no explanation, just valid JSON.`
         : `You are a helpful assistant that responds only in valid JSON. No markdown, no explanation, just valid JSON.`;
-      
+
       const openai = getOpenAI();
       const response = await openai.chat.completions.create({
         model,
@@ -48,7 +54,7 @@ export async function llmJson(params: LLMJsonParams): Promise<any> {
       });
 
       const content = response.choices[0]?.message?.content || "{}";
-      
+
       // Clean and parse JSON
       let cleaned = content.trim();
       if (cleaned.startsWith("```json")) cleaned = cleaned.slice(7);
@@ -60,14 +66,14 @@ export async function llmJson(params: LLMJsonParams): Promise<any> {
     } catch (error) {
       lastError = error as Error;
       console.warn(`LLM JSON attempt ${attempt + 1} failed:`, error);
-      
+
       // If JSON parse error, try auto-correction on next attempt
       if (attempt < maxRetries && error instanceof SyntaxError) {
         continue;
       }
     }
   }
-  
+
   throw lastError || new Error("LLM JSON failed after retries");
 }
 
@@ -77,7 +83,7 @@ export async function llmComplete(
   options: LLMOptions = {}
 ): Promise<string> {
   const { model = "gpt-4o-mini", temperature = 0.7, max_tokens = 1000 } = options;
-  
+
   const openai = getOpenAI();
   const response = await openai.chat.completions.create({
     model,
