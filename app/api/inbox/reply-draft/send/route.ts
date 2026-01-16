@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { ensureOutboxForReplyDraft } from "@/lib/email/replyDraftSend";
+import { ensureOutboxForReplyDraft } from "@/services/email/replyDraftSend";
 
 export async function POST(req: Request) {
     const gate = await requireOpsAuth();

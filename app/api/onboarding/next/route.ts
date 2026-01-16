@@ -1,4 +1,4 @@
-import { canMakeAICall, trackAIUsage } from "@/lib/services/usage";
+import { canMakeAICall, trackAIUsage } from "@/services/usage";
 // POST /api/onboarding/next
 // Gets the next question based on conversation history
 
@@ -35,9 +35,9 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (existingProfile?.onboarding_completed) {
-      return NextResponse.json({ 
-        isComplete: true, 
-        redirect: "/" 
+      return NextResponse.json({
+        isComplete: true,
+        redirect: "/"
       });
     }
 
@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
         .single();
 
       if (error) throw error;
-      
+
       // Update profile to mark onboarding started
       await supabase
         .from("user_profiles")
@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
           questionNumber: 1,
         });
       }
-      
+
       // Get last question to re-display
       const lastMessage = messages[messages.length - 1];
       if (lastMessage.role === 'assistant') {
@@ -116,7 +116,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Build conversation history for OpenAI
-    const openaiMessages: Array<{role: "system" | "user" | "assistant", content: string}> = [
+    const openaiMessages: Array<{ role: "system" | "user" | "assistant", content: string }> = [
       { role: 'system' as const, content: ONBOARDING_SYSTEM_PROMPT },
     ];
 
@@ -272,7 +272,7 @@ function deepMerge(target: Record<string, unknown>, source: Record<string, unkno
 // Helper: Create dashboard layout based on profile
 async function createDashboardLayout(userId: string, profile: any) {
   const widgets = profile.dashboardConfig?.widgets || getDefaultWidgets(profile);
-  
+
   const layoutData = {
     widgets,
     style: profile.preferences?.visualStyle || 'dark_focused',
@@ -294,33 +294,33 @@ async function createDashboardLayout(userId: string, profile: any) {
 
 function getDefaultWidgets(profile: any): string[] {
   const widgets = ['daily_focus', 'guidance_stream'];
-  
+
   const role = profile.role?.type;
   const industry = profile.role?.industry;
-  
+
   // Add role-specific widgets
   if (role === 'self_employed' || industry?.includes('mortgage') || industry?.includes('real_estate') || industry?.includes('sales')) {
     widgets.push('pipeline_snapshot', 'follow_up_radar', 'prospecting_tracker');
   }
-  
+
   if (role === 'employed' || role === 'manager') {
     widgets.push('tasks_today', 'calendar_preview', 'meetings_prep');
   }
-  
+
   if (profile.family?.situation?.includes('kids') || profile.family?.situation?.includes('parent')) {
     widgets.push('family_commitments');
   }
-  
+
   if (profile.preferences?.gamification?.xp) {
     widgets.push('xp_progress');
   }
-  
+
   if (profile.preferences?.gamification?.streaks) {
     widgets.push('streak_tracker');
   }
-  
+
   // Add standard widgets
   widgets.push('quick_capture', 'upcoming_week');
-  
+
   return widgets;
 }

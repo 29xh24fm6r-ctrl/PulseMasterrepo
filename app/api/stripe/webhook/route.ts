@@ -9,7 +9,7 @@ import {
   getPlanFromPriceId,
   getTokensFromPriceId,
   mapSubscriptionStatus,
-} from "@/lib/stripe";
+} from "@/services/stripe";
 import { supabaseAdmin } from "@/lib/supabase";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;

@@ -3,10 +3,10 @@ import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import OpenAI from "openai";
 import { jsonError, rateLimitOrThrow, withTimeout } from "@/lib/api/guards";
-import { withJourney } from "@/lib/observability/journey";
-import { withPerf } from "@/lib/observability/perf";
-import { setObsContext } from "@/lib/observability/context";
-import { supabaseSpan } from "@/lib/observability/supabaseSpan";
+import { withJourney } from "@/services/observability/journey";
+import { withPerf } from "@/services/observability/perf";
+import { setObsContext } from "@/services/observability/context";
+import { supabaseSpan } from "@/services/observability/supabaseSpan";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

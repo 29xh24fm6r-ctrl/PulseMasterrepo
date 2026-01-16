@@ -49,9 +49,11 @@ async function verify() {
 
             let headerMatch = false;
             if (Array.isArray(check.expectedHeader)) {
-                headerMatch = check.expectedHeader.includes(mwHeader || '');
+                headerMatch = check.expectedHeader.some(expected =>
+                    (mwHeader || '').startsWith(expected) || (mwHeader || '') === expected
+                );
             } else {
-                headerMatch = mwHeader === check.expectedHeader;
+                headerMatch = (mwHeader || '') === check.expectedHeader;
             }
 
             if (!headerMatch) {

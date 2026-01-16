@@ -1,6 +1,6 @@
 
 import { auth } from "@clerk/nextjs/server";
-import { sentrySetUser } from "../observability/sentryUser";
+import { sentrySetUser } from "@/services/observability/sentryUser";
 
 import { requireCanonUser } from "@/lib/canon/requireCanonUser";
 

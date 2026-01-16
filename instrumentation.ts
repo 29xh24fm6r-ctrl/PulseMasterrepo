@@ -1,6 +1,6 @@
 import * as Sentry from "@sentry/nextjs";
-import { markBootOnce } from "@/lib/observability/coldStart";
-import { markDeployOnce } from "@/lib/observability/deployMarker";
+import { markBootOnce } from "@/services/observability/coldStart";
+import { markDeployOnce } from "@/services/observability/deployMarker";
 
 export async function register() {
     markBootOnce();

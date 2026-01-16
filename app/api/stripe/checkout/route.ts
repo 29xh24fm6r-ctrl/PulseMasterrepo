@@ -10,7 +10,7 @@ import {
   STRIPE_PRICES,
   PLANS,
   TOKEN_PACKAGES,
-} from "@/lib/stripe";
+} from "@/services/stripe";
 
 export async function POST(req: NextRequest) {
   try {
@@ -65,8 +65,8 @@ export async function POST(req: NextRequest) {
     }
 
     const planConfig = PLANS.plus;
-    const priceId = billingPeriod === "yearly" 
-      ? planConfig.priceId.yearly 
+    const priceId = billingPeriod === "yearly"
+      ? planConfig.priceId.yearly
       : planConfig.priceId.monthly;
 
     if (!priceId) {

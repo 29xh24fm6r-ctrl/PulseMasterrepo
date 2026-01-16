@@ -3,7 +3,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { createBillingPortalSession } from "@/lib/stripe";
+import { createBillingPortalSession } from "@/services/stripe";
 import { supabaseAdmin } from "@/lib/supabase";
 
 export async function POST(req: NextRequest) {

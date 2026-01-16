@@ -1,5 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
-import { canMakeAICall } from "@/lib/services/usage";
+import { canMakeAICall } from "@/services/usage";
 import { NextResponse } from "next/server";
 import { getContacts } from "@/lib/data/journal";
 import { generateSalesEmail } from "@/lib/ai/email-generator";

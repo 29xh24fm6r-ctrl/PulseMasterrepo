@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import * as Sentry from "@sentry/nextjs";
-import { checkSupabase } from "@/lib/observability/canary/checkSupabase";
-import { checkEmail } from "@/lib/observability/canary/checkEmail";
-import { checkOpenAI } from "@/lib/observability/canary/checkOpenAI";
-import type { CanaryReport } from "@/lib/observability/canary/types";
+import { checkSupabase } from "@/services/observability/canary/checkSupabase";
+import { checkEmail } from "@/services/observability/canary/checkEmail";
+import { checkOpenAI } from "@/services/observability/canary/checkOpenAI";
+import type { CanaryReport } from "@/services/observability/canary/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

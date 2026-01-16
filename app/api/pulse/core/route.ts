@@ -8,7 +8,7 @@ import { auth } from "@clerk/nextjs/server";
 import { createClient } from "@supabase/supabase-js";
 import OpenAI from "openai";
 import { loadKernel, loadRelevantModules, detectRelevantModules } from "@/app/lib/brain-loader";
-import { canMakeAICall, trackAIUsage } from "@/lib/services/usage";
+import { canMakeAICall, trackAIUsage } from "@/services/usage";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,

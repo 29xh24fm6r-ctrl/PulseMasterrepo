@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 import { supabaseAdmin } from "@/lib/supabase";
-import { VoiceResponse, APP_BASE_URL } from "@/lib/comm/twilio";
+import { VoiceResponse, APP_BASE_URL } from "@/services/twilio";
 
 export async function POST(request: Request) {
   try {

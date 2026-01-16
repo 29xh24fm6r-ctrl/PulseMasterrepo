@@ -6,7 +6,7 @@
  */
 
 import OpenAI from "openai";
-import { trackAIUsage, canMakeAICall } from "@/lib/services/usage";
+import { trackAIUsage, canMakeAICall } from "@/services/usage";
 
 const openai = new OpenAI();
 

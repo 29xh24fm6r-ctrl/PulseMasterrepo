@@ -119,6 +119,7 @@ export const GENERATED_APIS = [
   "/api/delegation/drafts",
   "/api/delegation/drafts/[id]",
   "/api/dev/apps",
+  "/api/dev/bootstrap",
   "/api/efc/actions",
   "/api/efc/briefing",
   "/api/efc/commitments",

@@ -2,7 +2,7 @@
 import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-import { VoiceResponse } from "@/lib/comm/twilio";
+import { VoiceResponse } from "@/services/twilio";
 
 export async function GET(request: Request) {
   return handleTwiml(request);

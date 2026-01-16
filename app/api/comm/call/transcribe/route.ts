@@ -5,7 +5,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 import { triggerAutoFollowupForCall } from "@/lib/delegation/auto-followup";
-import { getCallSession, updateCallSession } from "@/lib/comm/store";
+import { getCallSession, updateCallSession } from "@/services/comm/store";
 import { logThirdBrainEvent, upsertMemory } from "@/lib/third-brain/service";
 import { pulseVertex } from "@/lib/pulse/vertex-ai";
 

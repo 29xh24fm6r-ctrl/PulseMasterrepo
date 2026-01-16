@@ -1,4 +1,4 @@
-import { canMakeAICall, trackAIUsage } from "@/lib/services/usage";
+import { canMakeAICall, trackAIUsage } from "@/services/usage";
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { getContacts, type Contact } from "@/lib/data/journal";

@@ -1,4 +1,4 @@
-import { canMakeAICall, trackAIUsage } from "@/lib/services/usage";
+import { canMakeAICall, trackAIUsage } from "@/services/usage";
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 
@@ -51,7 +51,7 @@ Return ONLY a JSON array with this exact format, no other text:
     }
 
     const microTasks = JSON.parse(jsonMatch[0]);
-    
+
     // Add IDs and rewards
     const REWARDS = ['🎉', '⭐', '🔥', '💪', '🚀', '✨', '🌟', '💎', '👏'];
     const enrichedTasks = microTasks.map((mt: any, index: number) => ({
@@ -66,7 +66,7 @@ Return ONLY a JSON array with this exact format, no other text:
 
   } catch (error) {
     console.error("Micro-tasks generation error:", error);
-    
+
     // Fallback to generic tasks if AI fails
     const fallbackTasks = [
       { id: '1', title: 'Open and review what needs to be done', estimatedMinutes: 2, completed: false, dopamineReward: '⭐' },
@@ -75,7 +75,7 @@ Return ONLY a JSON array with this exact format, no other text:
       { id: '4', title: 'Check progress and plan next move', estimatedMinutes: 5, completed: false, dopamineReward: '🚀' },
       { id: '5', title: 'Final push - finish strong!', estimatedMinutes: 5, completed: false, dopamineReward: '🏆' },
     ];
-    
+
     return NextResponse.json({ microTasks: fallbackTasks });
   }
 }

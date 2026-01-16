@@ -1,4 +1,4 @@
-import { canMakeAICall, trackAIUsage } from "@/lib/services/usage";
+import { canMakeAICall, trackAIUsage } from "@/services/usage";
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 
