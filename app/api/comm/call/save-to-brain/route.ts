@@ -2,7 +2,7 @@
 import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-import { getCallSession } from "@/lib/comm/store";
+import { getCallSession } from "@/services/comm/store";
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(

@@ -1,4 +1,4 @@
-import { canMakeAICall, trackAIUsage } from "@/lib/services/usage";
+import { canMakeAICall, trackAIUsage } from "@/services/usage";
 // Pulse OS - Intelligent Voice Actions (Supabase Backend)
 // app/api/pulse/intelligent/route.ts
 

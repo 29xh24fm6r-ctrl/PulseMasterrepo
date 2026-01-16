@@ -10,7 +10,7 @@ import {
   getReferralStats,
   hasFeatureAccess,
   PLAN_LIMITS,
-} from "@/lib/services/profile";
+} from "@/services/profile";
 
 // GET - Get current user's profile
 export async function GET(req: NextRequest) {
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
       const { feature } = body;
       const { profile } = await getOrCreateProfile(userId);
       const hasAccess = hasFeatureAccess(profile, feature);
-      
+
       return NextResponse.json({
         feature,
         hasAccess,
@@ -133,7 +133,7 @@ export async function PATCH(req: NextRequest) {
     const { plan, stripe_customer_id, stripe_subscription_id, subscription_status, token_balance_cents } = body;
 
     const updates: Record<string, any> = {};
-    
+
     if (plan) updates.plan = plan;
     if (stripe_customer_id) updates.stripe_customer_id = stripe_customer_id;
     if (stripe_subscription_id) updates.stripe_subscription_id = stripe_subscription_id;

@@ -3,19 +3,23 @@ import { ShieldAlert } from 'lucide-react';
 import { NowCard, PrimaryFocusTitle, StatusText, ActionButton } from '../atoms';
 import { NowResult } from '@/lib/now-engine/types';
 
+import { bootstrapDevUserIdFromServer } from "@/lib/auth/bootstrapClient";
+
 interface AuthMissingProps {
     result: Extract<NowResult, { status: "auth_missing" }>;
 }
 
+const LS_KEY = "pulse_owner_user_id";
+
+// Cleaned up: implementation moved to lib/auth/bootstrapClient.ts
+const bootstrapFromServer = bootstrapDevUserIdFromServer;
+
 export default function AuthMissing({ result }: AuthMissingProps) {
     const handleSetDevUser = async () => {
-        // Directive 3: Server-side bootstrap
+        // Directive 3: Server-side bootstrap (Manual Trigger)
         try {
-            await fetch('/api/dev/bootstrap', { method: 'POST' });
-            // Also keep local logic for immediate UI feedback if needed, but server cookie is key.
-            const envUserId = process.env.NEXT_PUBLIC_DEV_PULSE_OWNER_USER_ID;
-            if (envUserId) localStorage.setItem('pulse_owner_user_id', envUserId);
-
+            const userId = await bootstrapFromServer();
+            localStorage.setItem(LS_KEY, userId);
             window.location.reload();
         } catch (e) {
             console.error("Bootstrap failed", e);
@@ -44,7 +48,7 @@ export default function AuthMissing({ result }: AuthMissingProps) {
                 </div>
 
                 <p className="text-xs text-slate-600 font-mono mt-4">
-                    localStorage.pulse_owner_user_id is undefined
+                    Server-Verified Dev Auth Required
                 </p>
             </div>
         </NowCard>

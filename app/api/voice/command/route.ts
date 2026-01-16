@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { processVoiceCommand, generateSpeech } from "@/lib/voice/orchestrator";
+import { processVoiceCommand, generateSpeech } from "@/services/voice/orchestrator";
 
 export async function POST(req: NextRequest) {
   try {

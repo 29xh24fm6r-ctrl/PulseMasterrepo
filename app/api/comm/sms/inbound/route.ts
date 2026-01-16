@@ -2,8 +2,8 @@
 import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-import { storeSMS } from "@/lib/comm/smsStore";
-import { MessagingResponse } from "@/lib/comm/twilio";
+import { storeSMS } from "@/services/comm/smsStore";
+import { MessagingResponse } from "@/services/twilio";
 
 export async function POST(request: Request) {
   try {

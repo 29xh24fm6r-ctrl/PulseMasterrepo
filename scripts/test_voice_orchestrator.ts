@@ -7,7 +7,7 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
 async function testVoiceOrchestrator() {
     // Dynamically import to ensure env vars are loaded
-    const { processVoiceCommand } = await import('../lib/voice/orchestrator');
+    const { processVoiceCommand } = await import('../services/voice/orchestrator');
 
     // Hardcoded known user ID (from previous context or env)
     // Using the admin user ID seen in admin/stats route: user_36NzFTiYlRlzKxEfTw2FXrnVJNe

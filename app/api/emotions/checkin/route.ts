@@ -1,4 +1,4 @@
-import { canMakeAICall, trackAIUsage } from "@/lib/services/usage";
+import { canMakeAICall, trackAIUsage } from "@/services/usage";
 // Emotional Check-in API
 // POST /api/emotions/checkin - Save emotional state
 // GET /api/emotions/checkin - Get recent emotional states
@@ -153,7 +153,7 @@ export async function POST(req: NextRequest) {
     if (recentCheckins && recentCheckins.length >= 3) {
       const avgMood = recentCheckins.reduce((sum, c) => sum + c.mood, 0) / recentCheckins.length;
       const avgEnergy = recentCheckins.reduce((sum, c) => sum + c.energy, 0) / recentCheckins.length;
-      
+
       if (avgMood < mood) {
         trend = "improving";
       } else if (avgMood > mood + 1) {

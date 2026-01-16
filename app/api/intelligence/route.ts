@@ -1,5 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
-import { canMakeAICall, trackAIUsage } from "@/lib/services/usage";
+import { canMakeAICall, trackAIUsage } from "@/services/usage";
 import { NextRequest, NextResponse } from "next/server";
 import { getContacts, type Contact } from "@/lib/data/journal";
 import OpenAI from "openai";

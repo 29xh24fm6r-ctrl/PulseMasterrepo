@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 import OpenAI from "openai";
-import { getCallSession, updateCallSession } from "@/lib/comm/store";
+import { getCallSession, updateCallSession } from "@/services/comm/store";
 
 const openai = new OpenAI();
 

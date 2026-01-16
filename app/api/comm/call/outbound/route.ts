@@ -3,8 +3,8 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 import { auth } from "@clerk/nextjs/server";
-import { createCallSession, updateCallSession } from "@/lib/comm/store";
-import { twilioClient, APP_BASE_URL, TWILIO_VOICE_NUMBER } from "@/lib/comm/twilio";
+import { createCallSession, updateCallSession } from "@/services/comm/store";
+import { twilioClient, APP_BASE_URL, TWILIO_VOICE_NUMBER } from "@/services/twilio";
 
 export async function POST(request: Request) {
   try {
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
       await updateCallSession(session.id, { tags: [`contact:${contactName}`] });
     }
 
-    const client = twilioClient();
+    const client = twilioClient;
 
     if (formattedUserPhone) {
       // BRIDGE MODE: Call user first, then connect to target

@@ -2,8 +2,8 @@
 import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-import { updateCallSession } from "@/lib/comm/store";
-import { VoiceResponse } from "@/lib/comm/twilio";
+import { updateCallSession } from "@/services/comm/store";
+import { VoiceResponse } from "@/services/twilio";
 
 export async function POST(request: Request) {
   try {

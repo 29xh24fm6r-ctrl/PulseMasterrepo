@@ -1,47 +1,55 @@
-"use client";
+import { bootstrapDevUserIdFromServer } from "@/lib/auth/bootstrapClient";
 
-/**
- * Dev Auth Bootstrap
- * 
- * Ensures a valid `pulse_owner_user_id` exists in localStorage during development.
- * This is critical for the Command Bridge and other intelligence surfaces to load
- * real data without requiring a full auth handshake in local environments.
- */
-export function devBootstrapPulseOwnerUserId() {
+const LS_KEY = "pulse_owner_user_id";
+
+// Local helper removed in favor of canonical one
+const bootstrapFromServer = bootstrapDevUserIdFromServer;
+
+export async function devBootstrapPulseOwnerUserId(): Promise<void> {
     if (typeof window === "undefined") {
         return;
     }
 
-    const STORAGE_KEY = "pulse_owner_user_id";
-    const DEV_USER_ID = process.env.NEXT_PUBLIC_DEV_PULSE_OWNER_USER_ID;
+    const existing = window.localStorage.getItem(LS_KEY);
+    if (existing) return;
 
-    // Strict Gating: Only run if the Env Var is explicitly set.
-    // This allows Preview environments (which run as "production") to enable Dev Auth 
-    // by simply setting this variable in Vercel Project Settings.
-    if (!DEV_USER_ID) {
-        // In true production (no env var), we do nothing.
-        // In local dev (if missing), we warn.
-        if (process.env.NODE_ENV === "development") {
-            console.warn(
-                "[dev-auth] NEXT_PUBLIC_DEV_PULSE_OWNER_USER_ID is not set in .env.local. Bridge data fetching may fail."
-            );
-        }
+    // Only attempt auto-bootstrap in dev mode where env is present
+    const devUserEnv = process.env.NEXT_PUBLIC_DEV_PULSE_OWNER_USER_ID;
+    if (!devUserEnv) return;
+
+    // HARDENING: One-shot reload guard.
+    // Prevents infinite reload loops if the bootstrapping fails/retries repeatedly.
+    const hasAttempted = window.sessionStorage.getItem("__dev_bootstrap_attempted");
+    if (hasAttempted) {
+        console.warn("[dev-auth] Bootstrap already attempted this session. Aborting to prevent reload loop.");
         return;
     }
 
-    if (!existingId) {
-        localStorage.setItem(STORAGE_KEY, DEV_USER_ID);
+    try {
+        // Set guard BEFORE attempt
+        window.sessionStorage.setItem("__dev_bootstrap_attempted", "1");
 
-        // NOTE: Cookie is now handled by /api/dev/bootstrap (server-side)
-        // We keep local storage for client-side code that reads it.
+        const userId = await bootstrapFromServer();
+        window.localStorage.setItem(LS_KEY, userId);
 
-        const isPreview = process.env.NODE_ENV === "production";
-        const envLabel = isPreview ? "PREVIEW" : "DEV";
-        const color = isPreview ? "color: #f59e0b; font-weight: bold;" : "color: #10b981; font-weight: bold;";
+        // NODE_ENV is "production" in both Vercel Preview and Prod. 
+        // We rely on the presence of the devUserEnv gate (checked above) to know we are in a safe context.
+        const isProductionBuild = process.env.NODE_ENV === "production";
+        const envLabel = isProductionBuild ? "PREVIEW" : "DEV";
+        const color = isProductionBuild ? "color: #f59e0b; font-weight: bold;" : "color: #10b981; font-weight: bold;";
 
         console.info(
-            `%c[dev-auth:${envLabel}] Bootstrapped ${STORAGE_KEY} & Cookie (Auth Bypass Enable)`,
+            `%c[dev-auth:${envLabel}] Bootstrapped from Server: ${userId}`,
             color
         );
+
+        // Force app to re-hydrate with new auth context
+        window.location.reload();
+    } catch (err) {
+        // If auto-heal fails, do nothing here; AuthMissing emergency button can recover.
+        // Optional: console.warn(err);
+        if (process.env.NODE_ENV === "development") {
+            console.warn("[dev-auth] Auto-bootstrap failed", err);
+        }
     }
 }

@@ -1,3 +1,9 @@
+/**
+ * LEGACY EXCEPTION (Phase 3A):
+ * This file performs IO and would normally live in /services.
+ * It remains in /lib temporarily due to high import blast radius (>170 refs).
+ * Do not copy this pattern. New external IO integrations belong in /services.
+ */
 import { createClient } from '@supabase/supabase-js'
 import { Database } from '../types/supabase'
 import { getSupabaseUrl, getSupabaseAnonKey, getServiceRoleKey } from './env'

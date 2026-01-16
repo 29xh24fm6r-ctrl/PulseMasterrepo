@@ -2,11 +2,11 @@
 import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-import { twilioClient } from "@/lib/comm/twilio";
+import { twilioClient } from "@/services/twilio";
 
 export async function GET() {
   try {
-    const client = twilioClient();
+    const client = twilioClient;
     const callerIds = await client.outgoingCallerIds.list({ limit: 20 });
     return NextResponse.json({
       callerIds: callerIds.map(c => ({
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
     const cleaned = phoneNumber.replace(/\D/g, "");
     const formatted = cleaned.length === 10 ? `+1${cleaned}` : `+${cleaned}`;
 
-    const client = twilioClient();
+    const client = twilioClient;
     const validation = await client.validationRequests.create({
       phoneNumber: formatted,
       friendlyName: friendlyName || "Pulse User",

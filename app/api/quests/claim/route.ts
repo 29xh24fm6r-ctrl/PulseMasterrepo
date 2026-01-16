@@ -13,10 +13,10 @@ function utcDay(): string {
     return d.toISOString().slice(0, 10); // YYYY-MM-DD
 }
 
-import { withJourney } from "@/lib/observability/journey";
-import { withPerf } from "@/lib/observability/perf";
-import { setObsContext } from "@/lib/observability/context";
-import { supabaseSpan } from "@/lib/observability/supabaseSpan";
+import { withJourney } from "@/services/observability/journey";
+import { withPerf } from "@/services/observability/perf";
+import { setObsContext } from "@/services/observability/context";
+import { supabaseSpan } from "@/services/observability/supabaseSpan";
 
 export async function POST(req: Request) {
     const { userId } = await auth();

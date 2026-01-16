@@ -2,8 +2,7 @@
 import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-import { VoiceResponse } from "@/lib/comm/twilio";
-import { APP_BASE_URL, TWILIO_VOICE_NUMBER } from "@/lib/comm/twilio";
+import { VoiceResponse, APP_BASE_URL, TWILIO_VOICE_NUMBER } from "@/services/twilio";
 
 export async function GET(request: Request) {
   return handleBridge(request);

@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+      - name: Build
+        run: npm run build
+
+      - name: Start server (next start)
+        run: |
+          npm run start -- -p 3000 &
+          echo $! > .next_pid
+
+      - name: Wait for readiness
+        run: |
+          node -e "const http=require('http');let n=0;const t=setInterval(()=>{http.get('http://localhost:3000',res=>{console.log('ready');clearInterval(t);process.exit(0);}).on('error',()=>{if(++n>60){console.error('server not ready');clearInterval(t);process.exit(1);}})},1000);"
+
+      - name: Safe-to-Ship Checks
+        run: npm run check
+
+      - name: Stop server
+        if: always()
+        run: |
+          kill $(cat .next_pid) || true

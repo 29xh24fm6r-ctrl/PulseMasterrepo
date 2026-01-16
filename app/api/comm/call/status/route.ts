@@ -2,8 +2,8 @@
 import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-import { updateCallSessionBySid } from "@/lib/comm/store";
-import { CallStatus } from "@/lib/comm/types";
+import { updateCallSessionBySid } from "@/services/comm/store";
+import { CallStatus } from "@/services/comm/types";
 
 export async function POST(request: Request) {
   try {

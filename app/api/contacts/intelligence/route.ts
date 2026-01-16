@@ -1,5 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
-import { canMakeAICall, trackAIUsage } from "@/lib/services/usage";
+import { canMakeAICall, trackAIUsage } from "@/services/usage";
 // POST /api/contacts/intelligence - Research a contact using AI and web search
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
@@ -30,12 +30,12 @@ export async function POST(req: NextRequest) {
     if (name) searchParts.push(name);
     if (company) searchParts.push(company);
     if (linkedin) searchParts.push("LinkedIn");
-    
+
     const searchQuery = searchParts.join(" ");
 
     // Try to find info using web search if available
     let webContext = "";
-    
+
     // Use Brave Search if available
     if (process.env.BRAVE_API_KEY) {
       try {
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
             },
           }
         );
-        
+
         if (searchRes.ok) {
           const searchData = await searchRes.json();
           const results = searchData.web?.results || [];
@@ -112,7 +112,7 @@ Only respond with valid JSON. If you can't find information, make reasonable inf
     });
 
     const responseText = completion.choices[0]?.message?.content || "{}";
-    
+
     let intelligence;
     try {
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);

@@ -1,7 +1,7 @@
 // app/api/morning-briefing/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { canMakeAICall } from "@/lib/services/usage";
+import { canMakeAICall } from "@/services/usage";
 import OpenAI from "openai";
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;

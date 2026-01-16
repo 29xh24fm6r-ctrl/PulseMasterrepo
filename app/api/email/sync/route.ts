@@ -10,7 +10,7 @@ import {
   syncEmailThreads,
   getThreadsNeedingFollowup,
   getUnreadImportant,
-} from "@/lib/email/sync";
+} from "@/services/email/sync";
 
 export async function POST(req: NextRequest) {
   try {
