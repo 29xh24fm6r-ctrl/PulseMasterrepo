@@ -8,6 +8,8 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    env:
+      OPENAI_API_KEY: ci_stub
     steps:
       - uses: actions/checkout@v4
 
