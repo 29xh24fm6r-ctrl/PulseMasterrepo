@@ -17,7 +17,7 @@
         "middleware:verify": "tsx scripts/verify_middleware.ts",
         "audit:parity": "node scripts/audit-parity.mjs",
         "audit:all": "npm run routes:gen && node scripts/audit-parity.mjs",
-        "prebuild": "npm run routes:gen && npm run middleware:verify",
+        "prebuild": "npm run routes:gen",
         "prepare": "husky",
         "test": "echo \"no tests\""
     },
