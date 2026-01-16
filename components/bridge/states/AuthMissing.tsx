@@ -8,22 +8,19 @@ interface AuthMissingProps {
 }
 
 export default function AuthMissing({ result }: AuthMissingProps) {
-    const handleSetDevUser = () => {
-        // Self-Healing Logic:
-        // 1. Try to get ID from Env Var (Preferred)
-        // 2. Fallback to generating a new random UUID
-        const envUserId = process.env.NEXT_PUBLIC_DEV_PULSE_OWNER_USER_ID;
-        // Use crypto.randomUUID if available (modern browsers), else fallback mock
-        const fallbackId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : '12345678-1234-1234-1234-1234567890ab';
+    const handleSetDevUser = async () => {
+        // Directive 3: Server-side bootstrap
+        try {
+            await fetch('/api/dev/bootstrap', { method: 'POST' });
+            // Also keep local logic for immediate UI feedback if needed, but server cookie is key.
+            const envUserId = process.env.NEXT_PUBLIC_DEV_PULSE_OWNER_USER_ID;
+            if (envUserId) localStorage.setItem('pulse_owner_user_id', envUserId);
 
-        const userIdToSet = envUserId || fallbackId;
-
-        localStorage.setItem('pulse_owner_user_id', userIdToSet);
-
-        // Log for debugging
-        console.info(`[AuthMissing] Auto-fixed auth with ID: ${userIdToSet} (Source: ${envUserId ? 'Env' : 'Generated'})`);
-
-        window.location.reload();
+            window.location.reload();
+        } catch (e) {
+            console.error("Bootstrap failed", e);
+            alert("Failed to fix auth. Check console.");
+        }
     };
 
     return (

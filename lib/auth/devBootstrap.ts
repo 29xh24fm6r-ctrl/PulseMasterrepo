@@ -29,11 +29,11 @@ export function devBootstrapPulseOwnerUserId() {
         return;
     }
 
-    if (!existingId || !document.cookie.includes('x-pulse-dev-user-id')) {
+    if (!existingId) {
         localStorage.setItem(STORAGE_KEY, DEV_USER_ID);
 
-        // Required: Set cookie for Middleware bypass
-        document.cookie = `x-pulse-dev-user-id=${encodeURIComponent(DEV_USER_ID)}; path=/; samesite=lax`;
+        // NOTE: Cookie is now handled by /api/dev/bootstrap (server-side)
+        // We keep local storage for client-side code that reads it.
 
         const isPreview = process.env.NODE_ENV === "production";
         const envLabel = isPreview ? "PREVIEW" : "DEV";
