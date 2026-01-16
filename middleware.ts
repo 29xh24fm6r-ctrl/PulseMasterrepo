@@ -30,6 +30,9 @@ function shouldTrack(pathname: string) {
 export default clerkMiddleware(async (auth, request) => {
   const { pathname } = request.nextUrl;
 
+  // Directive 2: Mandatory Ordering & Allowlist
+  if (pathname.startsWith("/api/dev/bootstrap")) return NextResponse.next();
+
   // Phase D1: Hard Redirect Enforcement (Legacy Routes)
   if (pathname === '/dashboard' || pathname === '/today') {
     return NextResponse.redirect(new URL('/bridge', request.url));
