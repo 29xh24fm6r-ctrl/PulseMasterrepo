@@ -3,11 +3,16 @@ import { NextResponse } from "next/server";
 import { CortexEngine, Signal } from "@/lib/cortex/engine";
 import { executeAction } from "@/lib/cortex/executor";
 import { createClient } from "@supabase/supabase-js";
+import { getSupabaseUrl, getServiceRoleKey } from "@/lib/env";
 
-// Init Admin Client to bypass RLS for background jobs
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!; // Expecting this env var
-const supabase = createClient(supabaseUrl, supabaseServiceKey || "mock-key-for-now");
+// Lazy init handled inside POST if needed, or use a helper
+// const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+// const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!; 
+// const supabase = createClient(supabaseUrl, supabaseServiceKey || "mock-key-for-now");
+
+function getAdminClient() {
+    return createClient(getSupabaseUrl(), getServiceRoleKey());
+}
 
 export async function POST(req: Request) {
     try {
@@ -38,7 +43,7 @@ export async function POST(req: Request) {
                 await executeAction(action);
             } else {
                 console.log(`✋ QUEUEING FOR APPROVAL: ${action.title}`);
-
+                const supabase = getAdminClient();
                 await supabase.from('proposed_actions').insert({
                     id: action.id,
                     user_id: userId,
