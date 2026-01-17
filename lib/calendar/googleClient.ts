@@ -3,7 +3,7 @@
  * lib/calendar/googleClient.ts
  */
 
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 // ============================================
 // TYPES
@@ -183,7 +183,7 @@ export function decodeIdToken(idToken: string): { sub: string; email: string } |
 // ============================================
 
 export async function getCalendarAccount(userId: string): Promise<CalendarAccount | null> {
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getSupabaseAdminRuntimeClient()
     .from("calendar_accounts")
     .select("*")
     .eq("user_id", userId)
@@ -217,7 +217,7 @@ export async function saveCalendarAccount(
 ): Promise<boolean> {
   const tokenExpiresAt = new Date(Date.now() + data.expiresIn * 1000);
 
-  const { error } = await supabaseAdmin
+  const { error } = await getSupabaseAdminRuntimeClient()
     .from("calendar_accounts")
     .upsert(
       {
@@ -237,13 +237,13 @@ export async function saveCalendarAccount(
 }
 
 export async function disconnectCalendar(userId: string): Promise<boolean> {
-  await supabaseAdmin
+  await getSupabaseAdminRuntimeClient()
     .from("calendar_events_cache")
     .delete()
     .eq("user_id", userId)
     .eq("provider", "google");
 
-  const { error } = await supabaseAdmin
+  const { error } = await getSupabaseAdminRuntimeClient()
     .from("calendar_accounts")
     .delete()
     .eq("user_id", userId)
@@ -273,7 +273,7 @@ export async function getValidAccessToken(userId: string): Promise<string | null
 
   const newExpiresAt = new Date(Date.now() + refreshed.expiresIn * 1000);
   
-  await supabaseAdmin
+  await getSupabaseAdminRuntimeClient()
     .from("calendar_accounts")
     .update({
       access_token: refreshed.accessToken,
@@ -374,7 +374,7 @@ export async function syncCalendarEvents(
   for (const event of events) {
     const normalized = normalizeGoogleEvent(event);
 
-    const { error } = await supabaseAdmin
+    const { error } = await getSupabaseAdminRuntimeClient()
       .from("calendar_events_cache")
       .upsert(
         {
@@ -400,7 +400,7 @@ export async function syncCalendarEvents(
     else synced++;
   }
 
-  await supabaseAdmin
+  await getSupabaseAdminRuntimeClient()
     .from("calendar_accounts")
     .update({ last_synced_at: new Date().toISOString() })
     .eq("user_id", userId)
@@ -417,7 +417,7 @@ export async function getCachedEvents(
   const endDate = options?.endDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   const limit = options?.limit || 50;
 
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getSupabaseAdminRuntimeClient()
     .from("calendar_events_cache")
     .select("*")
     .eq("user_id", userId)

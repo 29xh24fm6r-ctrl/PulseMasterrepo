@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export async function POST(req: Request) {
     const gate = await requireOpsAuth();
@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     const inboxItemId = body?.inboxItemId as string | undefined;
     if (!inboxItemId) return NextResponse.json({ ok: false, error: "Missing inboxItemId" }, { status: 400 });
 
-    const itemRes = await supabaseAdmin
+    const itemRes = await getSupabaseAdminRuntimeClient()
         .from("inbox_items")
         .select("subject, from_name, from_email, snippet, body")
         .eq("id", inboxItemId)

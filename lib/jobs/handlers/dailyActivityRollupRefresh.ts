@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import type { JobHandler } from "./types";
 
 export const DailyActivityRollupRefreshPayload = z.object({
@@ -14,7 +14,7 @@ export type DailyActivityRollupRefreshPayload = z.infer<
 export const dailyActivityRollupRefreshHandler: JobHandler<"daily_activity_rollup_refresh"> = async ({ payload }) => {
     // Validate again if needed, or rely on type safety. Zod is good for runtime.
     const parsed = DailyActivityRollupRefreshPayload.parse(payload);
-    const supabase = supabaseAdmin;
+    const supabase = getSupabaseAdminRuntimeClient();
 
     const userId = parsed.user_id_uuid ?? null;
     const days = parsed.days ?? 30;

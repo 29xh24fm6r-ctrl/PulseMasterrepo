@@ -6,7 +6,7 @@
  */
 
 import { getOpenAI } from "@/services/ai/openai";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { callAIJson } from "@/lib/ai/call";
 import { getEmotionalState } from "@/lib/emotional/engine";
 import { getTodaysPlan } from "@/lib/planning/engine";
@@ -473,7 +473,7 @@ async function logVoiceInteraction(
   result: VoiceCommandResult
 ): Promise<void> {
   try {
-    await (supabaseAdmin as any).from("third_brain_events").insert({
+    await (getSupabaseAdminRuntimeClient() as any).from("third_brain_events").insert({
       user_id: userId,
       type: "voice_command",
       source: "voice_orchestrator",

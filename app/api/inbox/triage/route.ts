@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export async function PATCH(req: Request) {
     const gate = await requireOpsAuth();
@@ -18,7 +18,7 @@ export async function PATCH(req: Request) {
     const events: Array<{ event_type: string; from_value?: string | null; to_value?: string | null; meta?: any }> = [];
 
     // Fetch current for audit diff
-    const curRes = await supabaseAdmin
+    const curRes = await getSupabaseAdminRuntimeClient()
         .from("inbox_items")
         .select("triage_status, triage_priority, suggested_action")
         .eq("id", id)
@@ -46,7 +46,7 @@ export async function PATCH(req: Request) {
 
     patch.triaged_at = new Date().toISOString();
 
-    const upd = await supabaseAdmin
+    const upd = await getSupabaseAdminRuntimeClient()
         .from("inbox_items")
         .update(patch)
         .eq("id", id)
@@ -57,7 +57,7 @@ export async function PATCH(req: Request) {
     if (upd.error) return NextResponse.json({ ok: false, error: upd.error.message }, { status: 500 });
 
     if (events.length) {
-        await supabaseAdmin.from("inbox_triage_events").insert(
+        await getSupabaseAdminRuntimeClient().from("inbox_triage_events").insert(
             events.map((e) => ({
                 user_id_uuid: gate.canon.userIdUuid,
                 inbox_item_id: id,

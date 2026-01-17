@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { computeSnoozeDueAt, SnoozePreset } from "@/lib/work/snooze";
 
 export async function POST(req: Request) {
@@ -18,7 +18,7 @@ export async function POST(req: Request) {
 
     const due = computeSnoozeDueAt(preset);
 
-    const upd = await supabaseAdmin
+    const upd = await getSupabaseAdminRuntimeClient()
         .from("tasks")
         .update({ due_at: due })
         .eq("id", id)

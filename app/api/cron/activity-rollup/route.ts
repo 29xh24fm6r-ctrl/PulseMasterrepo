@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export async function GET(req: Request) {
     // Simple shared secret so only Vercel Cron can call it
@@ -10,7 +10,7 @@ export async function GET(req: Request) {
         return NextResponse.json({ ok: false }, { status: 401 });
     }
 
-    const supabase = supabaseAdmin;
+    const supabase = getSupabaseAdminRuntimeClient();
     const { error } = await supabase.rpc("user_daily_activity_rollup_refresh");
 
     if (error) {

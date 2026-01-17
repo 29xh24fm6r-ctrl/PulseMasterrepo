@@ -4,7 +4,6 @@ import { auth } from "@clerk/nextjs/server";
 import { canMakeAICall } from "@/services/usage";
 import { getOpenAI } from "@/services/ai/openai";
 
-const openai = getOpenAI();
 
 // ============================================
 // Types
@@ -12,6 +11,11 @@ const openai = getOpenAI();
 
 type Task = {
   id: string;
+  // ... (lines 13-186 omitted for brevity in prompt but I should reference properly)
+  // easier to split into two chunks if possible, but replace_file_content does one contiguous block.
+  // I can use multi_replace for this file since I need to edit line 7 AND line 188.
+  // I'll switch to multi_replace for this file.
+
   name: string;
   status: string;
   priority: string;
@@ -185,7 +189,7 @@ Write a 3-4 sentence morning brief that:
 Be concise, direct, and helpful. No fluff.`;
 
   try {
-    const openai = getOpenAI();
+    const openai = await getOpenAI();
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],

@@ -2,7 +2,7 @@
 // lib/services/usage.ts
 
 import { checkUsageAlerts } from "@/services/alerts";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 // Cost per 1K tokens in cents (approximate OpenAI pricing)
 const AI_COSTS = {
@@ -83,7 +83,7 @@ export async function canMakeAICall(
   estimatedCostCents: number = 1
 ): Promise<UsageCheck> {
   try {
-    const { data: profile, error } = await supabaseAdmin
+    const { data: profile, error } = await getSupabaseAdminRuntimeClient()
       .from("user_profiles")
       .select("plan, usage_cents_this_month, token_balance_cents")
       .eq("user_id_uuid", userId)
@@ -174,7 +174,7 @@ export async function trackAIUsage(
     const costCents = calculateChatCost(model, inputTokens, outputTokens);
 
     // Get current profile
-    const { data: profile, error: profileError } = await supabaseAdmin
+    const { data: profile, error: profileError } = await getSupabaseAdminRuntimeClient()
       .from("user_profiles")
       .select("plan, usage_cents_this_month, token_balance_cents")
       .eq("user_id_uuid", userId)
@@ -207,7 +207,7 @@ export async function trackAIUsage(
     }
 
     // Update profile
-    await supabaseAdmin
+    await getSupabaseAdminRuntimeClient()
       .from("user_profiles")
       .update({
         usage_cents_this_month: newUsedThisMonth,
@@ -216,7 +216,7 @@ export async function trackAIUsage(
       .eq("user_id_uuid", userId);
 
     // Log usage
-    await supabaseAdmin.from("usage_logs").insert({
+    await getSupabaseAdminRuntimeClient().from("usage_logs").insert({
       user_id_uuid: userId,
       owner_user_id_legacy: userId,
       feature,
@@ -283,7 +283,7 @@ async function getDailyAICallCount(userId: string): Promise<number> {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const { count } = await supabaseAdmin
+  const { count } = await getSupabaseAdminRuntimeClient()
     .from("usage_logs")
     .select("*", { count: "exact", head: true })
     .eq("user_id_uuid", userId)
@@ -296,7 +296,7 @@ async function getDailyAICallCount(userId: string): Promise<number> {
  * Get usage summary for a user
  */
 export async function getUsageSummary(userId: string) {
-  const { data: profile } = await supabaseAdmin
+  const { data: profile } = await getSupabaseAdminRuntimeClient()
     .from("user_profiles")
     .select("plan, usage_cents_this_month, token_balance_cents")
     .eq("user_id_uuid", userId)

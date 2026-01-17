@@ -1,7 +1,7 @@
 
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/client"; // Use server-side auth checking in real app, but client for now
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { executeAction } from "@/lib/cortex/executor";
 import { ProposedAction } from "@/lib/cortex/engine";
 
@@ -16,7 +16,7 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
         const actionId = params.id;
 
         // 2. Fetch Action
-        const { data: action, error } = await supabaseAdmin
+        const { data: action, error } = await getSupabaseAdminRuntimeClient()
             .from('proposed_actions')
             .select('*')
             .eq('id', actionId)

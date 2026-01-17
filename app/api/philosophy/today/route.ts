@@ -3,13 +3,10 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAdminRuntimeClient, getSupabaseRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { loadMentor } from "@/app/lib/brain-loader";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+
 
 // Mentor definitions
 const MENTORS = {
@@ -150,6 +147,7 @@ function getBeltRank(xp: number): { name: string; progress: number } {
 }
 
 export async function GET(req: NextRequest) {
+  const supabase = getSupabaseAdminRuntimeClient();
   try {
     const { userId } = await auth();
     if (!userId) {
@@ -217,6 +215,7 @@ export async function GET(req: NextRequest) {
 
 // POST - Update mentor or complete practice
 export async function POST(req: NextRequest) {
+  const supabase = getSupabaseAdminRuntimeClient();
   try {
     const { userId } = await auth();
     if (!userId) {

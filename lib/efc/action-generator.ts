@@ -2,7 +2,7 @@
 // Analyzes context and generates recommended actions
 
 
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAdminRuntimeClient, getSupabaseRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { CognitiveMesh } from "../cognitive-mesh";
 import {
   GeneratedAction,
@@ -17,10 +17,7 @@ import {
 
 
 function getSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  return getSupabaseAdminRuntimeClient();
 }
 
 // ============================================
@@ -208,7 +205,7 @@ export async function generateActions(
   const context = await gatherContext(userId, input);
 
   // Generate actions with GPT
-  const openai = getOpenAI();
+  const openai = await getOpenAI();
   const completion = await openai.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [

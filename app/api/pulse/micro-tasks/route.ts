@@ -1,11 +1,11 @@
 import { canMakeAICall, trackAIUsage } from "@/services/usage";
 import { NextResponse } from "next/server";
 import { getOpenAI } from "@/services/ai/openai";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export async function POST(request: Request) {
   try {
-    const openai = getOpenAI();
+    const openai = await getOpenAI();
     const { task } = await request.json();
 
     if (!task || !task.title) {

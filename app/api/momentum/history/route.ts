@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
 
 export async function GET(req: Request) {
@@ -14,7 +14,7 @@ export async function GET(req: Request) {
         const domain = searchParams.get("domain");
         const days = parseInt(searchParams.get("days") ?? "30");
 
-        const sb = supabaseAdmin;
+        const sb = getSupabaseAdminRuntimeClient();
 
         const { data, error } = await sb.rpc("momentum_history_read", {
             p_owner_user_id: owner_user_id,

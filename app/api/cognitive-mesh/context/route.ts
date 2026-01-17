@@ -83,7 +83,7 @@ async function generateContextSummary(
     ? `Given this query: "${query}"\n\nSummarize the relevant context:\n\nKnowledge:\n${fragmentText}\n\nEntities:\n${entityText}`
     : `Summarize this user context:\n\nKnowledge:\n${fragmentText}\n\nEntities:\n${entityText}`;
 
-  const openai = getOpenAI();
+  const openai = await getOpenAI();
   const correlation = await openai.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [

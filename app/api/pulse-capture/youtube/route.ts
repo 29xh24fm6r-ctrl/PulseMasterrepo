@@ -3,7 +3,7 @@ import ytdl from "@distube/ytdl-core";
 import fs from "fs";
 import path from "path";
 import { getOpenAI } from "@/services/ai/openai";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 // const OPENAI_API_KEY = process.env.OPENAI_API_KEY; // This line is no longer needed as getOpenAI handles it
 
@@ -11,9 +11,10 @@ import { supabaseAdmin } from "@/lib/supabase";
 //   throw new Error("OPENAI_API_KEY is not set");
 // }
 
-const openai = getOpenAI();
+
 
 export async function POST(req: Request) {
+  const openai = await getOpenAI();
   try {
     const body = await req.json();
     const { youtubeUrl } = body;

@@ -168,7 +168,7 @@ Current date: ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 
     ];
 
     // Call OpenAI
-    const openai = getOpenAI();
+    const openai = await getOpenAI();
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: openaiMessages,

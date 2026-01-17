@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
 import { revalidateCRM } from "@/lib/crm/revalidateCRM";
 import { logActivityEvent } from "@/lib/activity/log";
@@ -29,7 +29,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "contact_id is required" }, { status: 400 });
         }
 
-        const sb = supabaseAdmin;
+        const sb = getSupabaseAdminRuntimeClient();
 
         const { error } = await sb.rpc("crm_followup_mark_done", {
             p_owner_user_id: owner_user_id,

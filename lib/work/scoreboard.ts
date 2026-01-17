@@ -1,5 +1,5 @@
 import "server-only";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 function todayDate(): string {
     const d = new Date();
@@ -18,14 +18,14 @@ export async function bumpScore(args: {
     const amt = args.amount ?? 1;
 
     // Upsert then increment
-    await supabaseAdmin.from("work_scoreboard_days").upsert(
+    await getSupabaseAdminRuntimeClient().from("work_scoreboard_days").upsert(
         { user_id_uuid: args.userIdUuid, day },
         { onConflict: "user_id_uuid,day" }
     );
 
     // Postgres "increment" via rpc would be ideal; V1 uses update with expression not available in supabase-js.
     // So: read then write (acceptable at this scale).
-    const cur = await supabaseAdmin
+    const cur = await getSupabaseAdminRuntimeClient()
         .from("work_scoreboard_days")
         .select("id," + args.field)
         .eq("user_id_uuid", args.userIdUuid)
@@ -37,7 +37,7 @@ export async function bumpScore(args: {
     const row = cur.data as any;
     const nextVal = (row?.[args.field] ?? 0) + amt;
 
-    await supabaseAdmin
+    await getSupabaseAdminRuntimeClient()
         .from("work_scoreboard_days")
         .update({ [args.field]: nextVal })
         .eq("id", row.id)

@@ -187,7 +187,7 @@ Create a comprehensive profile (JSON):
 }`;
 
   try {
-    const openai = getOpenAI();
+    const openai = await getOpenAI();
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
@@ -338,6 +338,7 @@ export async function POST(req: NextRequest) {
       const { analysis, confidence } = await researchContact(name, company, role, email, existingContext);
 
       const briefingPrompt = `Create pre-call briefing for ${name} (${company}). Intel: ${JSON.stringify(analysis)}`;
+      const openai = await getOpenAI();
       const briefingCompletion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [{ role: "user", content: briefingPrompt }],

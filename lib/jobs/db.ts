@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import type { JobRow, JobLane } from "@/lib/jobs/types";
 
 export async function jobEnqueue(args: {
@@ -13,7 +13,7 @@ export async function jobEnqueue(args: {
     run_after?: string | null;
     max_attempts?: number;
 }) {
-    const sb = supabaseAdmin;
+    const sb = getSupabaseAdminRuntimeClient();
     const { data, error } = await sb.rpc("job_enqueue", {
         p_user_id_uuid: args.user_id_uuid,
         p_owner_user_id: args.owner_user_id,
@@ -32,7 +32,7 @@ export async function jobEnqueue(args: {
 }
 
 export async function jobClaimNext(workerId: string, lanes?: JobLane[]) {
-    const sb = supabaseAdmin;
+    const sb = getSupabaseAdminRuntimeClient();
     const { data, error } = await sb.rpc("job_claim_next", {
         p_worker_id: workerId,
         p_lanes: lanes ?? ["realtime", "background", "nightly", "maintenance"],
@@ -43,7 +43,7 @@ export async function jobClaimNext(workerId: string, lanes?: JobLane[]) {
 }
 
 export async function jobHeartbeat(jobId: string, workerId: string) {
-    const sb = supabaseAdmin;
+    const sb = getSupabaseAdminRuntimeClient();
     const { error } = await sb.rpc("job_heartbeat", {
         p_job_id: jobId,
         p_worker_id: workerId,
@@ -58,7 +58,7 @@ export async function jobComplete(args: {
     result?: any;
     error?: any;
 }) {
-    const sb = supabaseAdmin;
+    const sb = getSupabaseAdminRuntimeClient();
     const { data, error } = await sb.rpc("job_complete", {
         p_job_id: args.job_id,
         p_worker_id: args.worker_id,

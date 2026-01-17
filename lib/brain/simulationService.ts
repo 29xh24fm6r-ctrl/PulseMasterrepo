@@ -5,8 +5,8 @@ import { getOpenAI } from "@/services/ai/openai";
 export class SimulationService {
     // private openai: OpenAI | null = null; // No longer needed with singleton util
 
-    private getClient(): OpenAI {
-        return getOpenAI();
+    private async getClient() {
+        return await getOpenAI();
     }
 
     /**
@@ -16,7 +16,8 @@ export class SimulationService {
         console.log(`[SimulationService] Simulating ${input.reasoning.candidate_intents.length} candidates...`);
 
         try {
-            const completion = await this.getClient().chat.completions.create({
+            const client = await this.getClient();
+            const completion = await client.chat.completions.create({
                 model: "gpt-4o", // Strongest model for complex simulation
                 messages: [
                     { role: "system", content: SYSTEM_PROMPT },

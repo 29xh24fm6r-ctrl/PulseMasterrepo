@@ -1,7 +1,7 @@
 import { getContacts } from "@/lib/data/journal";
 import { getOpenAI } from "@/services/ai/openai";
 
-const openai = getOpenAI();
+// Top-level openai removed
 
 export interface GenerateEmailInput {
     dealName: string;
@@ -101,7 +101,7 @@ Write an email that:
 
 Respond ONLY with valid JSON.`;
 
-    const openai = getOpenAI();
+    const openai = await getOpenAI();
     const completion = await openai.chat.completions.create({
         model: "gpt-4o",
         messages: [

@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { jsonError, rateLimitOrThrow } from "@/lib/api/guards";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 async function awardXp(userId: string, event_type: string, xp: number, ref_id: string) {
-    await (supabaseAdmin as any).rpc("award_xp", {
+    await (getSupabaseAdminRuntimeClient() as any).rpc("award_xp", {
         p_user_id: userId,
         p_event_type: event_type,
         p_xp: xp,
@@ -91,7 +91,7 @@ export async function POST(req: Request) {
 
                 // Canonical enforcement: only mutate tasks owned by authed user
                 const { data, error } = await supabaseSpan("tasks.action.update", async () =>
-                    await supabaseAdmin
+                    await getSupabaseAdminRuntimeClient()
                         .from("tasks")
                         .update(patch)
                         .eq("id", task_id)
@@ -116,7 +116,7 @@ export async function POST(req: Request) {
                         await awardXp(userId, "task_complete", base + bonus, task_id);
 
                         // If this completion was the active focus task, emit a focus_complete event
-                        const { data: prefs } = await supabaseAdmin
+                        const { data: prefs } = await getSupabaseAdminRuntimeClient()
                             .from("user_prefs")
                             .select("active_focus_task_id,focus_mode_enabled")
                             .eq("user_id_uuid", userId)
@@ -126,7 +126,7 @@ export async function POST(req: Request) {
                             await awardXp(userId, "focus_complete", 25, task_id);
 
                             // clear focus lock (optional but feels great)
-                            await supabaseAdmin
+                            await getSupabaseAdminRuntimeClient()
                                 .from("user_prefs")
                                 .upsert({ user_id_uuid: userId, owner_user_id: userId, focus_mode_enabled: false, active_focus_task_id: null }, { onConflict: "user_id_uuid" });
                         }

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
 import { opsLimit } from "@/lib/ops/limits";
 import { logOpsAudit } from "@/lib/ops/audit";
@@ -29,7 +29,7 @@ export async function POST(req: Request) {
         meta: { reason: reason ?? null, scoped_user_id: gate.userId },
     });
 
-    const { error } = await supabaseAdmin
+    const { error } = await getSupabaseAdminRuntimeClient()
         .from("executions")
         .update({ status: "cancelled", last_error: reason ?? "Cancelled by user" })
         .eq("id", execution_id)

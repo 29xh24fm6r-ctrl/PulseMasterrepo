@@ -1,7 +1,7 @@
 import { canMakeAICall, trackAIUsage } from "@/services/usage";
 import { NextRequest, NextResponse } from "next/server";
 import { getOpenAI } from "@/services/ai/openai";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { refreshAccessToken } from "@/app/lib/gmail-utils";
 import { auth } from '@clerk/nextjs/server';
 
@@ -290,7 +290,7 @@ If an email is automated (job listing, property alert, newsletter, training remi
 Respond ONLY with valid JSON.`;
 
     try {
-      const openai = getOpenAI();
+      const openai = await getOpenAI();
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [{ role: "user", content: prompt }],

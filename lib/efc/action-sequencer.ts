@@ -1,7 +1,7 @@
 // Executive Function Cortex: Action Sequencer
 // Orders actions into optimal execution sequence
 
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAdminRuntimeClient, getSupabaseRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import {
   PrioritizedAction,
   ActionSequence,
@@ -10,10 +10,7 @@ import {
 } from "./types";
 
 function getSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  return getSupabaseAdminRuntimeClient();
 }
 
 // ============================================

@@ -1,9 +1,9 @@
 import { canMakeAICall, trackAIUsage } from "@/services/usage";
 import { NextResponse } from "next/server";
 import { getOpenAI } from "@/services/ai/openai";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
-const openai = getOpenAI(supabaseAdmin);
+// Top-level getOpenAI removed
 
 export async function POST(req: Request) {
   try {
@@ -78,7 +78,7 @@ Extract the most valuable, actionable intelligence from this content.
 
 Respond ONLY with valid JSON.`;
 
-    const openai = getOpenAI();
+    const openai = await getOpenAI();
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [{ role: "user", content: prompt }],

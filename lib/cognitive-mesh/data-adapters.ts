@@ -1,14 +1,11 @@
 // Third Brain v3: Data Source Adapters
 // Automatically ingest data from existing Pulse systems
 
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAdminRuntimeClient, getSupabaseRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { CognitiveMesh } from "./index";
 
 function getSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  return getSupabaseAdminRuntimeClient();
 }
 
 // ============================================

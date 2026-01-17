@@ -1,5 +1,5 @@
 import * as Sentry from "@sentry/nextjs";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAdminRuntimeClient, getSupabaseRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { jobEnqueue } from "@/lib/jobs/db";
 import type { JobHandler } from "./types";
 
@@ -22,9 +22,7 @@ function getServiceSupabase() {
         throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY for worker");
     }
 
-    return createClient(envUrl, key, {
-        auth: { persistSession: false },
-    });
+    return getSupabaseRuntimeClient();
 }
 
 export const handleUserDailyActivityRollupRefresh: JobHandler<"user_daily_activity_rollup_refresh"> = async ({ job_id, payload, ctx }) => {

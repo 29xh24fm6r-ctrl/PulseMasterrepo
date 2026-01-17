@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
     
     Return JSON: { industry, companySize, suggestedValue, aiInsights }`;
 
-            const openai = getOpenAI();
+            const openai = await getOpenAI();
             const completion = await openai.chat.completions.create({
               model: 'gpt-4o-mini',
               messages: [{ role: 'user', content: aiPrompt }],

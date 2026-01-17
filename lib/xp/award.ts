@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 const ACTIVITY_XP_MAP: Record<string, { amount: number; category: string }> = {
   habit_completed: { amount: 15, category: "MXP" }, // Fixed category to MXP based on helper
@@ -58,7 +58,7 @@ export async function awardXP(
   const finalAmount = Math.round(activityConfig.amount * multiplier);
 
   try {
-    await supabaseAdmin.from("xp_transactions").insert({
+    await getSupabaseAdminRuntimeClient().from("xp_transactions").insert({
       user_id_uuid: userId,
       owner_user_id_legacy: userId, // Legacy field
       amount: finalAmount,
@@ -103,7 +103,7 @@ export async function awardDealAdvancedXP(userId: string, dealId: string, dealNa
 }
 
 export async function getXPTotals(userId: string, period: "today" | "week" | "month" | "all" = "all") {
-  let query = supabaseAdmin.from("xp_transactions").select("*").eq("user_id_uuid", userId);
+  let query = getSupabaseAdminRuntimeClient().from("xp_transactions").select("*").eq("user_id_uuid", userId);
 
   const now = new Date();
   if (period === "today") {

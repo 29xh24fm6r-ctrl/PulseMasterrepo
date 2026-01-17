@@ -371,7 +371,7 @@ If this is the START of the conversation, greet them warmly and simply. Maybe ac
       })),
     ];
 
-    const openai = getOpenAI();
+    const openai = await getOpenAI();
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: openaiMessages,
@@ -424,7 +424,7 @@ Respond in JSON only:
     let extracted = { theme: '', wins: [], challenges: [], gratitude: [], lessons: [], tomorrowFocus: '', mood: 5 };
 
     try {
-      const openai = getOpenAI();
+      const openai = await getOpenAI();
       const extraction = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [{ role: 'user', content: extractionPrompt }],

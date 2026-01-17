@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { readTraceHeaders, traceFromBody } from "@/lib/executions/traceHeaders";
 import { execLog } from "@/lib/executions/logger";
 import { linkArtifact } from "@/lib/executions/artifactLinks";
@@ -37,7 +37,7 @@ function safeIsoOrNull(x: any): string | null {
 }
 
 async function runTriageLLM(input: { title: string; description: string | null }): Promise<TriageResult> {
-    const openai = getOpenAI();
+    const openai = await getOpenAI();
     // Deterministic fallback handled by getOpenAI or try/catch if needed
     /* if (!openai) { ... } */
 
@@ -153,7 +153,7 @@ export async function POST(req: Request) {
 
                 // Load task (ownership enforced)
                 const { data: task, error: readErr } = await supabaseSpan("tasks.triage.fetch", async () =>
-                    await supabaseAdmin
+                    await getSupabaseAdminRuntimeClient()
                         .from("tasks")
                         .select("id,title,description,status,priority,context,due_at,defer_until,blocked_reason")
                         .eq("id", body.task_id)
@@ -185,7 +185,7 @@ export async function POST(req: Request) {
                 const tasksToInsert: any[] = []; // Placeholder per original logic
 
                 const { data: newTasks, error: insErr } = await supabaseSpan("tasks.triage.insert_derived", async () =>
-                    await supabaseAdmin
+                    await getSupabaseAdminRuntimeClient()
                         .from("tasks")
                         .insert(tasksToInsert)
                         .select("id")
@@ -211,7 +211,7 @@ export async function POST(req: Request) {
                 }
 
                 const { data: updated, error: updErr } = await supabaseSpan("tasks.triage.update", async () =>
-                    await supabaseAdmin
+                    await getSupabaseAdminRuntimeClient()
                         .from("tasks")
                         .update(patch)
                         .eq("id", body.task_id)

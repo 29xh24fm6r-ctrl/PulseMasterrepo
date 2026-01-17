@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -9,7 +9,7 @@ export async function GET() {
     const { userId } = await auth();
     if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdminRuntimeClient()
         .from("user_prefs")
         .select("*")
         .eq("user_id", userId)
@@ -39,7 +39,7 @@ export async function POST(req: Request) {
         active_focus_task_id: body.active_focus_task_id ?? null,
     };
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdminRuntimeClient()
         .from("user_prefs")
         .upsert(patch, { onConflict: "user_id" })
         .select("*")

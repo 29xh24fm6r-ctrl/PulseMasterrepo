@@ -1,7 +1,7 @@
 // app/api/capture/route.ts
 import { NextResponse } from "next/server";
 import { logActivityEvent } from "@/lib/activity/log";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { auth } from "@clerk/nextjs/server";
 
 export const runtime = "nodejs";
@@ -31,7 +31,7 @@ export async function POST(req: Request) {
         const content = body.text.trim();
 
         // 1. Insert into inbox_items
-        const { data: item, error } = await (supabaseAdmin as any)
+        const { data: item, error } = await (getSupabaseAdminRuntimeClient() as any)
             .from("inbox_items")
             .insert({
                 user_id: userId,

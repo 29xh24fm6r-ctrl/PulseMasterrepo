@@ -103,7 +103,7 @@ export async function extractFromEvent(
 ): Promise<ExtractionResult> {
   const eventDescription = formatEventForExtraction(source, payload);
 
-  const openai = getOpenAI();
+  const openai = await getOpenAI();
   const completion = await openai.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [

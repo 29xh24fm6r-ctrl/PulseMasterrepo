@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { bumpScore } from "@/lib/work/scoreboard";
 
 export async function POST(req: Request) {
@@ -23,7 +23,7 @@ export async function POST(req: Request) {
 
     if (body.archive === true) patch.is_archived = true;
 
-    const upd = await supabaseAdmin
+    const upd = await getSupabaseAdminRuntimeClient()
         .from("inbox_items")
         .update(patch)
         .eq("id", inboxItemId)
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
 
     if (upd.error) return NextResponse.json({ ok: false, error: upd.error.message }, { status: 500 });
 
-    await supabaseAdmin.from("inbox_triage_events").insert({
+    await getSupabaseAdminRuntimeClient().from("inbox_triage_events").insert({
         user_id_uuid: gate.canon.userIdUuid,
         inbox_item_id: inboxItemId,
         event_type: "set_status",

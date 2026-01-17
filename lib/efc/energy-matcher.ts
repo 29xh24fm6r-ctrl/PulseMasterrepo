@@ -1,7 +1,7 @@
 // Executive Function Cortex: Energy Matcher
 // Tracks user energy and matches tasks to current state
 
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAdminRuntimeClient, getSupabaseRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { getOpenAI } from "@/services/ai/openai";
 import {
   EnergyState,
@@ -13,10 +13,7 @@ import {
 
 
 function getSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  return getSupabaseAdminRuntimeClient();
 }
 
 // ============================================
@@ -353,7 +350,7 @@ export async function getEnergyMatchedRecommendations(
   ].slice(0, count);
 
   const profile = ENERGY_PROFILES[energyState.current_level];
-  const openai = getOpenAI();
+  const openai = await getOpenAI();
 
   const explanation = `${profile.description}. Best for: ${profile.optimal_tasks.join(", ")}.`;
 

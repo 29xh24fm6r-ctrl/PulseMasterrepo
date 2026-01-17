@@ -9,7 +9,7 @@
  * - AI-powered daily cycle with insight generation
  */
 
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { callAIJson, analyzeSentiment } from "@/lib/ai/call";
 
 // ============================================
@@ -162,7 +162,7 @@ export interface CreateInsightInput {
  */
 export async function logThirdBrainEvent(input: LogEventInput): Promise<string | null> {
   try {
-    const { data, error } = await (supabaseAdmin as any)
+    const { data, error } = await (getSupabaseAdminRuntimeClient() as any)
       .from("third_brain_events")
       .insert({
         user_id: input.userId,
@@ -197,7 +197,7 @@ export async function logThirdBrainEventsBatch(
   if (events.length === 0) return 0;
 
   try {
-    const { data, error } = await (supabaseAdmin as any)
+    const { data, error } = await (getSupabaseAdminRuntimeClient() as any)
       .from("third_brain_events")
       .insert(
         events.map((e) => ({
@@ -234,7 +234,7 @@ export async function logThirdBrainEventsBatch(
  */
 export async function upsertMemory(input: UpsertMemoryInput): Promise<string | null> {
   try {
-    const { data, error } = await (supabaseAdmin as any)
+    const { data, error } = await (getSupabaseAdminRuntimeClient() as any)
       .from("third_brain_memories")
       .upsert(
         {
@@ -273,7 +273,7 @@ export async function getMemory(
   key: string
 ): Promise<ThirdBrainMemory | null> {
   try {
-    const { data, error } = await (supabaseAdmin as any)
+    const { data, error } = await (getSupabaseAdminRuntimeClient() as any)
       .from("third_brain_memories")
       .select("*")
       .eq("user_id", userId)
@@ -308,7 +308,7 @@ export async function getMemoriesByCategory(
   limit: number = 50
 ): Promise<ThirdBrainMemory[]> {
   try {
-    const { data, error } = await (supabaseAdmin as any)
+    const { data, error } = await (getSupabaseAdminRuntimeClient() as any)
       .from("third_brain_memories")
       .select("*")
       .eq("user_id", userId)
@@ -344,7 +344,7 @@ export async function getTopMemories(
   limit: number = 20
 ): Promise<ThirdBrainMemory[]> {
   try {
-    const { data, error } = await (supabaseAdmin as any)
+    const { data, error } = await (getSupabaseAdminRuntimeClient() as any)
       .from("third_brain_memories")
       .select("*")
       .eq("user_id", userId)
@@ -376,7 +376,7 @@ export async function getTopMemories(
  */
 export async function deleteMemory(userId: string, key: string): Promise<boolean> {
   try {
-    const { error } = await (supabaseAdmin as any)
+    const { error } = await (getSupabaseAdminRuntimeClient() as any)
       .from("third_brain_memories")
       .delete()
       .eq("user_id", userId)
@@ -398,7 +398,7 @@ export async function deleteMemory(userId: string, key: string): Promise<boolean
  */
 export async function createInsight(input: CreateInsightInput): Promise<string | null> {
   try {
-    const { data, error } = await (supabaseAdmin as any)
+    const { data, error } = await (getSupabaseAdminRuntimeClient() as any)
       .from("third_brain_insights")
       .insert({
         user_id: input.userId,
@@ -433,7 +433,7 @@ export async function getOpenInsights(
   limit: number = 20
 ): Promise<ThirdBrainInsight[]> {
   try {
-    const { data, error } = await (supabaseAdmin as any)
+    const { data, error } = await (getSupabaseAdminRuntimeClient() as any)
       .from("third_brain_insights")
       .select("*")
       .eq("user_id", userId)
@@ -470,7 +470,7 @@ export async function updateInsightStatus(
   status: "accepted" | "dismissed" | "done" | "snoozed"
 ): Promise<boolean> {
   try {
-    const { error } = await (supabaseAdmin as any)
+    const { error } = await (getSupabaseAdminRuntimeClient() as any)
       .from("third_brain_insights")
       .update({
         status,
@@ -497,7 +497,7 @@ async function insightExistsRecently(
   const since = new Date();
   since.setDate(since.getDate() - daysBack);
 
-  const { data } = await (supabaseAdmin as any)
+  const { data } = await (getSupabaseAdminRuntimeClient() as any)
     .from("third_brain_insights")
     .select("id")
     .eq("user_id", userId)
@@ -524,7 +524,7 @@ export async function buildContextSnapshot(userId: string): Promise<ContextSnaps
   const sevenDaysAgoISO = sevenDaysAgo.toISOString();
 
   // Fetch recent events (last 7 days, max 50)
-  const { data: recentEventsData } = await (supabaseAdmin as any)
+  const { data: recentEventsData } = await (getSupabaseAdminRuntimeClient() as any)
     .from("third_brain_events")
     .select("id, type, source, title, summary, occurred_at")
     .eq("user_id", userId)
@@ -533,7 +533,7 @@ export async function buildContextSnapshot(userId: string): Promise<ContextSnaps
     .limit(50);
 
   // Fetch top memories
-  const { data: memoriesData } = await (supabaseAdmin as any)
+  const { data: memoriesData } = await (getSupabaseAdminRuntimeClient() as any)
     .from("third_brain_memories")
     .select("id, category, key, importance, content")
     .eq("user_id", userId)
@@ -542,7 +542,7 @@ export async function buildContextSnapshot(userId: string): Promise<ContextSnaps
     .limit(30);
 
   // Fetch open insights
-  const { data: insightsData } = await supabaseAdmin
+  const { data: insightsData } = await getSupabaseAdminRuntimeClient()
     .from("third_brain_insights")
     .select("id, kind, title, severity")
     .eq("user_id", userId)
@@ -1001,7 +1001,7 @@ export async function runThirdBrainDailyCycle(userId: string): Promise<{
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    const { data: recentEvents } = await (supabaseAdmin as any)
+    const { data: recentEvents } = await (getSupabaseAdminRuntimeClient() as any)
       .from("third_brain_events")
       .select("*")
       .eq("user_id", userId)
@@ -1078,7 +1078,7 @@ export async function runThirdBrainDailyCycle(userId: string): Promise<{
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    await (supabaseAdmin as any)
+    await (getSupabaseAdminRuntimeClient() as any)
       .from("third_brain_insights")
       .update({ status: "dismissed" })
       .eq("user_id", userId)

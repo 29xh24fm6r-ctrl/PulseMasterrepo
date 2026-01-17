@@ -1,9 +1,9 @@
 import { JobHandler } from "./types";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export const signalsCachePruneWeekly: JobHandler<"signals_cache_prune_weekly"> = async (job) => {
     const payload = job.payload as any;
-    const supabase = supabaseAdmin;
+    const supabase = getSupabaseAdminRuntimeClient();
     const retentionDays = payload.retention_days ?? 365;
 
     // Prune entries older than retention period

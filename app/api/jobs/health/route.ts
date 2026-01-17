@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export const runtime = "nodejs";
 
 export async function GET() {
     await requireOpsAuth();
-    const sb = supabaseAdmin;
+    const sb = getSupabaseAdminRuntimeClient();
 
     // Parallel fetch: health counts + worker heartbeat
     const [{ data: counts }, { data: hb }] = await Promise.all([

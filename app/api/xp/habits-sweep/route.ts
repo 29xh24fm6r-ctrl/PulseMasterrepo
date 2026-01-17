@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getHabits } from "@/lib/data/habits";
 import { awardHabitXP } from "@/lib/xp/award";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export async function POST(req: Request) {
   try {
@@ -24,7 +24,7 @@ export async function POST(req: Request) {
 
     for (const habit of completedToday) {
       // Check if already awarded today
-      const { data: existing } = await supabaseAdmin
+      const { data: existing } = await getSupabaseAdminRuntimeClient()
         .from("xp_transactions")
         .select("id")
         .eq("user_id_uuid", userId)

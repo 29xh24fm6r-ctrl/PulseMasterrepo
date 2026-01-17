@@ -1,6 +1,6 @@
 import type { ExecutionJob } from "./kinds";
 import { internalPost } from "./internalApi";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { computeQuestCheckpoint } from "@/lib/quests/evaluate";
 import { execLog } from "./logger";
 import { withExecStep } from "./withLogs";
@@ -193,7 +193,7 @@ export async function runExecution(
                             } as any),
                     });
 
-                    const { data: cp, error } = await supabaseAdmin
+                    const { data: cp, error } = await getSupabaseAdminRuntimeClient()
                         .from("quest_checkpoints")
                         .select("id,status,window_start,window_end,details,evaluator_key,evaluator_version")
                         .eq("id", checkpointId)
@@ -230,7 +230,7 @@ export async function runExecution(
                     if (emitCompletionEvidence) { // Mock condition
                         const completionKey = `quest:${questKey}:${at}`;
 
-                        const { data: exists, error: exErr } = await supabaseAdmin
+                        const { data: exists, error: exErr } = await getSupabaseAdminRuntimeClient()
                             .from("life_evidence")
                             .select("id")
                             .eq("user_id_uuid", userId)

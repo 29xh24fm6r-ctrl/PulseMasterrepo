@@ -1,5 +1,5 @@
 import { ActionData } from "@/lib/types/actions";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { DetectedAction, ScannedEmail } from "./email-intelligence";
 import { getOpenAI } from "@/services/ai/openai";
 
@@ -42,7 +42,7 @@ export async function generateAutoDraft(
         
         Return ONLY the body of the email.`;
 
-        const openai = getOpenAI();
+        const openai = await getOpenAI();
         const completion = await openai.chat.completions.create({
             model: "gpt-4o",
             messages: [{ role: "user", content: prompt }],
@@ -59,7 +59,7 @@ export async function generateAutoDraft(
         // First, check if there's an inbox item for this? Maybe not yet.
         // We will store the draft with reference to the messageId.
 
-        const { data: draft, error } = await (supabaseAdmin as any)
+        const { data: draft, error } = await (getSupabaseAdminRuntimeClient() as any)
             .from("reply_drafts")
             .insert({
                 user_id_uuid: userId,

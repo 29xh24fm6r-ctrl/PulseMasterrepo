@@ -1,16 +1,14 @@
 // POST /api/dashboard/interview/complete
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAdminRuntimeClient, getSupabaseRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { deriveProfileFromAnswers } from "@/lib/dashboard/profileDerivation";
 import { generateInitialLayout } from "@/lib/dashboard/layoutEngine";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+
 
 export async function POST(req: NextRequest) {
+  const supabase = getSupabaseAdminRuntimeClient();
   try {
     const { userId } = await auth();
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

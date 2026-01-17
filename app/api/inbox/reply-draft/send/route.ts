@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { ensureOutboxForReplyDraft } from "@/services/email/replyDraftSend";
 
 export async function POST(req: Request) {
@@ -18,7 +18,7 @@ export async function POST(req: Request) {
     if (!draftId) return NextResponse.json({ ok: false, error: "Missing draftId" }, { status: 400 });
 
     // pull draft + inbox item to get recipient
-    const draftRes = await supabaseAdmin
+    const draftRes = await getSupabaseAdminRuntimeClient()
         .from("reply_drafts")
         .select("id, inbox_item_id, subject, body, outbox_id")
         .eq("id", draftId)
@@ -27,7 +27,7 @@ export async function POST(req: Request) {
 
     if (draftRes.error) return NextResponse.json({ ok: false, error: draftRes.error.message }, { status: 404 });
 
-    const inboxRes = await supabaseAdmin
+    const inboxRes = await getSupabaseAdminRuntimeClient()
         .from("inbox_items")
         .select("from_email")
         .eq("id", draftRes.data.inbox_item_id)

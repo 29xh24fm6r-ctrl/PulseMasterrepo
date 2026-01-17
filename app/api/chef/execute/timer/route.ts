@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { updateExecution } from "@/lib/chef/execute/executionStore";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 function requireOwnerUserId(req: Request): string {
     const owner = req.headers.get("x-owner-user-id");
@@ -31,7 +31,7 @@ export async function POST(req: Request) {
         const owner_user_id = requireOwnerUserId(req);
         const body = BodySchema.parse(await req.json());
 
-        const sb = supabaseAdmin();
+        const sb = getSupabaseAdminRuntimeClient();
         const { data: exec, error: rErr } = await sb
             .from("chef_cook_executions")
             .select("id,timers")

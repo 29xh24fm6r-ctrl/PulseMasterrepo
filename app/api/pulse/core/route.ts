@@ -5,16 +5,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getContacts, type Contact } from "@/lib/data/journal";
 import { auth } from "@clerk/nextjs/server";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAdminRuntimeClient, getSupabaseRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { getOpenAI } from "@/services/ai/openai";
-import { supabaseAdmin } from "@/lib/supabase";
+
 import { loadKernel, loadRelevantModules, detectRelevantModules } from "@/app/lib/brain-loader";
 import { canMakeAICall, trackAIUsage } from "@/services/usage";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+
 
 
 
@@ -105,6 +102,7 @@ export async function POST(req: NextRequest) {
     // ============================================
     // 1. LOAD ALL USER DATA FROM SUPABASE
     // ============================================
+    const supabase = getSupabaseAdminRuntimeClient();
     const [
       userResult,
       profileResult,

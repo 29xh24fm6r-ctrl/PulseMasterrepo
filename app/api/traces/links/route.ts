@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
 import { readTargetUserId } from "@/lib/auth/readTargetUser";
 import { opsLimit } from "@/lib/ops/limits";
@@ -32,7 +32,7 @@ export async function GET(req: Request) {
         meta: { limit, scoped_user_id: gate.userId },
     });
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdminRuntimeClient()
         .from("artifact_links")
         .select("id,trace_id,execution_id,execution_run_id,from_type,from_id,from_key,relation,meta,to_type,to_id,to_key,created_at")
         .eq("user_id", gate.userId)

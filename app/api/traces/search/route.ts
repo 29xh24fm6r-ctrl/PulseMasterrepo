@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
 import { readTargetUserId } from "@/lib/auth/readTargetUser";
 import { opsLimit } from "@/lib/ops/limits";
@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
         meta: { since, until, kind, status, has_error, q, limit, offset, scoped_user_id: gate.userId },
     });
 
-    const { data, error } = await supabaseAdmin.rpc("rpc_trace_search", {
+    const { data, error } = await getSupabaseAdminRuntimeClient().rpc("rpc_trace_search", {
         p_user_id: gate.userId,
         p_since: since ?? null,
         p_until: until ?? null,

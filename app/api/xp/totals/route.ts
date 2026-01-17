@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -9,7 +9,7 @@ export async function GET(req: Request) {
     const user_id = url.searchParams.get("user_id");
     if (!user_id) return NextResponse.json({ ok: false, error: "user_id required" }, { status: 400 });
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdminRuntimeClient()
         .from("v_xp_totals")
         .select("*")
         .eq("user_id", user_id);

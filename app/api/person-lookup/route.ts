@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export const dynamic = 'force-dynamic';
 
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('q')?.trim() || '';
 
-    let queryBuilder = supabaseAdmin
+    let queryBuilder = getSupabaseAdminRuntimeClient()
       .from("contacts")
       .select("*")
       .eq("user_id", userId)
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: "personId required" }, { status: 400 });
     }
 
-    const { data: contact, error } = await supabaseAdmin
+    const { data: contact, error } = await getSupabaseAdminRuntimeClient()
       .from("contacts")
       .select("*")
       .eq("id", personId)

@@ -2,7 +2,7 @@ import { canMakeAICall, trackAIUsage } from "@/services/usage";
 import { NextResponse } from "next/server";
 import { getOpenAI } from "@/services/ai/openai";
 
-const openai = getOpenAI();
+// Top-level openai removed
 
 export async function POST(req: Request) {
   try {
@@ -77,7 +77,7 @@ ${transcript}
 
 Respond ONLY with valid JSON.`;
 
-    const openai = getOpenAI();
+    const openai = await getOpenAI();
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [{ role: "user", content: prompt }],

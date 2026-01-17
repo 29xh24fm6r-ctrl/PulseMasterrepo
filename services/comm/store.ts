@@ -1,6 +1,6 @@
 // Pulse Communications OS - Supabase Store
 import { CallSession, CallStatus, CallDirection } from "./types";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export async function createCallSession(params: {
     clerkId: string;
@@ -11,7 +11,7 @@ export async function createCallSession(params: {
     contactId?: string;
     dealId?: string;
 }): Promise<CallSession | null> {
-    const { data: user } = await supabaseAdmin
+    const { data: user } = await getSupabaseAdminRuntimeClient()
         .from("users")
         .select("id")
         .eq("clerk_id", params.clerkId)
@@ -22,7 +22,7 @@ export async function createCallSession(params: {
         return null;
     }
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdminRuntimeClient()
         .from("calls")
         .insert({
             user_id: user.id,
@@ -50,7 +50,7 @@ export async function updateCallSessionBySid(
 ): Promise<CallSession | null> {
     const dbPatch = mapCallSessionToDb(patch);
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdminRuntimeClient()
         .from("calls")
         .update(dbPatch)
         .eq("twilio_call_sid", twilioCallSid)
@@ -72,7 +72,7 @@ export async function updateCallSession(
 ): Promise<CallSession | null> {
     const dbPatch = mapCallSessionToDb(patch);
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdminRuntimeClient()
         .from("calls")
         .update(dbPatch)
         .eq("id", id)
@@ -89,7 +89,7 @@ export async function updateCallSession(
 }
 
 export async function getCallSession(id: string): Promise<CallSession | null> {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdminRuntimeClient()
         .from("calls")
         .select()
         .eq("id", id)
@@ -100,7 +100,7 @@ export async function getCallSession(id: string): Promise<CallSession | null> {
 }
 
 export async function getCallSessionBySid(twilioCallSid: string): Promise<CallSession | null> {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdminRuntimeClient()
         .from("calls")
         .select()
         .eq("twilio_call_sid", twilioCallSid)
@@ -111,7 +111,7 @@ export async function getCallSessionBySid(twilioCallSid: string): Promise<CallSe
 }
 
 export async function listCallSessionsForUser(clerkId: string): Promise<CallSession[]> {
-    const { data: user } = await supabaseAdmin
+    const { data: user } = await getSupabaseAdminRuntimeClient()
         .from("users")
         .select("id")
         .eq("clerk_id", clerkId)
@@ -119,7 +119,7 @@ export async function listCallSessionsForUser(clerkId: string): Promise<CallSess
 
     if (!user) return [];
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdminRuntimeClient()
         .from("calls")
         .select()
         .eq("user_id", user.id)

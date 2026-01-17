@@ -1,7 +1,7 @@
 // Executive Function Cortex: Follow-Through Tracker
 // Monitors commitments, tracks progress, and nudges completion
 
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAdminRuntimeClient, getSupabaseRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 import { CognitiveMesh } from "../cognitive-mesh";
 import {
@@ -16,10 +16,7 @@ import { getOpenAI } from "@/services/ai/openai";
 
 
 function getSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  return getSupabaseAdminRuntimeClient();
 }
 
 // ============================================
@@ -382,7 +379,7 @@ The nudge should be:
 
 Return just the nudge message.`;
 
-  const openai = getOpenAI();
+  const openai = await getOpenAI();
   const response = await openai.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [{ role: "user", content: prompt }],
@@ -413,7 +410,7 @@ For each commitment found, return JSON with:
 
 Return a JSON array of commitments, or empty array if none found.`;
 
-  const openai = getOpenAI();
+  const openai = await getOpenAI();
   const response = await openai.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [{ role: "user", content: prompt }],

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
 import { readTargetUserId } from "@/lib/auth/readTargetUser";
 import { opsLimit } from "@/lib/ops/limits";
@@ -17,7 +17,7 @@ export async function GET(req: Request) {
 
     await opsLimit(gate.clerkUserId, "executions.upcoming");
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdminRuntimeClient()
         .from("executions")
         .select("id,kind,payload,run_at,priority,status,attempts,max_attempts,next_retry_at,last_error,dedupe_key,created_at,updated_at,cancel_reason")
         .eq("user_id", gate.userId)

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getTasks } from "@/lib/data/tasks";
 import { awardTaskXP } from "@/lib/xp/award";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export async function POST(req: Request) {
   try {
@@ -27,7 +27,7 @@ export async function POST(req: Request) {
 
     for (const task of completedToday) {
       // Check if already awarded
-      const { data: existing } = await supabaseAdmin
+      const { data: existing } = await getSupabaseAdminRuntimeClient()
         .from("xp_transactions")
         .select("id")
         .eq("user_id_uuid", userId)

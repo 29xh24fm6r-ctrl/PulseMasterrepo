@@ -46,7 +46,7 @@ Examples of good responses:
 
 Respond with ONLY the coaching sentence. No JSON, no formatting, just the raw coaching text.`;
 
-    const openai = getOpenAI();
+    const openai = await getOpenAI();
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini", // Using mini for speed
       messages: [{ role: "user", content: prompt }],

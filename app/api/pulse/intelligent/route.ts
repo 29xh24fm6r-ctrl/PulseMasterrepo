@@ -134,7 +134,7 @@ If just chatting with no action, use CONVERSATION.
 Output ONLY valid JSON:`;
 
   try {
-    const openai = getOpenAI();
+    const openai = await getOpenAI();
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [{ role: 'user', content: prompt }],
@@ -396,7 +396,7 @@ Respond naturally to acknowledge what you did. If you created something, confirm
 Keep it SHORT and CONVERSATIONAL. No bullet points. No formal language.`;
 
   try {
-    const openai = getOpenAI();
+    const openai = await getOpenAI();
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [

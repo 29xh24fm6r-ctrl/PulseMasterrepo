@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,7 +32,7 @@ export async function GET() {
 
         // 1) Pending email approvals count
         // REPLACED: Const to 0 until schema is fixed
-        const { count: pendingEmailCount, error: pendingErr } = await (supabaseAdmin as any)
+        const { count: pendingEmailCount, error: pendingErr } = await (getSupabaseAdminRuntimeClient() as any)
             .from("email_outbox")
             .select("id", { count: "exact", head: true })
             .eq("approval_status", "pending");
@@ -44,7 +44,7 @@ export async function GET() {
 
         // 2) Deferred emails due now
         // REPLACED: Const to 0
-        const { count: deferredDueCount, error: deferredErr } = await (supabaseAdmin as any)
+        const { count: deferredDueCount, error: deferredErr } = await (getSupabaseAdminRuntimeClient() as any)
             .from("email_outbox")
             .select("id", { count: "exact", head: true })
             .eq("approval_status", "deferred")
@@ -56,7 +56,7 @@ export async function GET() {
         }
 
         // 3) Pending Tasks (Action Items)
-        const { count: tasksDueCount, error: tasksErr } = await (supabaseAdmin as any)
+        const { count: tasksDueCount, error: tasksErr } = await (getSupabaseAdminRuntimeClient() as any)
             .from("action_items")
             .select("id", { count: "exact", head: true })
             .eq("status", "open") // Assuming 'open' status for pending tasks
@@ -69,7 +69,7 @@ export async function GET() {
         // 4) Recent activity events (last 10)
         // Updated to select specific fields available in schema interactions if needed, 
         // but 'activity_events' table exists and has these fields.
-        const { data: activity, error: activityErr } = await supabaseAdmin
+        const { data: activity, error: activityErr } = await getSupabaseAdminRuntimeClient()
             .from("activity_events")
             .select("id,created_at,source,action,category,metadata") // Fixed column names based on schema: action, category instead of event_type, title?
             // Wait, looking at schema (Step 134):

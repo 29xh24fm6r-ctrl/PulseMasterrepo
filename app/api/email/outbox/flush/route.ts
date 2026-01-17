@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { readTraceHeaders, traceFromBody } from "@/lib/executions/traceHeaders";
 import { linkArtifact } from "@/lib/executions/artifactLinks";
 import { getResend } from "@/services/email/resend";
@@ -64,7 +64,7 @@ export async function POST(req: Request) {
 
     try {
         // 1. SELECT GATED ROWS
-        const { data: toSend, error } = await supabaseAdmin
+        const { data: toSend, error } = await getSupabaseAdminRuntimeClient()
             .from("email_outbox")
             .select("*")
             .eq("approval_status", "approved")
@@ -87,7 +87,7 @@ export async function POST(req: Request) {
         // 2. PROCESS LOOP
         for (const row of rows) {
             // Lock row as processing
-            await supabaseAdmin
+            await getSupabaseAdminRuntimeClient()
                 .from("email_outbox")
                 .update({ status: "sending", updated_at: new Date().toISOString() })
                 .eq("id", row.id);
@@ -122,7 +122,7 @@ export async function POST(req: Request) {
                 }
 
                 // Mark Sent
-                await supabaseAdmin
+                await getSupabaseAdminRuntimeClient()
                     .from("email_outbox")
                     .update({
                         status: "sent",
@@ -166,7 +166,7 @@ export async function POST(req: Request) {
             } catch (err: any) {
                 console.error(`Flush error for ${row.id}:`, err);
                 // Mark Failed
-                await supabaseAdmin
+                await getSupabaseAdminRuntimeClient()
                     .from("email_outbox")
                     .update({
                         status: "failed",

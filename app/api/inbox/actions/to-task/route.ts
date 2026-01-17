@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { normalizeDueAt, normalizeStatus } from "@/lib/core/normalize";
 
 export async function POST(req: Request) {
@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     const inboxItemId = body?.inboxItemId as string | undefined;
     if (!inboxItemId) return NextResponse.json({ ok: false, error: "Missing inboxItemId" }, { status: 400 });
 
-    const { data: item, error: itemErr } = await supabaseAdmin
+    const { data: item, error: itemErr } = await getSupabaseAdminRuntimeClient()
         .from("inbox_items")
         .select("*")
         .eq("id", inboxItemId)
@@ -29,7 +29,7 @@ export async function POST(req: Request) {
 
     const title = body?.title ?? item.subject ?? "Task";
 
-    const { data: task, error: tErr } = await supabaseAdmin
+    const { data: task, error: tErr } = await getSupabaseAdminRuntimeClient()
         .from("tasks")
         .insert({
             user_id_uuid: gate.canon.userIdUuid,
@@ -43,7 +43,7 @@ export async function POST(req: Request) {
 
     if (tErr) return NextResponse.json({ ok: false, error: tErr.message }, { status: 500 });
 
-    await supabaseAdmin.from("inbox_actions").insert({
+    await getSupabaseAdminRuntimeClient().from("inbox_actions").insert({
         user_id_uuid: gate.canon.userIdUuid,
         inbox_item_id: item.id,
         action_type: "create_task",
@@ -52,7 +52,7 @@ export async function POST(req: Request) {
         payload: { title, status, due_at },
     });
 
-    await supabaseAdmin.from("inbox_items").update({ is_unread: false }).eq("id", item.id).eq("user_id_uuid", gate.canon.userIdUuid);
+    await getSupabaseAdminRuntimeClient().from("inbox_items").update({ is_unread: false }).eq("id", item.id).eq("user_id_uuid", gate.canon.userIdUuid);
 
     return NextResponse.json({ ok: true, task });
 }

@@ -165,7 +165,7 @@ export async function generateAiFollowupDraft(input: FollowupDraftInput): Promis
 
     const prompt_hash = sha256(prompt);
 
-    const openai = getOpenAI();
+    const openai = await getOpenAI();
     const req = openai.chat.completions.create({
         model,
         temperature: 0.35,

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { readRecipeSteps } from "@/lib/chef/execute/readRecipeSteps";
 import { suggestTimersForStep } from "@/lib/chef/execute/suggestTimers";
 
@@ -23,7 +23,7 @@ export async function GET(req: Request) {
             execution_id: url.searchParams.get("execution_id"),
         });
 
-        const sb = supabaseAdmin();
+        const sb = getSupabaseAdminRuntimeClient();
 
         const { data: exec, error: eErr } = await sb
             .from("chef_cook_executions")

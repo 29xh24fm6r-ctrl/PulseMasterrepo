@@ -1,27 +1,22 @@
 
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { getRuntimePhase } from "@/lib/env/runtime-phase";
 
-export function createClient() {
-    const cookieStore = cookies()
-
-    // Build-safe env access
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-    // Fallback for CI/Build
-    const safeUrl = (process.env.CI || !url) ? (url || "http://localhost:54321") : url;
-    const safeAnon = (process.env.CI || !anon) ? (anon || "placeholder-anon-key") : anon;
-
-    if (!process.env.CI && (!url || !anon)) {
-        // In production runtime (not CI), we want to throw or log if missing
-        if (!url) throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL");
-        if (!anon) throw new Error("Missing NEXT_PUBLIC_SUPABASE_ANON_KEY");
+export async function createClient() {
+    if (getRuntimePhase() === "build") {
+        throw new Error("Server Supabase client requested during build phase");
     }
 
+    const { createServerClient } = await import('@supabase/ssr');
+
+    const cookieStore = await cookies(); // Next 15: cookies() is async
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
     return createServerClient(
-        safeUrl,
-        safeAnon,
+        url,
+        anon,
         {
             cookies: {
                 get(name: string) {

@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import type { JobHandler } from "./types";
 
 function isoDate(d: Date) {
@@ -8,7 +8,7 @@ function isoDate(d: Date) {
 export const userDailySignalsCompute: JobHandler<"user_daily_signals_compute"> = async (job) => {
     const ownerUserId = job.payload.owner_user_id;
     const day = job.payload.day ?? isoDate(new Date());
-    const supabase = job.ctx?.supabaseAdmin ?? supabaseAdmin;
+    const supabase = job.ctx?.getSupabaseAdminRuntimeClient() ?? getSupabaseAdminRuntimeClient();
 
     let xp: any = null;
     let momentum: any = null;

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { suggestTriage } from "@/lib/inbox/triageSuggest";
 
 export async function POST(req: Request) {
@@ -13,7 +13,7 @@ export async function POST(req: Request) {
     const body = await req.json().catch(() => ({}));
     const limit = Math.min(Math.max(Number(body.limit ?? 50), 1), 200);
 
-    const itemsRes = await supabaseAdmin
+    const itemsRes = await getSupabaseAdminRuntimeClient()
         .from("inbox_items")
         .select("*")
         .eq("user_id_uuid", gate.canon.userIdUuid)
@@ -45,7 +45,7 @@ export async function POST(req: Request) {
             patch.suggested_due_at = s.suggested_due_at;
         }
 
-        const upd = await supabaseAdmin
+        const upd = await getSupabaseAdminRuntimeClient()
             .from("inbox_items")
             .update(patch)
             .eq("id", item.id)

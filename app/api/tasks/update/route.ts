@@ -1,6 +1,6 @@
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
 import { withCompatTelemetry } from "@/lib/compat/withCompatTelemetry";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export async function PATCH(req: Request) {
     const gate = await requireOpsAuth(req as any);
@@ -28,7 +28,7 @@ export async function PATCH(req: Request) {
             if (body.dueAt !== undefined) patch.due_at = body.dueAt;
             if (body.meta !== undefined) patch.meta = body.meta;
 
-            const res1 = await supabaseAdmin
+            const res1 = await getSupabaseAdminRuntimeClient()
                 .from("tasks")
                 .update(patch)
                 .eq("id", body.id)
@@ -40,7 +40,7 @@ export async function PATCH(req: Request) {
 
             if ("meta" in patch) {
                 delete patch.meta;
-                const res2 = await supabaseAdmin
+                const res2 = await getSupabaseAdminRuntimeClient()
                     .from("tasks")
                     .update(patch)
                     .eq("id", body.id)

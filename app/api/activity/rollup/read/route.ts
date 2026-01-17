@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
@@ -11,7 +11,7 @@ export async function GET(req: Request) {
     const url = new URL(req.url);
     const days = Number(url.searchParams.get("days") ?? "30");
 
-    const supabase = supabaseAdmin;
+    const supabase = getSupabaseAdminRuntimeClient();
 
     // Passing p_user_id (ops pattern) - hoping RPC supports it or we need to update RPC
     const { data, error } = await supabase.rpc("user_daily_activity_rollup_read", {

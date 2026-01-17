@@ -1,7 +1,7 @@
 // Voice function handlers for Executive Function Cortex
 // Add these to your voice function-call route
 
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAdminRuntimeClient, getSupabaseRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { ActionGenerator } from "./action-generator";
 import { PriorityEngine } from "./priority-engine";
 import { EnergyMatcher } from "./energy-matcher";
@@ -9,10 +9,7 @@ import { FollowThroughTracker } from "./follow-through-tracker";
 import { ActionSequencer } from "./action-sequencer";
 import { EFC } from "./index";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+
 
 // Voice function definitions for OpenAI
 export const EFC_VOICE_TOOLS = [
@@ -157,7 +154,7 @@ export async function handleEFCVoiceFunction(
 
     case "create_commitment": {
       const { title, commitment_type, made_to, due_date } = args;
-      
+
       // Parse due date if provided
       let due_at: string | undefined;
       if (due_date) {
@@ -182,13 +179,13 @@ export async function handleEFCVoiceFunction(
 
     case "update_commitment_progress": {
       const { commitment_title, progress, notes } = args;
-      
+
       // Find commitment by title
       const commitments = await FollowThroughTracker.getActiveCommitments(userId);
-      const commitment = commitments.find(c => 
+      const commitment = commitments.find(c =>
         c.title.toLowerCase().includes(commitment_title.toLowerCase())
       );
-      
+
       if (!commitment) {
         return { error: `Couldn't find commitment matching "${commitment_title}"` };
       }
@@ -199,14 +196,14 @@ export async function handleEFCVoiceFunction(
         progress,
         notes
       );
-      
+
       return {
         updated: true,
         title: updated.title,
         progress: `${updated.progress}%`,
         status: updated.status,
-        message: progress >= 100 
-          ? `🎉 Great job completing "${updated.title}"!` 
+        message: progress >= 100
+          ? `🎉 Great job completing "${updated.title}"!`
           : `Updated "${updated.title}" to ${progress}% complete.`,
       };
     }
@@ -215,7 +212,7 @@ export async function handleEFCVoiceFunction(
       const energyState = await EnergyMatcher.getCurrentEnergyState(userId);
       const rawActions = await ActionGenerator.getSuggestedActions(userId, { limit: 20 });
       let actions = PriorityEngine.prioritizeActions({ actions: rawActions, energy_state: energyState || undefined });
-      
+
       if (rawActions.length === 0) {
         // Generate fresh actions
         const fresh = await ActionGenerator.generateActions(userId, {
@@ -272,7 +269,7 @@ export async function handleEFCVoiceFunction(
     case "get_follow_through_score": {
       const score = await FollowThroughTracker.calculateFollowThroughScore(userId);
       const commitments = await FollowThroughTracker.getActiveCommitments(userId, { limit: 5 });
-      
+
       return {
         score: `${score.score}%`,
         completed: score.completed,
@@ -280,8 +277,8 @@ export async function handleEFCVoiceFunction(
         broken: score.broken,
         on_time_rate: `${Math.round((score.onTime / (score.onTime + score.late || 1)) * 100)}%`,
         active_commitments: commitments.map(c => c.title),
-        message: score.score >= 80 
-          ? `Great follow-through at ${score.score}%!` 
+        message: score.score >= 80
+          ? `Great follow-through at ${score.score}%!`
           : `Your follow-through is at ${score.score}%. Let's work on that.`,
       };
     }

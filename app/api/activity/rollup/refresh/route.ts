@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
 
 export async function POST() {
     // Ops only (canon pattern)
     await requireOpsAuth();
 
-    const supabase = supabaseAdmin;
+    const supabase = getSupabaseAdminRuntimeClient();
 
     // Call existing RPC
     const { error } = await supabase.rpc("user_daily_activity_rollup_refresh");

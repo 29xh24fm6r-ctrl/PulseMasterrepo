@@ -2,15 +2,11 @@
 import { NextResponse } from "next/server";
 import { CortexEngine, Signal } from "@/lib/cortex/engine";
 import { executeAction } from "@/lib/cortex/executor";
-import { createClient } from "@supabase/supabase-js";
-
-// Init Admin Client to bypass RLS for background jobs
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!; // Expecting this env var
-const supabase = createClient(supabaseUrl, supabaseServiceKey || "mock-key-for-now");
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export async function POST(req: Request) {
     try {
+        const supabase = getSupabaseAdminRuntimeClient();
         const { userId, mockSignals } = await req.json(); // Allow mocking for dev
 
         if (!userId) {

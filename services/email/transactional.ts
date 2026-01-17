@@ -7,7 +7,7 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://pulselifeos.com";
 
 async function sendEmail(to: string, subject: string, html: string): Promise<boolean> {
   try {
-    const resend = getResend();
+    const resend = await getResend();
     await resend.emails.send({ from: FROM_EMAIL, to, subject, html });
     console.log("Email sent:", subject);
     return true;

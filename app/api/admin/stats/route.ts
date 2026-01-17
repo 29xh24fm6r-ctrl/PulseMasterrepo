@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 const ADMIN_USERS = ["user_36NzFTiYlRlzKxEfTw2FXrnVJNe"];
 
@@ -14,20 +14,20 @@ export async function GET(req: NextRequest) {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const { count: totalUsers } = await (supabaseAdmin as any).from("user_profiles").select("*", { count: "exact", head: true });
-    const { count: plusUsers } = await (supabaseAdmin as any).from("user_profiles").select("*", { count: "exact", head: true }).eq("plan", "plus");
-    const { count: activeUsers } = await (supabaseAdmin as any).from("user_profiles").select("*", { count: "exact", head: true }).gte("updated_at", startOfMonth.toISOString());
+    const { count: totalUsers } = await (getSupabaseAdminRuntimeClient() as any).from("user_profiles").select("*", { count: "exact", head: true });
+    const { count: plusUsers } = await (getSupabaseAdminRuntimeClient() as any).from("user_profiles").select("*", { count: "exact", head: true }).eq("plan", "plus");
+    const { count: activeUsers } = await (getSupabaseAdminRuntimeClient() as any).from("user_profiles").select("*", { count: "exact", head: true }).gte("updated_at", startOfMonth.toISOString());
 
-    const { data: usageLogs } = await (supabaseAdmin as any).from("usage_logs").select("cost_cents, feature").gte("created_at", startOfMonth.toISOString()).not("feature", "like", "alert_%");
+    const { data: usageLogs } = await (getSupabaseAdminRuntimeClient() as any).from("usage_logs").select("cost_cents, feature").gte("created_at", startOfMonth.toISOString()).not("feature", "like", "alert_%");
 
     const totalTokensUsed = usageLogs?.reduce((sum: number, log: any) => sum + (log.cost_cents || 0), 0) || 0;
     const featureUsage: Record<string, number> = {};
     usageLogs?.forEach((log: any) => { featureUsage[log.feature] = (featureUsage[log.feature] || 0) + 1; });
 
-    const { data: topUsers } = await (supabaseAdmin as any).from("user_profiles").select("user_id, email, plan, usage_cents_this_month").order("usage_cents_this_month", { ascending: false }).limit(10);
-    const { data: recentSignups } = await (supabaseAdmin as any).from("user_profiles").select("user_id, email, plan, created_at").order("created_at", { ascending: false }).limit(10);
-    const { count: totalReferrals } = await (supabaseAdmin as any).from("referral_rewards").select("*", { count: "exact", head: true });
-    const { count: creditedReferrals } = await (supabaseAdmin as any).from("referral_rewards").select("*", { count: "exact", head: true }).eq("status", "credited");
+    const { data: topUsers } = await (getSupabaseAdminRuntimeClient() as any).from("user_profiles").select("user_id, email, plan, usage_cents_this_month").order("usage_cents_this_month", { ascending: false }).limit(10);
+    const { data: recentSignups } = await (getSupabaseAdminRuntimeClient() as any).from("user_profiles").select("user_id, email, plan, created_at").order("created_at", { ascending: false }).limit(10);
+    const { count: totalReferrals } = await (getSupabaseAdminRuntimeClient() as any).from("referral_rewards").select("*", { count: "exact", head: true });
+    const { count: creditedReferrals } = await (getSupabaseAdminRuntimeClient() as any).from("referral_rewards").select("*", { count: "exact", head: true }).eq("status", "credited");
 
     return NextResponse.json({
       success: true,

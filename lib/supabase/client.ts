@@ -1,27 +1,12 @@
 
-import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import { getRuntimePhase } from "@/lib/env/runtime-phase";
 
-// Helper to safely get env vars during build
-function getSupabasePublicEnv() {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-    // During Next build / CI, allow missing envs
-    if (process.env.CI || process.env.NEXT_PHASE === "phase-production-build") {
-        return {
-            url: url ?? "http://localhost:54321",
-            anon: anon ?? "anon-placeholder",
-        };
+export async function createClient() {
+    if (getRuntimePhase() === "build") {
+        // Return a mock or throw? Client side usually safe but this export might be used in server components.
+        // Best to be safe.
+        return null;
     }
-
-    if (!url || !anon) {
-        throw new Error("Missing Supabase public environment variables");
-    }
-
-    return { url, anon };
-}
-
-export function createClient() {
-    const { url, anon } = getSupabasePublicEnv();
-    return createSupabaseClient(url, anon);
+    const { getSupabaseRuntimeClient } = await import("@/lib/runtime/supabase.runtime");
+    return getSupabaseRuntimeClient();
 }

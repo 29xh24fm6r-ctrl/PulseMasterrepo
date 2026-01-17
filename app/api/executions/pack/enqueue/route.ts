@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -57,7 +57,7 @@ export async function POST(req: Request) {
     const inserted: string[] = [];
     const deduped: string[] = [];
     for (const r of rows) {
-        const { data, error } = await supabaseAdmin
+        const { data, error } = await getSupabaseAdminRuntimeClient()
             .from("executions")
             .insert(r)
             .select("id")

@@ -1,15 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAdminRuntimeClient, getSupabaseRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { llmJson, llmComplete } from "@/lib/llm/client";
 import { generateProactiveInterventions } from "@/lib/proactive/engine";
 import { getExerciseForEmotion, generateSupportiveResponse } from "@/lib/proactive/stabilization";
 
 function getSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  return getSupabaseAdminRuntimeClient();
 }
 
 export async function POST(req: NextRequest) {

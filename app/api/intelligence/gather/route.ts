@@ -141,7 +141,7 @@ ${intelligenceSummary}
 
 **CRITICAL:** Keep ALL responses SHORT. Only include info from search results. Respond ONLY with valid JSON.`;
 
-    const openai = getOpenAI();
+    const openai = await getOpenAI();
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [{ role: "user", content: prompt }],

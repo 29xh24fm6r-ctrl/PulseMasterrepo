@@ -5,7 +5,7 @@
  * User-driven AI training through feedback, corrections, and examples
  */
 
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { getOpenAI } from "@/services/ai/openai";
 
 // remove module scope init
@@ -81,7 +81,7 @@ export async function createTeaching(
 ): Promise<Teaching | null> {
   const now = new Date().toISOString();
 
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getSupabaseAdminRuntimeClient()
     .from("teachings")
     .insert({
       user_id: userId,
@@ -114,7 +114,7 @@ export async function getTeachings(
     activeOnly?: boolean;
   }
 ): Promise<Teaching[]> {
-  let query = supabaseAdmin
+  let query = getSupabaseAdminRuntimeClient()
     .from("teachings")
     .select("*")
     .eq("user_id", userId);
@@ -150,7 +150,7 @@ export async function updateTeaching(
   if (updates.priority !== undefined) record.priority = updates.priority;
   if (updates.isActive !== undefined) record.is_active = updates.isActive;
 
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getSupabaseAdminRuntimeClient()
     .from("teachings")
     .update(record)
     .eq("id", teachingId)
@@ -166,7 +166,7 @@ export async function updateTeaching(
  * Delete a teaching
  */
 export async function deleteTeaching(userId: string, teachingId: string): Promise<boolean> {
-  const { error } = await supabaseAdmin
+  const { error } = await getSupabaseAdminRuntimeClient()
     .from("teachings")
     .delete()
     .eq("id", teachingId)
@@ -179,7 +179,7 @@ export async function deleteTeaching(userId: string, teachingId: string): Promis
  * Record teaching usage
  */
 export async function recordTeachingUsage(teachingId: string): Promise<void> {
-  await supabaseAdmin.rpc("increment_teaching_usage", { teaching_id: teachingId });
+  await getSupabaseAdminRuntimeClient().rpc("increment_teaching_usage", { teaching_id: teachingId });
 }
 
 // ============================================
@@ -199,7 +199,7 @@ export async function submitFeedback(
     correction?: string;
   }
 ): Promise<Feedback | null> {
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getSupabaseAdminRuntimeClient()
     .from("feedback")
     .insert({
       user_id: userId,
@@ -253,7 +253,7 @@ async function createTeachingFromFeedback(
  * Get recent feedback
  */
 export async function getRecentFeedback(userId: string, limit = 20): Promise<Feedback[]> {
-  const { data } = await supabaseAdmin
+  const { data } = await getSupabaseAdminRuntimeClient()
     .from("feedback")
     .select("*")
     .eq("user_id", userId)

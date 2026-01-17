@@ -27,7 +27,7 @@ export async function llmJson(params: LLMJsonParams): Promise<any> {
         ? `You are a helpful assistant that responds only in valid JSON matching this schema: ${JSON.stringify(schema)}. No markdown, no explanation, just valid JSON.`
         : `You are a helpful assistant that responds only in valid JSON. No markdown, no explanation, just valid JSON.`;
 
-      const openai = getOpenAI();
+      const openai = await getOpenAI();
       const response = await openai.chat.completions.create({
         model,
         messages: [
@@ -69,7 +69,7 @@ export async function llmComplete(
 ): Promise<string> {
   const { model = "gpt-4o-mini", temperature = 0.7, max_tokens = 1000 } = options;
 
-  const openai = getOpenAI();
+  const openai = await getOpenAI();
   const response = await openai.chat.completions.create({
     model,
     messages: [{ role: "user", content: prompt }],

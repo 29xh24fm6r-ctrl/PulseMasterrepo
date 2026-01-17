@@ -4,7 +4,7 @@ import { jobClaimNext, jobComplete, jobHeartbeat } from "@/lib/jobs/db";
 import { getJobHandler } from "@/lib/jobs/handlers";
 import { jobLog } from "@/lib/jobs/logger";
 import { computeBackoff } from "@/lib/jobs/backoff";
-import { supabaseAdmin as createSupabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { runWithJobMetrics } from "@/lib/jobs/metrics/runWithJobMetrics";
 
 function sleep(ms: number) {
@@ -24,8 +24,8 @@ function getWorkerId() {
     return process.env.JOB_WORKER_ID || `worker-${crypto.randomUUID().slice(0, 8)}`;
 }
 
-async function beat(supabaseAdmin: any, workerId: string) {
-    await supabaseAdmin
+async function beat(getSupabaseAdminRuntimeClient(): any, workerId: string) {
+    await getSupabaseAdminRuntimeClient()
         .from("job_worker_heartbeat")
         .upsert(
             {
@@ -158,7 +158,7 @@ export async function runWorker(opts?: { lanes?: any; maxEmptySleepsMs?: number 
                         name: job.job_type as any,
                         payload: job.payload,
                         ctx: {
-                            supabaseAdmin: supabase,
+                            getSupabaseAdminRuntimeClient(): supabase,
                             now: () => new Date(),
                             logger: {
                                 info: (msg, ...args) => ctx.log("info", msg, args[0]),

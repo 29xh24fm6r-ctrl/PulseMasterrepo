@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { createInsight, getOpenInsights, updateInsightStatus } from "@/lib/third-brain/service";
 
 export async function POST(req: NextRequest) {
@@ -84,7 +84,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Custom query for other filters
-    let query = supabaseAdmin
+    let query = getSupabaseAdminRuntimeClient()
       .from("third_brain_insights")
       .select("*")
       .eq("user_id", userId)
@@ -148,7 +148,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     // Verify ownership
-    const { data: existing } = await supabaseAdmin
+    const { data: existing } = await getSupabaseAdminRuntimeClient()
       .from("third_brain_insights")
       .select("user_id")
       .eq("id", id)

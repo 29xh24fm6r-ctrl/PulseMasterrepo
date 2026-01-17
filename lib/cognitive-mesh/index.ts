@@ -1,5 +1,5 @@
 // Third Brain v3: Cognitive Mesh Core Library
-import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { getSupabaseAdminRuntimeClient, getSupabaseRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 import {
   RawEvent,
@@ -21,10 +21,7 @@ import {
 
 
 function getSupabase(): SupabaseClient {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  return getSupabaseAdminRuntimeClient();
 }
 
 // ============================================
@@ -142,7 +139,7 @@ export async function getFragments(
 // ============================================
 
 export async function generateEmbedding(text: string): Promise<number[]> {
-  const openai = getOpenAI();
+  const openai = await getOpenAI();
   const response = await openai.embeddings.create({
     model: "text-embedding-3-small",
     input: text,

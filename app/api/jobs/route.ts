@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAdminRuntimeClient, getSupabaseRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+
 
 // GET - Fetch job taxonomy
 export async function GET(req: NextRequest) {
+  const supabase = getSupabaseAdminRuntimeClient();
   try {
     const { searchParams } = new URL(req.url);
     const search = searchParams.get("search");
@@ -76,6 +74,7 @@ export async function GET(req: NextRequest) {
 
 // POST - Submit job request or set user's job
 export async function POST(req: NextRequest) {
+  const supabase = getSupabaseAdminRuntimeClient();
   try {
     const { userId } = await auth();
     if (!userId) {

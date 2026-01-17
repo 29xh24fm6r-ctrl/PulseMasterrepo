@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { JobHandler } from "./types";
 
 export const momentumDailySnapshot: JobHandler<"momentum_daily_snapshot"> = async ({ job_id, payload, ctx }) => {
@@ -8,7 +8,7 @@ export const momentumDailySnapshot: JobHandler<"momentum_daily_snapshot"> = asyn
         throw new Error("momentumDailySnapshot: missing owner_user_id");
     }
 
-    const sb = ctx.supabaseAdmin || supabaseAdmin;
+    const sb = ctx.getSupabaseAdminRuntimeClient() || getSupabaseAdminRuntimeClient();
 
     const { error } = await sb.rpc("momentum_snapshot_refresh", {
         p_owner_user_id: owner_user_id,

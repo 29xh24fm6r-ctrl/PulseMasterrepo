@@ -1,6 +1,6 @@
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
 import { withCompatTelemetry } from "@/lib/compat/withCompatTelemetry";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export async function GET(req: Request) {
     const gate = await requireOpsAuth(req as any);
@@ -12,7 +12,7 @@ export async function GET(req: Request) {
         clerkUserId: gate.canon.clerkUserId,
         eventName: "api.tasks.get",
         handler: async () => {
-            const { data, error } = await supabaseAdmin
+            const { data, error } = await getSupabaseAdminRuntimeClient()
                 .from("tasks")
                 .select("*")
                 .eq("user_id_uuid", gate.canon.userIdUuid)

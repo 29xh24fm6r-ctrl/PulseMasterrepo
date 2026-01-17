@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { evaluateEvidenceAndIssue } from "@/lib/xp/orchestrator";
 
 export const runtime = "nodejs";
@@ -17,7 +17,7 @@ export async function POST(req: Request) {
     if (!user_id) return NextResponse.json({ ok: false, error: "user_id required" }, { status: 400 });
     if (!evidence_id) return NextResponse.json({ ok: false, error: "evidence_id required" }, { status: 400 });
 
-    const { data: evidence, error } = await supabaseAdmin
+    const { data: evidence, error } = await getSupabaseAdminRuntimeClient()
         .from("life_evidence")
         .select("*")
         .eq("id", evidence_id)

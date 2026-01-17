@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export async function PATCH(req: Request) {
     const gate = await requireOpsAuth();
@@ -18,7 +18,7 @@ export async function PATCH(req: Request) {
     if (typeof body.is_unread === "boolean") patch.is_unread = body.is_unread;
     if (typeof body.is_archived === "boolean") patch.is_archived = body.is_archived;
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdminRuntimeClient()
         .from("inbox_items")
         .update(patch)
         .eq("id", id)

@@ -2,7 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { canMakeAICall, trackAIUsage } from "@/services/usage";
 // POST /api/contacts/intelligence - Research a contact using AI and web search
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { getOpenAI } from "@/services/ai/openai";
 
 
@@ -130,7 +130,7 @@ Only respond with valid JSON. If you can't find information, make reasonable inf
 
     // Update contact with intelligence if contactId provided
     if (contactId) {
-      await supabaseAdmin
+      await getSupabaseAdminRuntimeClient()
         .from("contacts")
         .update({
           ai_intel: intelligence,

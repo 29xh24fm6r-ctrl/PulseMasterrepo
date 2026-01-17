@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,7 +12,7 @@ export async function GET(req: Request) {
     const now = new Date().toISOString();
 
     // next eligible queued OR running/claimed (so UI reflects reality)
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdminRuntimeClient()
         .from("executions")
         .select("id,kind,payload,run_at,priority,status,attempts,max_attempts,next_retry_at,last_error,created_at")
         .eq("user_id", user_id)

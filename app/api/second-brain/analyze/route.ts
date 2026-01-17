@@ -2,7 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { updateContact, getContact } from "@/lib/data/journal";
 import { getOpenAI } from "@/services/ai/openai";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 
 
@@ -93,7 +93,7 @@ ${rawData.substring(0, 10000)}
 
 **CRITICAL:** Respond ONLY with valid JSON.`;
 
-    const openai = getOpenAI();
+    const openai = await getOpenAI();
     const completion = await openai.chat.completions.create({
       model: "gpt-4o", // using 4o for JSON reliability
       messages: [

@@ -18,8 +18,8 @@ jobs:
 
       - run: npm ci
       
-      - name: Pulse CI gate — no module-scope SDK/env access
-        run: bash scripts/ci/no_module_scope_sdks.sh
+      - name: Verify SDK isolation
+        run: npx tsx scripts/verify-no-sdk-imports.ts
 
       - name: Build
         run: npm run build

@@ -37,7 +37,7 @@ export async function POST(req: Request) {
     console.log("Sending to Whisper API...");
 
     // Transcribe with Whisper
-    const openai = getOpenAI();
+    const openai = await getOpenAI();
     const transcription = await openai.audio.transcriptions.create({
       file: fs.createReadStream(tempFilePath),
       model: "whisper-1",

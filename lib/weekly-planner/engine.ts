@@ -5,7 +5,7 @@
  * AI-powered weekly planning with goals, priorities, and review
  */
 
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { getOpenAI } from "@/services/ai/openai";
 
 // ============================================
@@ -77,7 +77,7 @@ export async function getOrCreateWeeklyPlan(userId: string, weekStart?: Date): P
   end.setDate(end.getDate() + 6);
 
   // Check for existing
-  const { data: existing } = await supabaseAdmin
+  const { data: existing } = await getSupabaseAdminRuntimeClient()
     .from("weekly_plans")
     .select("*")
     .eq("user_id", userId)
@@ -88,7 +88,7 @@ export async function getOrCreateWeeklyPlan(userId: string, weekStart?: Date): P
   if (existing) return mapWeeklyPlan(existing);
 
   // Create new
-  const { data: created, error } = await supabaseAdmin
+  const { data: created, error } = await getSupabaseAdminRuntimeClient()
     .from("weekly_plans")
     .insert({
       user_id: userId,
@@ -133,7 +133,7 @@ export async function updateWeeklyPlan(
   if (updates.timeBlocks) record.time_blocks = updates.timeBlocks;
   if (updates.status) record.status = updates.status;
 
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getSupabaseAdminRuntimeClient()
     .from("weekly_plans")
     .update(record)
     .eq("id", planId)
@@ -153,7 +153,7 @@ export async function saveWeeklyReflection(
   planId: string,
   reflection: WeeklyReflection
 ): Promise<boolean> {
-  const { error } = await supabaseAdmin
+  const { error } = await getSupabaseAdminRuntimeClient()
     .from("weekly_plans")
     .update({
       reflections: reflection as any,
@@ -170,7 +170,7 @@ export async function saveWeeklyReflection(
  * Get past weekly plans
  */
 export async function getPastWeeklyPlans(userId: string, limit = 8): Promise<WeeklyPlan[]> {
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getSupabaseAdminRuntimeClient()
     .from("weekly_plans")
     .select("*")
     .eq("user_id", userId)
@@ -230,7 +230,7 @@ Respond in JSON:
 }`;
 
   try {
-    const openai = getOpenAI();
+    const openai = await getOpenAI();
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
@@ -276,7 +276,7 @@ export async function generateWeeklyReview(
   userId: string,
   planId: string
 ): Promise<string | null> {
-  const { data: plan } = await supabaseAdmin
+  const { data: plan } = await getSupabaseAdminRuntimeClient()
     .from("weekly_plans")
     .select("*")
     .eq("id", planId)
@@ -305,7 +305,7 @@ ${goals.map((g: any) => `- [${g.completed ? "✓" : " "}] ${g.title}`).join("\n"
 Write a brief (3-4 sentence) encouraging summary highlighting wins and areas for improvement.`;
 
   try {
-    const openai = getOpenAI();
+    const openai = await getOpenAI();
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
@@ -315,7 +315,7 @@ Write a brief (3-4 sentence) encouraging summary highlighting wins and areas for
     const summary = completion.choices[0].message.content;
 
     // Save summary
-    await supabaseAdmin
+    await getSupabaseAdminRuntimeClient()
       .from("weekly_plans")
       .update({ ai_summary: summary })
       .eq("id", planId);

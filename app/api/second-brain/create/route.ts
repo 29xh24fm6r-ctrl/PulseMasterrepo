@@ -65,7 +65,7 @@ ${topResults.map((r: any) => `Title: ${r.title}\nDesc: ${r.description}`).join('
 
 Return JSON: { title, company, industry, notes, linkedInUrl }`;
 
-        const openai = getOpenAI();
+        const openai = await getOpenAI();
         const completion = await openai.chat.completions.create({
           model: 'gpt-4o-mini',
           messages: [{ role: 'user', content: aiPrompt }],

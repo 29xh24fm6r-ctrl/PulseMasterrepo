@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
 import { readTargetUserId } from "@/lib/auth/readTargetUser";
 import { opsLimit } from "@/lib/ops/limits";
@@ -30,7 +30,7 @@ export async function GET(req: Request) {
         meta: { scoped_user_id: gate.userId },
     });
 
-    const { data: runs, error: e1 } = await supabaseAdmin
+    const { data: runs, error: e1 } = await getSupabaseAdminRuntimeClient()
         .from("execution_runs")
         .select("id,execution_id,status,attempt,started_at,finished_at,output,error,trace_id")
         .eq("user_id", gate.userId)
@@ -41,7 +41,7 @@ export async function GET(req: Request) {
 
     const execIds = Array.from(new Set((runs ?? []).map((r: any) => r.execution_id)));
 
-    const { data: execs, error: e2 } = await supabaseAdmin
+    const { data: execs, error: e2 } = await getSupabaseAdminRuntimeClient()
         .from("executions")
         .select("id,kind,payload,run_at,priority,status,attempts,max_attempts,last_error,dedupe_key,created_at,updated_at")
         .eq("user_id", gate.userId)
@@ -49,7 +49,7 @@ export async function GET(req: Request) {
 
     if (e2) return NextResponse.json({ ok: false, error: e2.message }, { status: 500 });
 
-    const { data: logs, error: e3 } = await supabaseAdmin
+    const { data: logs, error: e3 } = await getSupabaseAdminRuntimeClient()
         .from("execution_logs")
         .select("id,execution_id,level,message,meta,created_at,trace_id")
         .eq("user_id", gate.userId)

@@ -6,7 +6,6 @@ import { downsampleBuffer, pcmToMuLaw } from "../lib/audioUtils.js";
 import type { VoiceConfig } from "./voiceSettings.js";
 
 export async function generateSpeechOpenAI(text: string): Promise<Buffer> {
-    const openai = getOpenAI();
     const apiKey = env("OPENAI_API_KEY");
 
     // Defaults

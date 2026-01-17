@@ -1,7 +1,7 @@
 // GET /api/contacts/[id] - Get a single contact by ID
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export async function GET(
   req: NextRequest,
@@ -16,7 +16,7 @@ export async function GET(
     const { id } = await params;
 
     // Get user's Supabase ID
-    const { data: user } = await supabaseAdmin
+    const { data: user } = await getSupabaseAdminRuntimeClient()
       .from("users")
       .select("id")
       .eq("clerk_id", userId)
@@ -27,7 +27,7 @@ export async function GET(
     }
 
     // Get the contact
-    const { data: contact, error } = await supabaseAdmin
+    const { data: contact, error } = await getSupabaseAdminRuntimeClient()
       .from("contacts")
       .select("*")
       .eq("id", id)

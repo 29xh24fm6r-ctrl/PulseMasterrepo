@@ -4,10 +4,10 @@ import { google } from "googleapis";
 import { auth } from "@clerk/nextjs/server";
 import { getOpenAI } from "@/services/ai/openai";
 import { refreshAccessToken } from "@/app/lib/gmail-utils";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { getContactByEmail } from "@/lib/data/journal";
 
-const openai = getOpenAI();
+// Top-level openai removed
 
 // ============================================
 // BLOCKED DOMAINS - Skip entirely
@@ -248,7 +248,7 @@ Be STRICT. When in doubt, mark as NOT actionable. We only want REAL person-to-pe
 Respond ONLY with JSON array.`;
 
     try {
-      const openai = getOpenAI();
+      const openai = await getOpenAI();
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [{ role: "user", content: prompt }],
@@ -367,7 +367,7 @@ If an email has NO actionable items or is automated, don't include it.
 Respond ONLY with the JSON array.`;
 
     try {
-      const openai = getOpenAI();
+      const openai = await getOpenAI();
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [{ role: "user", content: prompt }],

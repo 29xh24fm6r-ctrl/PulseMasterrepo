@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOpenAI } from "@/services/ai/openai";
 import { auth } from "@clerk/nextjs/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
-const openai = getOpenAI();
+// Top-level openai removed
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     let interactions = "";
     if (contactId) {
       try {
-        const { data } = await supabaseAdmin
+        const { data } = await getSupabaseAdminRuntimeClient()
           .from("interactions")
           .select("*")
           .eq("contact_id", contactId)
@@ -45,7 +45,7 @@ Recent Interactions: ${interactions || "None"}
 Return JSON only:
 {"summary":"2-3 sentences","relationshipHealth":"brief assessment","insights":["insight1","insight2"],"suggestedActions":["action1"],"talkingPoints":["point1","point2"],"nextBestAction":"single most important step"}`;
 
-    const openai = getOpenAI();
+    const openai = await getOpenAI();
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],

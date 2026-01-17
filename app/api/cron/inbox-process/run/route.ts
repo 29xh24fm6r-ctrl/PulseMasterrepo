@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { pickFirstMatchingRule, renderTemplate, computeDueAt } from "@/lib/inbox/autopilot";
 
 async function handler(req: Request) {
@@ -12,7 +12,7 @@ async function handler(req: Request) {
     const limitPerUser = 50;
 
     // users with at least one enabled rule
-    const rulesRes = await supabaseAdmin
+    const rulesRes = await getSupabaseAdminRuntimeClient()
         .from("inbox_rules")
         .select("user_id_uuid")
         .eq("enabled", true);
@@ -29,7 +29,7 @@ async function handler(req: Request) {
 
     for (const userIdUuid of users) {
         // create run
-        const runRes = await supabaseAdmin
+        const runRes = await getSupabaseAdminRuntimeClient()
             .from("inbox_rule_runs")
             .insert({ user_id_uuid: userIdUuid, meta: { source: "cron" } })
             .select("*")
@@ -39,7 +39,7 @@ async function handler(req: Request) {
         const run = runRes.data;
 
         try {
-            const userRulesRes = await supabaseAdmin
+            const userRulesRes = await getSupabaseAdminRuntimeClient()
                 .from("inbox_rules")
                 .select("*")
                 .eq("user_id_uuid", userIdUuid)
@@ -49,7 +49,7 @@ async function handler(req: Request) {
             if (userRulesRes.error) throw userRulesRes.error;
             const rules = userRulesRes.data ?? [];
 
-            const itemsRes = await supabaseAdmin
+            const itemsRes = await getSupabaseAdminRuntimeClient()
                 .from("inbox_items")
                 .select("*")
                 .eq("user_id_uuid", userIdUuid)
@@ -67,7 +67,7 @@ async function handler(req: Request) {
             for (const item of items) {
                 const rule = pickFirstMatchingRule(item, rules as any);
                 if (!rule) {
-                    await supabaseAdmin.from("inbox_rule_outcomes").insert({
+                    await getSupabaseAdminRuntimeClient().from("inbox_rule_outcomes").insert({
                         user_id_uuid: userIdUuid,
                         run_id: run.id,
                         inbox_item_id: item.id,
@@ -80,7 +80,7 @@ async function handler(req: Request) {
                 matched += 1;
 
                 // idempotency: skip if already converted
-                const existing = await supabaseAdmin
+                const existing = await getSupabaseAdminRuntimeClient()
                     .from("inbox_rule_outcomes")
                     .select("id")
                     .eq("user_id_uuid", userIdUuid)
@@ -90,7 +90,7 @@ async function handler(req: Request) {
                     .limit(1);
 
                 if (!existing.error && (existing.data ?? []).length) {
-                    await supabaseAdmin.from("inbox_rule_outcomes").upsert({
+                    await getSupabaseAdminRuntimeClient().from("inbox_rule_outcomes").upsert({
                         user_id_uuid: userIdUuid,
                         run_id: run.id,
                         inbox_item_id: item.id,
@@ -109,7 +109,7 @@ async function handler(req: Request) {
                 let target_id: string | null = null;
 
                 if (rule.action_type === "create_follow_up") {
-                    const fu = await supabaseAdmin
+                    const fu = await getSupabaseAdminRuntimeClient()
                         .from("follow_ups")
                         .insert({
                             user_id: userIdUuid,
@@ -133,7 +133,7 @@ async function handler(req: Request) {
                 }
 
                 if (rule.action_type === "create_task") {
-                    const t = await supabaseAdmin
+                    const t = await getSupabaseAdminRuntimeClient()
                         .from("tasks")
                         .insert({
                             user_id: userIdUuid,
@@ -158,7 +158,7 @@ async function handler(req: Request) {
                 if (rule.action_archive || rule.action_type === "archive") inboxPatch.is_archived = true;
 
                 if (Object.keys(inboxPatch).length) {
-                    const upd = await supabaseAdmin
+                    const upd = await getSupabaseAdminRuntimeClient()
                         .from("inbox_items")
                         .update(inboxPatch)
                         .eq("id", item.id)
@@ -166,7 +166,7 @@ async function handler(req: Request) {
                     if (upd.error) throw upd.error;
                 }
 
-                await supabaseAdmin.from("inbox_actions").insert({
+                await getSupabaseAdminRuntimeClient().from("inbox_actions").insert({
                     user_id_uuid: userIdUuid,
                     inbox_item_id: item.id,
                     action_type: rule.action_type,
@@ -175,7 +175,7 @@ async function handler(req: Request) {
                     payload: { rule_id: rule.id, title, due_at, cron: true },
                 });
 
-                await supabaseAdmin.from("inbox_rule_outcomes").insert({
+                await getSupabaseAdminRuntimeClient().from("inbox_rule_outcomes").insert({
                     user_id_uuid: userIdUuid,
                     run_id: run.id,
                     inbox_item_id: item.id,
@@ -187,7 +187,7 @@ async function handler(req: Request) {
                 });
             }
 
-            await supabaseAdmin
+            await getSupabaseAdminRuntimeClient()
                 .from("inbox_rule_runs")
                 .update({
                     finished_at: new Date().toISOString(),
@@ -203,7 +203,7 @@ async function handler(req: Request) {
             totalMatched += matched;
             totalActions += actions;
         } catch (e: any) {
-            await supabaseAdmin
+            await getSupabaseAdminRuntimeClient()
                 .from("inbox_rule_runs")
                 .update({
                     finished_at: new Date().toISOString(),

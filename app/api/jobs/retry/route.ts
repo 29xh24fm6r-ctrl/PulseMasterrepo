@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export const runtime = "nodejs";
 
@@ -15,7 +15,7 @@ export async function POST(req: Request) {
         );
     }
 
-    const sb = supabaseAdmin;
+    const sb = getSupabaseAdminRuntimeClient();
 
     const { error } = await sb
         .from("job_queue")

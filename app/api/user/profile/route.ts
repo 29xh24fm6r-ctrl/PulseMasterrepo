@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export async function GET(req: Request) {
   try {
@@ -8,7 +8,7 @@ export async function GET(req: Request) {
     if (!access.ok || !access.gate) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const userId = access.gate.canon.userIdUuid;
 
-    const { data: profile, error } = await supabaseAdmin
+    const { data: profile, error } = await getSupabaseAdminRuntimeClient()
       .from("user_profiles")
       .select(`
         *,

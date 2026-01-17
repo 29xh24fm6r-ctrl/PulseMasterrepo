@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { pickFirstMatchingRule, renderTemplate, computeDueAt } from "@/lib/inbox/autopilot";
 
 async function alreadyConverted(userIdUuid: string, inboxItemId: string, ruleId: string, actionType: string) {
-    const o = await supabaseAdmin
+    const o = await getSupabaseAdminRuntimeClient()
         .from("inbox_rule_outcomes")
         .select("id")
         .eq("user_id_uuid", userIdUuid)
@@ -15,7 +15,7 @@ async function alreadyConverted(userIdUuid: string, inboxItemId: string, ruleId:
 
     if (!o.error && (o.data ?? []).length) return true;
 
-    const a = await supabaseAdmin
+    const a = await getSupabaseAdminRuntimeClient()
         .from("inbox_actions")
         .select("id")
         .eq("user_id_uuid", userIdUuid)
@@ -39,7 +39,7 @@ export async function POST(req: Request) {
     const limit = Math.min(Math.max(Number(body.limit ?? 50), 1), 200);
 
     // create run
-    const runRes = await supabaseAdmin
+    const runRes = await getSupabaseAdminRuntimeClient()
         .from("inbox_rule_runs")
         .insert({ user_id_uuid: gate.canon.userIdUuid, meta: { source: "manual" } } as any)
         .select("*")
@@ -49,7 +49,7 @@ export async function POST(req: Request) {
     const run = runRes.data;
 
     try {
-        const rulesRes = await supabaseAdmin
+        const rulesRes = await getSupabaseAdminRuntimeClient()
             .from("inbox_rules")
             .select("*")
             .eq("user_id_uuid", gate.canon.userIdUuid)
@@ -58,7 +58,7 @@ export async function POST(req: Request) {
 
         if (rulesRes.error) throw rulesRes.error;
 
-        const itemsRes = await supabaseAdmin
+        const itemsRes = await getSupabaseAdminRuntimeClient()
             .from("inbox_items")
             .select("*")
             .eq("user_id_uuid", gate.canon.userIdUuid)
@@ -78,7 +78,7 @@ export async function POST(req: Request) {
         for (const item of items) {
             const rule = pickFirstMatchingRule(item, rules as any);
             if (!rule) {
-                await supabaseAdmin.from("inbox_rule_outcomes").insert({
+                await getSupabaseAdminRuntimeClient().from("inbox_rule_outcomes").insert({
                     user_id_uuid: gate.canon.userIdUuid,
                     run_id: run.id,
                     inbox_item_id: item.id,
@@ -92,7 +92,7 @@ export async function POST(req: Request) {
 
             const skip = await alreadyConverted(gate.canon.userIdUuid, item.id, rule.id, rule.action_type);
             if (skip) {
-                await supabaseAdmin.from("inbox_rule_outcomes").upsert({
+                await getSupabaseAdminRuntimeClient().from("inbox_rule_outcomes").upsert({
                     user_id_uuid: gate.canon.userIdUuid,
                     run_id: run.id,
                     inbox_item_id: item.id,
@@ -112,7 +112,7 @@ export async function POST(req: Request) {
             let target_id: string | null = null;
 
             if (rule.action_type === "create_follow_up") {
-                const fu = await supabaseAdmin
+                const fu = await getSupabaseAdminRuntimeClient()
                     .from("follow_ups")
                     .insert({
                         user_id: gate.canon.userIdUuid,
@@ -134,7 +134,7 @@ export async function POST(req: Request) {
             }
 
             if (rule.action_type === "create_task") {
-                const t = await supabaseAdmin
+                const t = await getSupabaseAdminRuntimeClient()
                     .from("tasks")
                     .insert({
                         user_id: gate.canon.userIdUuid,
@@ -159,7 +159,7 @@ export async function POST(req: Request) {
             if (rule.action_archive || rule.action_type === "archive") inboxPatch.is_archived = true;
 
             if (Object.keys(inboxPatch).length) {
-                const upd = await supabaseAdmin
+                const upd = await getSupabaseAdminRuntimeClient()
                     .from("inbox_items")
                     .update(inboxPatch)
                     .eq("id", item.id)
@@ -167,7 +167,7 @@ export async function POST(req: Request) {
                 if (upd.error) throw upd.error;
             }
 
-            await supabaseAdmin.from("inbox_actions").insert({
+            await getSupabaseAdminRuntimeClient().from("inbox_actions").insert({
                 user_id_uuid: gate.canon.userIdUuid,
                 inbox_item_id: item.id,
                 action_type: rule.action_type,
@@ -176,7 +176,7 @@ export async function POST(req: Request) {
                 payload: { rule_id: rule.id, title, due_at },
             });
 
-            await supabaseAdmin.from("inbox_rule_outcomes").insert({
+            await getSupabaseAdminRuntimeClient().from("inbox_rule_outcomes").insert({
                 user_id_uuid: gate.canon.userIdUuid,
                 run_id: run.id,
                 inbox_item_id: item.id,
@@ -188,7 +188,7 @@ export async function POST(req: Request) {
             });
         }
 
-        await supabaseAdmin
+        await getSupabaseAdminRuntimeClient()
             .from("inbox_rule_runs")
             .update({
                 finished_at: new Date().toISOString(),
@@ -202,7 +202,7 @@ export async function POST(req: Request) {
 
         return NextResponse.json({ ok: true, runId: run.id, processed: items.length, matched, actions });
     } catch (e: any) {
-        await supabaseAdmin
+        await getSupabaseAdminRuntimeClient()
             .from("inbox_rule_runs")
             .update({
                 finished_at: new Date().toISOString(),

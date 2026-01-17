@@ -2,11 +2,12 @@ import { auth } from "@clerk/nextjs/server";
 import { canMakeAICall, trackAIUsage } from "@/services/usage";
 import { NextRequest, NextResponse } from "next/server";
 import { getOpenAI } from "@/services/ai/openai";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
-const openai = getOpenAI();
+
 
 export async function POST(req: NextRequest) {
+  const openai = await getOpenAI();
   try {
     const { userId } = await auth();
     if (!userId) {
@@ -16,7 +17,7 @@ export async function POST(req: NextRequest) {
     const { coach, message, context, history = [] } = await req.json();
 
     // Get user info
-    const { data: user } = await supabaseAdmin
+    const { data: user } = await getSupabaseAdminRuntimeClient()
       .from("users")
       .select("id, name")
       .eq("clerk_id", userId)
@@ -154,7 +155,7 @@ Return JSON: {"summary": "1-2 sentence summary", "goals_discussed": ["goal1"], "
     if (match) {
       const data = JSON.parse(match[0]);
 
-      await supabaseAdmin.from("coach_sessions").insert({
+      await getSupabaseAdminRuntimeClient().from("coach_sessions").insert({
         user_id_uuid: userId,
         coach,
         summary: data.summary,

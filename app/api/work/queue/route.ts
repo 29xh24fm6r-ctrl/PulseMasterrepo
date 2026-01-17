@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 function startOfTodayISO(): string {
     const d = new Date();
@@ -27,7 +27,7 @@ export async function GET(req: Request) {
     // Note: we can't do .in("triage_status", ["needs_reply", "to_do", "waiting", "new"]) if we want to be strict about 'new' appearing too.
     // Actually the prompt asked for "needing action" which implied everything except 'done' or 'ignored'.
     // We'll stick to the requested list: "needs_reply", "to_do", "waiting", "new".
-    const inbox = await supabaseAdmin
+    const inbox = await getSupabaseAdminRuntimeClient()
         .from("inbox_items")
         .select("*")
         .eq("user_id_uuid", gate.canon.userIdUuid)
@@ -38,7 +38,7 @@ export async function GET(req: Request) {
         .limit(50);
 
     // Follow-ups due today (and open/snoozed)
-    const followups = await supabaseAdmin
+    const followups = await getSupabaseAdminRuntimeClient()
         .from("follow_ups")
         .select("*")
         .eq("user_id_uuid", gate.canon.userIdUuid)
@@ -49,7 +49,7 @@ export async function GET(req: Request) {
         .limit(50);
 
     // Tasks due today (and not done/archived)
-    const tasks = await supabaseAdmin
+    const tasks = await getSupabaseAdminRuntimeClient()
         .from("tasks")
         .select("*")
         .eq("user_id_uuid", gate.canon.userIdUuid)
@@ -60,7 +60,7 @@ export async function GET(req: Request) {
         .limit(50);
 
     // Autopilot last run
-    const autopilot = await supabaseAdmin
+    const autopilot = await getSupabaseAdminRuntimeClient()
         .from("inbox_rule_runs")
         .select("*")
         .eq("user_id_uuid", gate.canon.userIdUuid)

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export async function GET(req: Request) {
     const gate = await requireOpsAuth();
@@ -9,7 +9,7 @@ export async function GET(req: Request) {
         return NextResponse.json({ ok: false, error: gate.error }, { status: gate.status });
     }
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdminRuntimeClient()
         .from("inbox_rules")
         .select("*")
         .eq("user_id_uuid", gate.canon.userIdUuid)
@@ -48,7 +48,7 @@ export async function POST(req: Request) {
         meta: body.meta ?? {},
     };
 
-    const { data, error } = await supabaseAdmin.from("inbox_rules").insert(payload).select("*").single();
+    const { data, error } = await getSupabaseAdminRuntimeClient().from("inbox_rules").insert(payload).select("*").single();
     if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
     return NextResponse.json({ ok: true, rule: data });
 }
@@ -73,7 +73,7 @@ export async function PATCH(req: Request) {
         if (body[k] !== undefined) patch[k] = body[k];
     }
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdminRuntimeClient()
         .from("inbox_rules")
         .update(patch)
         .eq("id", body.id)
@@ -96,7 +96,7 @@ export async function DELETE(req: Request) {
     const id = url.searchParams.get("id");
     if (!id) return NextResponse.json({ ok: false, error: "Missing id" }, { status: 400 });
 
-    const { error } = await supabaseAdmin
+    const { error } = await getSupabaseAdminRuntimeClient()
         .from("inbox_rules")
         .delete()
         .eq("id", id)

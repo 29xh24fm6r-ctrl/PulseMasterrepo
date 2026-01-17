@@ -2,12 +2,9 @@
 // Onboarding Status Check
 // ============================================================================
 
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAdminRuntimeClient, getSupabaseRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+
 
 export interface UserProfile {
   id: string;
@@ -25,10 +22,12 @@ export interface UserProfile {
   onboarding_completed: boolean;
 }
 
+
 export async function getOnboardingStatus(userId: string): Promise<{
   completed: boolean;
   profile: UserProfile | null;
 }> {
+  const supabase = getSupabaseAdminRuntimeClient();
   const { data: profile, error } = await supabase
     .from("user_profiles")
     .select("*")
@@ -46,6 +45,7 @@ export async function getOnboardingStatus(userId: string): Promise<{
 }
 
 export async function getUserProfile(userId: string): Promise<UserProfile | null> {
+  const supabase = getSupabaseAdminRuntimeClient();
   const { data: profile, error } = await supabase
     .from("user_profiles")
     .select("*")
@@ -60,6 +60,7 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
 }
 
 export async function getUserDashboardLayout(userId: string): Promise<Record<string, any> | null> {
+  const supabase = getSupabaseAdminRuntimeClient();
   const { data: layout, error } = await supabase
     .from("user_dashboard_layouts")
     .select("*")

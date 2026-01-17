@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export async function GET(req: Request) {
     const gate = await requireOpsAuth();
@@ -13,7 +13,7 @@ export async function GET(req: Request) {
     const unread = url.searchParams.get("unread");
     const archived = url.searchParams.get("archived");
 
-    let q = supabaseAdmin
+    let q = getSupabaseAdminRuntimeClient()
         .from("inbox_items")
         .select("*")
         .eq("user_id_uuid", gate.canon.userIdUuid)

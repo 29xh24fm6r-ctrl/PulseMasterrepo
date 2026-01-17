@@ -1,7 +1,7 @@
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export async function pickVendor(args: { vendor_name?: string }) {
-    const sb = supabaseAdmin();
+    const sb = getSupabaseAdminRuntimeClient();
 
     if (args.vendor_name) {
         const { data, error } = await sb

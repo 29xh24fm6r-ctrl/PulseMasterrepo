@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export type ActivityEventInput = {
     user_id?: string | null; // uuid string if available
@@ -12,7 +12,7 @@ export type ActivityEventInput = {
 export async function logActivityEvent(e: ActivityEventInput) {
     // Best-effort logging: we never want logging to break the primary action.
     try {
-        const { data, error } = await supabaseAdmin
+        const { data, error } = await getSupabaseAdminRuntimeClient()
             .from("activity_events")
             .insert({
                 user_id: e.user_id ?? null,
@@ -35,7 +35,7 @@ export async function logActivityEvent(e: ActivityEventInput) {
         if (data && e.user_id) {
             (async () => {
                 try {
-                    const { error: jobErr } = await supabaseAdmin.rpc("enqueue_job", {
+                    const { error: jobErr } = await getSupabaseAdminRuntimeClient().rpc("enqueue_job", {
                         p_job_type: "momentum_event_ingest",
                         p_payload: {
                             canon_event: {

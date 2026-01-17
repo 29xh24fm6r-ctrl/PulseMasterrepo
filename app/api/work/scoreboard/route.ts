@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export async function GET(req: Request) {
     const gate = await requireOpsAuth();
@@ -9,7 +9,7 @@ export async function GET(req: Request) {
         return NextResponse.json({ ok: false, error: gate.error }, { status: gate.status });
     }
 
-    const res = await supabaseAdmin
+    const res = await getSupabaseAdminRuntimeClient()
         .from("work_scoreboard_days")
         .select("*")
         .eq("user_id_uuid", gate.canon.userIdUuid)

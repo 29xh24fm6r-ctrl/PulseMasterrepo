@@ -14,7 +14,7 @@ export async function detectIngredientsFromImages(args: {
     const apiKey = requireEnv("OPENAI_API_KEY");
     const model = process.env.OPENAI_VISION_MODEL || "gpt-4.0-mini"; // Using closest available or fallback
 
-    const client = getOpenAI();
+    // const client = getOpenAI(); // Removed unused sync call
 
     // We ask for STRICT JSON only. We validate with Zod.
     const prompt = `
@@ -54,7 +54,7 @@ Rules:
     ];
 
     // Using standard chat completion with json_object mode for better compliance
-    const openai = getOpenAI();
+    const openai = await getOpenAI();
     const resp = await openai.chat.completions.create({
         model,
         messages: input as any,

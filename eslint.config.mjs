@@ -20,13 +20,31 @@ const eslintConfig = defineConfig([
         {
           paths: [
             {
-              name: "openai",
-              message: "Do not import OpenAI directly. Use getOpenAI() from services/ai/openai.ts",
+              name: "@supabase/supabase-js",
+              message: "Supabase SDK must ONLY be imported in lib/runtime/*.runtime.ts",
+            },
+            {
+              name: "stripe",
+              message: "Stripe SDK must ONLY be imported in lib/runtime/*.runtime.ts",
             },
             {
               name: "resend",
-              message: "Do not import Resend directly. Use getResend() from services/email/resend.ts",
+              message: "Resend SDK must ONLY be imported in lib/runtime/*.runtime.ts",
             },
+            {
+              name: "openai",
+              message: "OpenAI SDK must ONLY be imported in lib/runtime/*.runtime.ts",
+            },
+          ],
+          patterns: [
+            {
+              group: ["@/services/stripe", "@/services/email/resend", "@/services/ai/openai"],
+              message: "Do not import legacy service wrappers. Use dynamic imports from @/lib/runtime instead.",
+            },
+            {
+              group: ["@/lib/runtime/*"],
+              message: "Do not statically import runtime adapters. Use `await import()` inside request handlers or runtime-only code paths."
+            }
           ],
         },
       ],
@@ -35,7 +53,7 @@ const eslintConfig = defineConfig([
     },
   },
   {
-    files: ["services/ai/openai.ts", "services/email/resend.ts"],
+    files: ["lib/runtime/*.ts"],
     rules: {
       "no-restricted-imports": "off",
     },

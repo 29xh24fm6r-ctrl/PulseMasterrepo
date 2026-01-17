@@ -1,29 +1,24 @@
 // Stripe Configuration - $5/mo + Token Packs Model
 // lib/stripe.ts
 
-import Stripe from "stripe";
+import type Stripe from "stripe";
 
-let _stripe: Stripe | null = null;
+// NOTE: We do NOT import "stripe" or "@/lib/supabase" at the top level
+// to prevent build-time execution of SDKs.
 
-export function getStripe(): Stripe {
-  if (_stripe) return _stripe;
-
-  const key = process.env.STRIPE_SECRET_KEY;
-
-  // IMPORTANT: This must only throw when Stripe is invoked at runtime,
-  // not during Next.js build/import evaluation.
-  if (!key) {
-    throw new Error("Missing STRIPE_SECRET_KEY environment variable");
-  }
-
-  _stripe = new Stripe(key, {
-    apiVersion: "2025-11-17.clover" as any, // Cast to any to avoid strict typing issues with specific versions if needed, or keeping explicit
-    typescript: true,
-  });
-  return _stripe;
+/**
+ * Async accessor for Stripe client
+ * Safe for use in Next.js build phase (because it won't be called)
+ */
+export async function getStripe(): Promise<Stripe> {
+  // Dynamic import acts as a runtime barrier
+  const { getStripeRuntime } = await import("@/lib/runtime/stripe.runtime");
+  return getStripeRuntime();
 }
 
 // Price IDs - Set these in your environment variables after creating products in Stripe
+// These are safe to read at module time as long as they don't throw,
+// but be aware Next.js might bake values at build time if this file is imported.
 export const STRIPE_PRICES = {
   plus_monthly: process.env.STRIPE_PRICE_PLUS_MONTHLY || "",
   plus_yearly: process.env.STRIPE_PRICE_PLUS_YEARLY || "",
@@ -31,6 +26,7 @@ export const STRIPE_PRICES = {
   tokens_220: process.env.STRIPE_PRICE_TOKENS_1200 || "",
   tokens_600: process.env.STRIPE_PRICE_TOKENS_3500 || "",
   tokens_1400: process.env.STRIPE_PRICE_TOKENS_8000 || "",
+  tokens_1000: process.env.STRIPE_PRICE_TOKENS_1000 || "", // Added robustness
 };
 
 // Plan configuration
@@ -123,8 +119,9 @@ export async function getOrCreateStripeCustomer(
   email: string,
   name?: string
 ): Promise<string> {
+  // Dynamic import for Supabase to avoid build-time execution
   const { supabaseAdmin } = await import("@/lib/supabase");
-  const stripe = getStripe();
+  const stripe = await getStripe();
 
   // Check if user already has a Stripe customer ID
   const { data: profile } = await supabaseAdmin
@@ -165,7 +162,7 @@ export async function createCheckoutSession(
   cancelUrl: string,
   metadata?: Record<string, string>
 ): Promise<Stripe.Checkout.Session> {
-  const stripe = getStripe();
+  const stripe = await getStripe();
   return stripe.checkout.sessions.create({
     customer: customerId,
     mode: "subscription",
@@ -196,7 +193,7 @@ export async function createTokenCheckoutSession(
   cancelUrl: string,
   metadata?: Record<string, string>
 ): Promise<Stripe.Checkout.Session> {
-  const stripe = getStripe();
+  const stripe = await getStripe();
   return stripe.checkout.sessions.create({
     customer: customerId,
     mode: "payment",
@@ -220,7 +217,7 @@ export async function createBillingPortalSession(
   customerId: string,
   returnUrl: string
 ): Promise<Stripe.BillingPortal.Session> {
-  const stripe = getStripe();
+  const stripe = await getStripe();
   return stripe.billingPortal.sessions.create({
     customer: customerId,
     return_url: returnUrl,
@@ -234,7 +231,7 @@ export async function cancelSubscription(
   subscriptionId: string,
   immediately: boolean = false
 ): Promise<Stripe.Subscription> {
-  const stripe = getStripe();
+  const stripe = await getStripe();
   if (immediately) {
     return stripe.subscriptions.cancel(subscriptionId);
   }
@@ -251,7 +248,7 @@ export async function cancelSubscription(
 export async function resumeSubscription(
   subscriptionId: string
 ): Promise<Stripe.Subscription> {
-  const stripe = getStripe();
+  const stripe = await getStripe();
   return stripe.subscriptions.update(subscriptionId, {
     cancel_at_period_end: false,
   });
@@ -263,7 +260,7 @@ export async function resumeSubscription(
 export async function getSubscription(
   subscriptionId: string
 ): Promise<Stripe.Subscription> {
-  const stripe = getStripe();
+  const stripe = await getStripe();
   return stripe.subscriptions.retrieve(subscriptionId);
 }
 
@@ -282,6 +279,7 @@ export function mapSubscriptionStatus(
     trialing: "trialing",
     unpaid: "unpaid",
     paused: "paused",
+    paused_incomplete: "paused",
   };
 
   return statusMap[stripeStatus] || stripeStatus;

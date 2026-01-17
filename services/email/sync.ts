@@ -5,7 +5,7 @@
  * Syncs email metadata to Supabase and integrates with Third Brain
  */
 
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { google } from "googleapis";
 import { refreshAccessToken } from "@/app/lib/gmail-utils";
 
@@ -51,7 +51,7 @@ export interface EmailContact {
 
 async function getGmailClient(userId: string) {
   // Get tokens from calendar_accounts or a dedicated gmail_accounts table
-  const { data: account } = await supabaseAdmin
+  const { data: account } = await getSupabaseAdminRuntimeClient()
     .from("calendar_accounts")
     .select("access_token, refresh_token, token_expires_at")
     .eq("user_id", userId)
@@ -68,7 +68,7 @@ async function getGmailClient(userId: string) {
     const refreshed = await refreshAccessToken(account.refresh_token);
     if (refreshed) {
       accessToken = refreshed.accessToken;
-      await supabaseAdmin
+      await getSupabaseAdminRuntimeClient()
         .from("calendar_accounts")
         .update({
           access_token: accessToken,
@@ -153,7 +153,7 @@ export async function syncEmailThreads(
         else if (labels.includes("CATEGORY_FORUMS")) category = "forums";
 
         // Upsert to Supabase
-        const { error } = await supabaseAdmin
+        const { error } = await getSupabaseAdminRuntimeClient()
           .from("email_threads")
           .upsert(
             {
@@ -186,7 +186,7 @@ export async function syncEmailThreads(
         // Extract and upsert contact
         const { name, email } = parseFromField(from);
         if (email && !isAutomatedEmail(email)) {
-          const { data: existingCrmContact } = await supabaseAdmin
+          const { data: existingCrmContact } = await getSupabaseAdminRuntimeClient()
             .from("crm_contacts")
             .select("id")
             .eq("user_id_uuid", userId)
@@ -194,7 +194,7 @@ export async function syncEmailThreads(
             .single();
 
           if (existingCrmContact) {
-            await supabaseAdmin
+            await getSupabaseAdminRuntimeClient()
               .from("crm_contacts")
               .update({
                 // name: name || undefined, // Don't overwrite name blindly
@@ -211,7 +211,7 @@ export async function syncEmailThreads(
             // For now, don't create new contacts automatically to avoid polution, or create with minimal info
             // If we create, we need full_name.
             if (name) {
-              await supabaseAdmin.from("crm_contacts").insert({
+              await getSupabaseAdminRuntimeClient().from("crm_contacts").insert({
                 user_id_uuid: userId,
                 owner_user_id_legacy: userId, // Legacy field
                 full_name: name,
@@ -239,7 +239,7 @@ export async function syncEmailThreads(
 // async function upsertContact(userId: string, email: string, name?: string): Promise<void> {
 //   const domain = email.split("@")[1] || "";
 
-//   const { data: existing } = await supabaseAdmin
+//   const { data: existing } = await getSupabaseAdminRuntimeClient()
 //     .from("email_contacts")
 //     .select("id, email_count")
 //     .eq("user_id", userId)
@@ -247,7 +247,7 @@ export async function syncEmailThreads(
 //     .single();
 
 //   if (existing) {
-//     await supabaseAdmin
+//     await getSupabaseAdminRuntimeClient()
 //       .from("email_contacts")
 //       .update({
 //         name: name || undefined,
@@ -256,7 +256,7 @@ export async function syncEmailThreads(
 //       })
 //       .eq("id", existing.id);
 //   } else {
-//     await supabaseAdmin.from("email_contacts").insert({
+//     await getSupabaseAdminRuntimeClient().from("email_contacts").insert({
 //       user_id: userId,
 //       email: email.toLowerCase(),
 //       name,
@@ -305,7 +305,7 @@ function isAutomatedEmail(email: string): boolean {
  * Get email threads needing follow-up
  */
 export async function getThreadsNeedingFollowup(userId: string): Promise<EmailThread[]> {
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getSupabaseAdminRuntimeClient()
     .from("email_threads")
     .select("*")
     .eq("user_id_uuid", userId)
@@ -321,7 +321,7 @@ export async function getThreadsNeedingFollowup(userId: string): Promise<EmailTh
  * Get unread important threads
  */
 export async function getUnreadImportant(userId: string): Promise<EmailThread[]> {
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getSupabaseAdminRuntimeClient()
     .from("email_threads")
     .select("*")
     .eq("user_id_uuid", userId)
@@ -342,7 +342,7 @@ export async function getKeyContacts(userId: string): Promise<EmailContact[]> {
   // lib/dashboard/aggregator used `relationships`.
   // Here we want EmailContact interface.
   // We can query relationships for VIP/Key and map them.
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getSupabaseAdminRuntimeClient()
     .from("relationships")
     .select("*, contact:crm_contacts(*)")
     .eq("user_id_uuid", userId)
@@ -373,7 +373,7 @@ export async function markThreadForFollowup(
   threadId: string,
   reason: string
 ): Promise<boolean> {
-  const { error } = await supabaseAdmin
+  const { error } = await getSupabaseAdminRuntimeClient()
     .from("email_threads")
     .update({
       needs_response: true,
@@ -401,7 +401,7 @@ export async function updateContactImportance(
   // We'll return false/not implemented for now to save time.
   return false;
   /*
-  const { error } = await supabaseAdmin
+  const { error } = await getSupabaseAdminRuntimeClient()
     .from("email_contacts")
     .update({ importance })
     .eq("user_id", userId)

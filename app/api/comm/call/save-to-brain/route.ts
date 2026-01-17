@@ -3,15 +3,11 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 import { getCallSession } from "@/services/comm/store";
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export async function POST(request: Request) {
   try {
+    const supabase = getSupabaseAdminRuntimeClient();
     const { callSessionId, contactId } = await request.json();
 
     if (!callSessionId) {

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { bumpScore } from "@/lib/work/scoreboard";
 
 export async function POST(req: Request) {
@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     const id = body?.id as string | undefined;
     if (!id) return NextResponse.json({ ok: false, error: "Missing id" }, { status: 400 });
 
-    const upd = await supabaseAdmin
+    const upd = await getSupabaseAdminRuntimeClient()
         .from("follow_ups")
         .update({ status: "done" })
         .eq("id", id)

@@ -1,7 +1,7 @@
 // Profile Service - $5/mo + Token Packs Model
 // lib/services/profile.ts
 
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 // Types
 export interface UserProfile {
@@ -106,7 +106,7 @@ export async function getOrCreateProfile(
   referralCode?: string
 ): Promise<{ profile: UserProfile; created: boolean }> {
   // Try to get existing profile
-  const { data: existingProfile, error: fetchError } = await supabaseAdmin
+  const { data: existingProfile, error: fetchError } = await getSupabaseAdminRuntimeClient()
     .from("user_profiles")
     .select("*")
     .eq("user_id", userId)
@@ -130,7 +130,7 @@ export async function getOrCreateProfile(
 
   // Handle referral
   if (referralCode) {
-    const { data: referrer } = await supabaseAdmin
+    const { data: referrer } = await getSupabaseAdminRuntimeClient()
       .from("user_profiles")
       .select("user_id")
       .eq("referral_code", referralCode)
@@ -142,7 +142,7 @@ export async function getOrCreateProfile(
     }
   }
 
-  const { data: createdProfile, error: createError } = await supabaseAdmin
+  const { data: createdProfile, error: createError } = await getSupabaseAdminRuntimeClient()
     .from("user_profiles")
     .insert(newProfile)
     .select()
@@ -155,7 +155,7 @@ export async function getOrCreateProfile(
 
   // If referred, create referral reward record (pending until upgrade)
   if (newProfile.referred_by) {
-    await supabaseAdmin.from("referral_rewards").insert({
+    await getSupabaseAdminRuntimeClient().from("referral_rewards").insert({
       referrer_user_id: newProfile.referred_by,
       referred_user_id: userId,
       reward_type: "signup",
@@ -171,7 +171,7 @@ export async function getOrCreateProfile(
  * Get profile by user ID
  */
 export async function getProfileByUserId(userId: string): Promise<UserProfile | null> {
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getSupabaseAdminRuntimeClient()
     .from("user_profiles")
     .select("*")
     .eq("user_id", userId)
@@ -191,7 +191,7 @@ export async function updateProfileByUserId(
   userId: string,
   updates: ProfileUpdateData
 ): Promise<UserProfile | null> {
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getSupabaseAdminRuntimeClient()
     .from("user_profiles")
     .update({
       ...updates,
@@ -216,7 +216,7 @@ export async function updateProfileById(
   id: string,
   updates: ProfileUpdateData
 ): Promise<UserProfile | null> {
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getSupabaseAdminRuntimeClient()
     .from("user_profiles")
     .update({
       ...updates,
@@ -277,7 +277,7 @@ export async function trackUsage(
 
   if (allowed) {
     // Log the usage
-    await supabaseAdmin.from("usage_logs").insert({
+    await getSupabaseAdminRuntimeClient().from("usage_logs").insert({
       user_id: userId,
       feature,
       tokens_used: tokensUsed || costCents,
@@ -379,7 +379,7 @@ export async function getReferralStats(userId: string): Promise<{
 }> {
   const { profile } = await getOrCreateProfile(userId);
 
-  const { data: rewards } = await supabaseAdmin
+  const { data: rewards } = await getSupabaseAdminRuntimeClient()
     .from("referral_rewards")
     .select("*")
     .eq("referrer_user_id", userId);

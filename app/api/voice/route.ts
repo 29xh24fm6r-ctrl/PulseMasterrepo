@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const action = String(formData.get("action") ?? "");
 
-    const openai = getOpenAI();
+    const openai = await getOpenAI();
 
     // Speech-to-Text (Whisper)
     if (action === "transcribe") {

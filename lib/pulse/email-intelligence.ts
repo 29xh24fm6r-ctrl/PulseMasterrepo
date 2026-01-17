@@ -1,9 +1,9 @@
 import { google } from "googleapis";
 import { getOpenAI } from "@/services/ai/openai";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { refreshAccessToken } from "@/app/lib/gmail-utils";
 
-const openai = getOpenAI();
+// Top-level openai removed
 
 // ============================================
 // Types
@@ -325,7 +325,7 @@ export async function classifyAndExtractActions(
     }`;
 
         try {
-            const openai = getOpenAI();
+            const openai = await getOpenAI();
             const completion = await openai.chat.completions.create({
                 model: "gpt-4o-mini",
                 messages: [{ role: "user", content: prompt }],

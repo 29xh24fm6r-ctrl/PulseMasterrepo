@@ -1,6 +1,6 @@
 // app/api/activity/recent/route.ts
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,7 +19,7 @@ export async function GET(req: Request) {
         // Updated Schema Selection
         // Old: source, event_type, title, detail, payload
         // New Schema: source, action, category, metadata
-        const { data, error } = await supabaseAdmin
+        const { data, error } = await getSupabaseAdminRuntimeClient()
             .from("activity_events")
             .select("id,created_at,source,action,category,metadata")
             .order("created_at", { ascending: false })

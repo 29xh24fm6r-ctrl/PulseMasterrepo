@@ -1,11 +1,11 @@
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export async function runChefGoTimeScan(args: {
     owner_user_id?: string;
     lookback_minutes?: number;  // default 120
     lookahead_minutes?: number; // default 10
 }) {
-    const sb = supabaseAdmin();
+    const sb = getSupabaseAdminRuntimeClient();
     const lookback = args.lookback_minutes ?? 120;
     const lookahead = args.lookahead_minutes ?? 10;
 

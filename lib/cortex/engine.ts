@@ -1,5 +1,5 @@
 
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { generateAutoDraft } from "@/lib/pulse/email-drafter";
 // We will eventually import other processors here
 

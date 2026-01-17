@@ -1,6 +1,6 @@
 // lib/events/writePulseEvent.ts
 import crypto from "crypto";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 type PulseEventInput = {
     userIdUuid: string; // canonical identity_users.id
@@ -60,7 +60,7 @@ function computeEventFingerprint(args: {
  */
 export async function writePulseEvent(input: PulseEventInput): Promise<{ ok: true; deduped: boolean }> {
     // Use admin client for writing events
-    const supabase = supabaseAdmin;
+    const supabase = getSupabaseAdminRuntimeClient();
 
     const createdAtIso = input.createdAt ?? new Date().toISOString();
     const properties = input.properties ?? {};

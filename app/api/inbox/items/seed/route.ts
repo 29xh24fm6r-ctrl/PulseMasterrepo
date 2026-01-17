@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export async function POST(req: Request) {
     const gate = await requireOpsAuth();
@@ -37,7 +37,7 @@ export async function POST(req: Request) {
         },
     ];
 
-    const { data, error } = await supabaseAdmin.from("inbox_items").insert(rows).select("*");
+    const { data, error } = await getSupabaseAdminRuntimeClient().from("inbox_items").insert(rows).select("*");
     if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
 
     return NextResponse.json({ ok: true, items: data ?? [] });

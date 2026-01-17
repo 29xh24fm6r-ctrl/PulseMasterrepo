@@ -1,11 +1,11 @@
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export async function runWithJobMetrics<T>(
     jobName: string,
     fn: () => Promise<T>
 ): Promise<T> {
     const start = performance.now();
-    const supabase = supabaseAdmin; // Get client
+    const supabase = getSupabaseAdminRuntimeClient(); // Get client
 
     try {
         const res = await fn();

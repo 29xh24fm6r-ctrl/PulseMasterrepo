@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
 import { readTargetUserId } from "@/lib/auth/readTargetUser";
 import { opsLimit } from "@/lib/ops/limits";
@@ -18,7 +18,7 @@ export async function GET(req: Request) {
     // No recursive audit logging for audit view to avoid noise, or log simplified
     // await logOpsAudit({...}) - skipping to avoid noise
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdminRuntimeClient()
         .from("ops_audit_log")
         .select("*")
         .eq("user_id", gate.userId) // RLS-like filtering for safety, though ops is conceptually cross-user if super-admin. 
