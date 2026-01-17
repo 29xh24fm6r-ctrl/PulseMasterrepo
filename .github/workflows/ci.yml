@@ -38,7 +38,9 @@ jobs:
         run: npx -y tsx scripts/verify-no-module-scope-api.ts
 
       - name: Safe-to-Ship Checks
-        run: NODE_OPTIONS="--max-old-space-size=4096" npm run check
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+        run: npm run check
 
       - name: Stop server
         if: always()
