@@ -15,9 +15,29 @@ const eslintConfig = defineConfig([
   ]),
   {
     rules: {
-      // Phase D5: Legacy imports removed. Rule cleaned up.
-    }
-  }
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "openai",
+              message: "Do not import OpenAI directly. Use getOpenAI() from services/ai/openai.ts",
+            },
+            {
+              name: "resend",
+              message: "Do not import Resend directly. Use getResend() from services/email/resend.ts",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["services/ai/openai.ts", "services/email/resend.ts"],
+    rules: {
+      "no-restricted-imports": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;
