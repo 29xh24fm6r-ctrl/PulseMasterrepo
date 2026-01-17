@@ -1,13 +1,27 @@
 
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+// Helper to safely get env vars during build
+function getSupabasePublicEnv() {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn("Supabase credentials missing in environment variables.");
+    // During Next build / CI, allow missing envs
+    if (process.env.CI || process.env.NEXT_PHASE === "phase-production-build") {
+        return {
+            url: url ?? "http://localhost:54321",
+            anon: anon ?? "anon-placeholder",
+        };
+    }
+
+    if (!url || !anon) {
+        throw new Error("Missing Supabase public environment variables");
+    }
+
+    return { url, anon };
 }
 
 export function createClient() {
-    return createSupabaseClient(supabaseUrl, supabaseAnonKey);
+    const { url, anon } = getSupabasePublicEnv();
+    return createSupabaseClient(url, anon);
 }
