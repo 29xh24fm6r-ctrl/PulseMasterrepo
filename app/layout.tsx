@@ -67,7 +67,7 @@ export default function RootLayout({
                       <ServiceWorkerRegistration />
                     </main>
                     <aside className="hidden xl:block w-[400px] border-l border-zinc-200 dark:border-white/10 p-4 shrink-0 bg-zinc-900/50">
-                      <PulseCompanionShell />
+                      <PulseCompanionShell ownerUserId={process.env.PULSE_DEV_USER_ID || "00000000-0000-0000-0000-000000000000"} />
                     </aside>
                   </div>
                 </div>

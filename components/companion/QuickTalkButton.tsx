@@ -1,101 +1,67 @@
-import React, { useRef, useState } from "react";
-import { Mic, MicOff, Loader2, Square } from "lucide-react";
+// components/companion/QuickTalkButton.tsx
+"use client";
 
-interface QuickTalkButtonProps {
-    state: "idle" | "listening" | "processing" | "success" | "error";
-    onStart: () => void;
-    onStop: () => void;
-    onCancel: () => void;
-}
+import React, { useRef } from "react";
+import { useQuickTalk } from "@/components/companion/useQuickTalk";
 
-export function QuickTalkButton({ state, onStart, onStop, onCancel }: QuickTalkButtonProps) {
-    const [isHovered, setIsHovered] = useState(false);
-    const pressTimer = useRef<NodeJS.Timeout | null>(null);
-    const isHoldMode = useRef(false);
+export function QuickTalkButton(props: { ownerUserId: string; context: any; onRunId: (id: string) => void }) {
+    const { state, runId, error, start, stop, toggle } = useQuickTalk({
+        ownerUserId: props.ownerUserId,
+        context: props.context,
+    });
 
-    const handlePointerDown = (e: React.PointerEvent) => {
-        if (state !== "idle") return;
+    const holdActive = useRef(false);
 
-        // Start hold timer
-        isHoldMode.current = false;
-        pressTimer.current = setTimeout(() => {
-            isHoldMode.current = true;
-        }, 200); // 200ms threshold for "hold"
+    // When runId appears, bubble it up
+    React.useEffect(() => {
+        if (runId) props.onRunId(runId);
+    }, [runId]);
 
-        onStart();
-    };
-
-    const handlePointerUp = (e: React.PointerEvent) => {
-        if (state !== "listening") return;
-
-        if (pressTimer.current) clearTimeout(pressTimer.current);
-
-        if (isHoldMode.current) {
-            // Was holding -> Stop
-            onStop();
-        } else {
-            // Was a tap -> Keep listening (Toggle mode)
-            // Do nothing, let user click again or leave it
-        }
-    };
-
-    const handleClick = (e: React.MouseEvent) => {
-        // If we processed a hold, ignore the click
-        if (isHoldMode.current) {
-            isHoldMode.current = false;
-            return;
-        }
-
-        // Tap toggle logic
-        if (state === "listening") {
-            onStop();
-        } else if (state === "idle") {
-            // Already handled in pointerDown, but if pointerDown failed for some reason:
-            // onStart();
-        }
-    };
+    const label =
+        state === "idle"
+            ? "Hold to Talk"
+            : state === "listening"
+                ? "Listening…"
+                : state === "uploading"
+                    ? "Sending…"
+                    : state === "done"
+                        ? "Done"
+                        : "Error";
 
     return (
-        <button
-            onPointerDown={handlePointerDown}
-            onPointerUp={handlePointerUp}
-            onClick={handleClick}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-            className={`
-                w-full rounded-xl px-4 py-3 flex items-center justify-center gap-2 font-medium bg-white/10 border border-white/10 transition-all select-none
-                ${state === "listening" ? "bg-red-500/20 border-red-500/50 text-red-200 animate-pulse" : "hover:bg-white/15 text-white"}
-                ${state === "processing" ? "opacity-75 cursor-wait" : ""}
-            `}
-        >
-            {state === "idle" && (
-                <>
-                    <Mic className="w-4 h-4" />
-                    <span>Hold to Talk</span>
-                </>
-            )}
+        <div className="flex flex-col gap-2">
+            <button
+                className="rounded-xl px-3 py-2 text-sm border border-white/15 bg-white/5 hover:bg-white/10 w-full text-left"
+                onMouseDown={async () => {
+                    holdActive.current = true;
+                    await start();
+                }}
+                onMouseUp={async () => {
+                    if (!holdActive.current) return;
+                    holdActive.current = false;
+                    await stop();
+                }}
+                onMouseLeave={async () => {
+                    if (!holdActive.current) return;
+                    holdActive.current = false;
+                    await stop();
+                }}
+                onClick={(e) => {
+                    // If user clicks without holding, treat as toggle
+                    // (avoid double-trigger on mouse events)
+                    if (holdActive.current) return;
+                    toggle();
+                }}
+                aria-pressed={state === "listening"}
+            >
+                🎙️ {label}
+            </button>
 
-            {state === "listening" && (
-                <>
-                    <Square className="w-4 h-4 fill-current" />
-                    <span>Listening...</span>
-                </>
-            )}
+            {error ? <div className="text-xs text-red-300">{error}</div> : null}
 
-            {state === "processing" && (
-                <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Thinking...</span>
-                </>
-            )}
-
-            {state === "success" && (
-                <span className="text-emerald-400">Done</span>
-            )}
-
-            {state === "error" && (
-                <span className="text-red-400">Error</span>
-            )}
-        </button>
+            <div className="text-[11px] opacity-70">
+                Tap toggles. Hold records. Voice never auto-runs actions—only proposes.
+            </div>
+        </div>
     );
 }

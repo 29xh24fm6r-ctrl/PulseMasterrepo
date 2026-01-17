@@ -1,133 +1,106 @@
-import { useState, useRef, useCallback } from "react";
-import { PulseContextFrame } from "@/lib/companion/contextBus";
+// components/companion/useQuickTalk.ts
+"use client";
 
-export type QuickTalkState = "idle" | "listening" | "processing" | "success" | "error";
+import { useMemo, useRef, useState } from "react";
 
-export interface QuickTalkTrace {
-    state: QuickTalkState;
-    lastTranscript: string | null;
-    lastIntent: string | null;
-    latencyMs: number | null;
-    error: string | null;
-}
+type QuickTalkState = "idle" | "listening" | "uploading" | "done" | "error";
 
-interface UseQuickTalkProps {
-    onTraceUpdate?: (trace: QuickTalkTrace) => void;
-}
-
-export function useQuickTalk({ onTraceUpdate }: UseQuickTalkProps = {}) {
+export function useQuickTalk(args: { ownerUserId: string; context: any }) {
     const [state, setState] = useState<QuickTalkState>("idle");
+    const [runId, setRunId] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
+
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const chunksRef = useRef<Blob[]>([]);
-    const startTimeRef = useRef<number>(0);
 
-    const updateTrace = useCallback((partial: Partial<QuickTalkTrace>) => {
-        if (onTraceUpdate) {
-            onTraceUpdate({
-                state: "idle", // Default, overwritten by partial
-                lastTranscript: null,
-                lastIntent: null,
-                latencyMs: null,
-                error: null,
-                ...partial
-            } as QuickTalkTrace);
+    const canRecord = useMemo(() => typeof window !== "undefined" && !!navigator.mediaDevices, []);
+
+    async function start() {
+        setError(null);
+        setRunId(null);
+
+        // Reset internal state if we were done/error
+        setState("idle");
+
+        if (!canRecord) {
+            setError("Audio recording not supported in this browser");
+            setState("error");
+            return;
         }
-    }, [onTraceUpdate]);
 
-    const startRecording = useCallback(async () => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const recorder = new MediaRecorder(stream);
+            const mr = new MediaRecorder(stream);
 
             chunksRef.current = [];
-            recorder.ondataavailable = (e) => {
-                if (e.data.size > 0) chunksRef.current.push(e.data);
+            mr.ondataavailable = (e) => {
+                if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
             };
 
-            recorder.start();
-            mediaRecorderRef.current = recorder;
+            mr.onstop = () => {
+                stream.getTracks().forEach((t) => t.stop());
+            };
+
+            mediaRecorderRef.current = mr;
+            mr.start();
             setState("listening");
-            updateTrace({ state: "listening" });
-
-        } catch (err: any) {
-            console.error("Mic error:", err);
+        } catch (e: any) {
+            setError("Microphone access failed");
             setState("error");
-            updateTrace({ state: "error", error: err.message });
         }
-    }, [updateTrace]);
+    }
 
-    const stopRecording = useCallback(async (contextFrame: PulseContextFrame | null) => {
-        if (!mediaRecorderRef.current || state !== "listening") return;
+    async function stop() {
+        const mr = mediaRecorderRef.current;
+        if (!mr) return;
+
+        if (state !== "listening") return;
+
+        setState("uploading");
+
+        // We need to wait for onstop to fire to get all chunks? 
+        // Actually MediaRecorder usage usually requires waiting for the 'stop' event to ensure the final blob is ready.
+        // I'll wrap this in a promise to be safe.
 
         return new Promise<void>((resolve) => {
-            const recorder = mediaRecorderRef.current!;
-
-            recorder.onstop = async () => {
-                const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-
-                // Cleanup tracks
-                recorder.stream.getTracks().forEach(t => t.stop());
+            mr.onstop = async () => {
+                // Stop tracks
+                mr.stream.getTracks().forEach((t) => t.stop());
                 mediaRecorderRef.current = null;
 
-                // Upload
-                setState("processing");
-                startTimeRef.current = Date.now();
-                updateTrace({ state: "processing" });
+                const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+
+                const form = new FormData();
+                form.append("audio", blob, "quicktalk.webm");
+                form.append("context", JSON.stringify(args.context ?? {}));
 
                 try {
-                    const formData = new FormData();
-                    formData.append("audio", blob);
-                    formData.append("context", JSON.stringify(contextFrame || {}));
-                    formData.append("client_ts", Date.now().toString());
-
-                    const res = await fetch("/api/voice/intake", {
+                    const res = await fetch("/api/voice/quick-talk/start", {
                         method: "POST",
-                        body: formData
+                        headers: {
+                            "x-owner-user-id": args.ownerUserId,
+                        },
+                        body: form,
                     });
 
-                    if (!res.ok) throw new Error(`API ${res.status}`);
-
-                    const data = await res.json();
-                    const latency = Date.now() - startTimeRef.current;
-
-                    setState("success");
-                    updateTrace({
-                        state: "success",
-                        lastTranscript: data.transcript,
-                        lastIntent: JSON.stringify(data.intent),
-                        latencyMs: latency
-                    });
-
-                    // Reset to idle after short delay
-                    setTimeout(() => setState("idle"), 2000);
-
-                } catch (err: any) {
-                    console.error("Upload error:", err);
+                    if (!res.ok) throw new Error("quick_talk_start_failed");
+                    const json = await res.json();
+                    setRunId(json.run_id ?? null);
+                    setState("done");
+                } catch (e: any) {
+                    setError("Failed to start quick talk run");
                     setState("error");
-                    updateTrace({ state: "error", error: err.message });
                 }
-
                 resolve();
             };
-
-            recorder.stop();
+            mr.stop();
         });
+    }
 
-    }, [state, updateTrace]);
+    async function toggle() {
+        if (state === "listening") return stop();
+        return start();
+    }
 
-    const cancelRecording = useCallback(() => {
-        if (mediaRecorderRef.current) {
-            mediaRecorderRef.current.stream.getTracks().forEach(t => t.stop());
-            mediaRecorderRef.current = null;
-        }
-        setState("idle");
-        updateTrace({ state: "idle" });
-    }, [updateTrace]);
-
-    return {
-        state,
-        startRecording,
-        stopRecording,
-        cancelRecording
-    };
+    return { state, runId, error, start, stop, toggle };
 }
