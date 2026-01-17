@@ -21,6 +21,9 @@ jobs:
       - name: Verify SDK isolation
         run: npx tsx scripts/verify-no-sdk-imports.ts
 
+      - name: Verify build shell
+        run: npx tsx scripts/verify-build-shell.ts
+
       - name: Build
         run: npm run build
 
