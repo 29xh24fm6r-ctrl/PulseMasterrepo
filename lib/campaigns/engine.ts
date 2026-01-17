@@ -6,7 +6,7 @@
  */
 
 import { supabaseAdmin } from "@/lib/supabase";
-import { supabaseAdmin } from "@/lib/supabase";
+
 import { getOpenAI } from "@/lib/llm/client";
 
 // Removed global openai init

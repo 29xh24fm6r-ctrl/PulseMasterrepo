@@ -1,5 +1,5 @@
 // Lazy init to prevent build crashes
-import { createAdminClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase";
 
 function getAdminClient() {
     return createAdminClient();

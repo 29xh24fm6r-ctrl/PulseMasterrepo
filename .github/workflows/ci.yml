@@ -34,6 +34,9 @@ jobs:
         run: |
           node -e "const http=require('http');let n=0;const t=setInterval(()=>{http.get('http://localhost:3000',res=>{console.log('ready');clearInterval(t);process.exit(0);}).on('error',()=>{if(++n>60){console.error('server not ready');clearInterval(t);process.exit(1);}})},1000);"
 
+      - name: Verify API Architecture (Canon Gate)
+        run: npx -y tsx scripts/verify-no-module-scope-api.ts
+
       - name: Safe-to-Ship Checks
         run: NODE_OPTIONS="--max-old-space-size=4096" npm run check
 
