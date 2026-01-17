@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
 import Stripe from "stripe";
 import {
-  stripe,
+  getStripe,
   getPlanFromPriceId,
   getTokensFromPriceId,
   mapSubscriptionStatus,
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     let event: Stripe.Event;
 
     try {
-      event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+      event = getStripe().webhooks.constructEvent(body, signature, webhookSecret);
     } catch (err: any) {
       console.error("Webhook signature verification failed:", err.message);
       return NextResponse.json({ error: "Invalid signature" }, { status: 400 });

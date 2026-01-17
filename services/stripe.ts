@@ -3,14 +3,21 @@
 
 import Stripe from "stripe";
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error("Missing STRIPE_SECRET_KEY environment variable");
+if (!process.env.STRIPE_SECRET_KEY && process.env.NODE_ENV === "production") {
+  console.warn("Missing STRIPE_SECRET_KEY environment variable");
 }
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2025-11-17.clover",
-  typescript: true,
-});
+export function getStripe() {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) {
+    throw new Error("Missing STRIPE_SECRET_KEY environment variable");
+  }
+
+  return new Stripe(key, {
+    apiVersion: "2025-11-17.clover" as any, // Cast to any to avoid strict typing issues with specific versions if needed, or keeping explicit
+    typescript: true,
+  });
+}
 
 // Price IDs - Set these in your environment variables after creating products in Stripe
 export const STRIPE_PRICES = {
@@ -113,6 +120,7 @@ export async function getOrCreateStripeCustomer(
   name?: string
 ): Promise<string> {
   const { supabaseAdmin } = await import("@/lib/supabase");
+  const stripe = getStripe();
 
   // Check if user already has a Stripe customer ID
   const { data: profile } = await supabaseAdmin
@@ -153,6 +161,7 @@ export async function createCheckoutSession(
   cancelUrl: string,
   metadata?: Record<string, string>
 ): Promise<Stripe.Checkout.Session> {
+  const stripe = getStripe();
   return stripe.checkout.sessions.create({
     customer: customerId,
     mode: "subscription",
@@ -183,6 +192,7 @@ export async function createTokenCheckoutSession(
   cancelUrl: string,
   metadata?: Record<string, string>
 ): Promise<Stripe.Checkout.Session> {
+  const stripe = getStripe();
   return stripe.checkout.sessions.create({
     customer: customerId,
     mode: "payment",
@@ -206,6 +216,7 @@ export async function createBillingPortalSession(
   customerId: string,
   returnUrl: string
 ): Promise<Stripe.BillingPortal.Session> {
+  const stripe = getStripe();
   return stripe.billingPortal.sessions.create({
     customer: customerId,
     return_url: returnUrl,
@@ -219,10 +230,11 @@ export async function cancelSubscription(
   subscriptionId: string,
   immediately: boolean = false
 ): Promise<Stripe.Subscription> {
+  const stripe = getStripe();
   if (immediately) {
     return stripe.subscriptions.cancel(subscriptionId);
   }
-  
+
   // Cancel at period end
   return stripe.subscriptions.update(subscriptionId, {
     cancel_at_period_end: true,
@@ -235,6 +247,7 @@ export async function cancelSubscription(
 export async function resumeSubscription(
   subscriptionId: string
 ): Promise<Stripe.Subscription> {
+  const stripe = getStripe();
   return stripe.subscriptions.update(subscriptionId, {
     cancel_at_period_end: false,
   });
@@ -246,6 +259,7 @@ export async function resumeSubscription(
 export async function getSubscription(
   subscriptionId: string
 ): Promise<Stripe.Subscription> {
+  const stripe = getStripe();
   return stripe.subscriptions.retrieve(subscriptionId);
 }
 
@@ -265,7 +279,7 @@ export function mapSubscriptionStatus(
     unpaid: "unpaid",
     paused: "paused",
   };
-  
+
   return statusMap[stripeStatus] || stripeStatus;
 }
 
