@@ -14,7 +14,7 @@ import { getLatestExecutiveSummary } from "@/lib/executive/engine";
 import { getSuggestedActions } from "@/lib/autonomy/engine";
 import { trackTTSUsage } from "@/services/usage";
 
-const openai = new OpenAI();
+import { getOpenAI } from "@/services/ai/openai";
 
 // ============================================
 // TYPES
@@ -422,6 +422,7 @@ export async function generateSpeech(
   text: string,
   voice: "alloy" | "echo" | "fable" | "onyx" | "nova" | "shimmer" = "nova"
 ): Promise<Buffer> {
+  const openai = getOpenAI();
   const response = await openai.audio.speech.create({
     model: "tts-1",
     voice,

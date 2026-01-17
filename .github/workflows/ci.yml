@@ -17,6 +17,10 @@ jobs:
           cache: npm
 
       - run: npm ci
+      
+      - name: Pulse CI gate — no module-scope SDK/env access
+        run: bash scripts/ci/no_module_scope_sdks.sh
+
       - name: Build
         run: npm run build
 
