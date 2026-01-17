@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  productionBrowserSourceMaps: process.env.CODESPACES ? false : true,
 };
 
 export default withSentryConfig(

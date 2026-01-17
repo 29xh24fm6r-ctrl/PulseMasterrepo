@@ -10,22 +10,33 @@ import { createClient } from "@supabase/supabase-js";
  * - NEVER read required env at module scope in route handlers
  */
 
+import { isBuildPhase } from "@/lib/env/guard";
+
 export function getSupabaseUrl(): string {
     const v = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
-    if (!v) throw new Error("Missing env: SUPABASE_URL (or NEXT_PUBLIC_SUPABASE_URL fallback)");
+    if (!v) {
+        if (isBuildPhase()) return "https://placeholder.supabase.co";
+        throw new Error("Missing env: SUPABASE_URL (or NEXT_PUBLIC_SUPABASE_URL fallback)");
+    }
     return v;
 }
 
 
 export function getServiceRoleKey(): string {
     const v = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!v) throw new Error("Missing env: SUPABASE_SERVICE_ROLE_KEY");
+    if (!v) {
+        if (isBuildPhase()) return "placeholder-voice-key";
+        throw new Error("Missing env: SUPABASE_SERVICE_ROLE_KEY");
+    }
     return v;
 }
 
 export function getEnv(name: string): string {
     const v = process.env[name];
-    if (!v) throw new Error(`Missing env: ${name}`);
+    if (!v) {
+        if (isBuildPhase()) return `placeholder-${name}`;
+        throw new Error(`Missing env: ${name}`);
+    }
     return v;
 }
 
