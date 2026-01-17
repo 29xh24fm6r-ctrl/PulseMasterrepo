@@ -5,20 +5,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
 import Stripe from "stripe";
 import {
-  stripe,
+  getStripe,
   getPlanFromPriceId,
   getTokensFromPriceId,
   mapSubscriptionStatus,
 } from "@/services/stripe";
 import { supabaseAdmin } from "@/lib/supabase";
 
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
 export async function POST(req: NextRequest) {
   try {
     const body = await req.text();
     const headersList = await headers();
     const signature = headersList.get("stripe-signature");
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
     if (!signature || !webhookSecret) {
       console.error("Missing signature or webhook secret");
@@ -28,6 +27,7 @@ export async function POST(req: NextRequest) {
     let event: Stripe.Event;
 
     try {
+      const stripe = getStripe();
       event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
     } catch (err: any) {
       console.error("Webhook signature verification failed:", err.message);
@@ -129,7 +129,7 @@ async function handleSubscriptionChange(
   // Get user by Stripe customer ID
   const { data: profile } = await supabaseAdmin
     .from("user_profiles")
-    .select("user_id")
+    .select("user_id_uuid")
     .eq("stripe_customer_id", customerId)
     .single();
 
@@ -138,7 +138,7 @@ async function handleSubscriptionChange(
     return;
   }
 
-  const userId = profile.user_id;
+  const userId = profile.user_id_uuid;
 
   // Get plan from price ID
   const priceId = subscription.items.data[0]?.price.id;
@@ -162,7 +162,7 @@ async function handleSubscriptionChange(
         : undefined,
       updated_at: new Date().toISOString(),
     })
-    .eq("user_id", userId);
+    .eq("user_id_uuid", userId);
 
   // Award referral bonus if this is a new paid subscription
   if (eventType === "created" && plan === "plus") {
@@ -178,7 +178,7 @@ async function handleSubscriptionCancelled(subscription: Stripe.Subscription) {
 
   const { data: profile } = await supabaseAdmin
     .from("user_profiles")
-    .select("user_id")
+    .select("user_id_uuid")
     .eq("stripe_customer_id", customerId)
     .single();
 
@@ -187,7 +187,7 @@ async function handleSubscriptionCancelled(subscription: Stripe.Subscription) {
     return;
   }
 
-  console.log(`❌ Subscription cancelled for user: ${profile.user_id}`);
+  console.log(`❌ Subscription cancelled for user: ${profile.user_id_uuid}`);
 
   // Downgrade to free
   await supabaseAdmin
@@ -197,7 +197,7 @@ async function handleSubscriptionCancelled(subscription: Stripe.Subscription) {
       subscription_status: "cancelled",
       updated_at: new Date().toISOString(),
     })
-    .eq("user_id", profile.user_id);
+    .eq("user_id_uuid", profile.user_id_uuid);
 }
 
 /**
@@ -212,7 +212,7 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
   if (invoice.billing_reason === "subscription_cycle") {
     const { data: profile } = await supabaseAdmin
       .from("user_profiles")
-      .select("user_id")
+      .select("user_id_uuid")
       .eq("stripe_customer_id", customerId)
       .single();
 
@@ -223,9 +223,9 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
           usage_cents_this_month: 0,
           usage_reset_at: new Date().toISOString(),
         })
-        .eq("user_id", profile.user_id);
+        .eq("user_id_uuid", profile.user_id_uuid);
 
-      console.log(`🔄 Reset monthly usage for user: ${profile.user_id}`);
+      console.log(`🔄 Reset monthly usage for user: ${profile.user_id_uuid}`);
     }
   }
 }
@@ -240,7 +240,7 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
 
   const { data: profile } = await supabaseAdmin
     .from("user_profiles")
-    .select("user_id")
+    .select("user_id_uuid")
     .eq("stripe_customer_id", customerId)
     .single();
 
@@ -251,7 +251,7 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
         subscription_status: "past_due",
         updated_at: new Date().toISOString(),
       })
-      .eq("user_id", profile.user_id);
+      .eq("user_id_uuid", profile.user_id_uuid);
   }
 
   // TODO: Send email notification about failed payment
@@ -264,7 +264,7 @@ async function addTokensToUser(userId: string, tokens: number) {
   const { data: profile } = await supabaseAdmin
     .from("user_profiles")
     .select("token_balance_cents")
-    .eq("user_id", userId)
+    .eq("user_id_uuid", userId)
     .single();
 
   const currentBalance = profile?.token_balance_cents || 0;
@@ -276,7 +276,7 @@ async function addTokensToUser(userId: string, tokens: number) {
       token_balance_cents: newBalance,
       updated_at: new Date().toISOString(),
     })
-    .eq("user_id", userId);
+    .eq("user_id_uuid", userId);
 
   // Log the transaction
   await supabaseAdmin.from("xp_transactions").insert({
@@ -299,7 +299,7 @@ async function creditReferralBonus(userId: string) {
   const { data: profile } = await supabaseAdmin
     .from("user_profiles")
     .select("referred_by")
-    .eq("user_id", userId)
+    .eq("user_id_uuid", userId)
     .single();
 
   if (!profile?.referred_by) {
@@ -324,7 +324,7 @@ async function creditReferralBonus(userId: string) {
   const { data: referrerProfile } = await supabaseAdmin
     .from("user_profiles")
     .select("token_balance_cents")
-    .eq("user_id", profile.referred_by)
+    .eq("user_id_uuid", profile.referred_by)
     .single();
 
   const currentBalance = referrerProfile?.token_balance_cents || 0;
@@ -336,13 +336,13 @@ async function creditReferralBonus(userId: string) {
       token_balance_cents: newBalance,
       updated_at: new Date().toISOString(),
     })
-    .eq("user_id", profile.referred_by);
+    .eq("user_id_uuid", profile.referred_by);
 
   // Also give the new user bonus tokens
   const { data: newUserProfile } = await supabaseAdmin
     .from("user_profiles")
     .select("token_balance_cents")
-    .eq("user_id", userId)
+    .eq("user_id_uuid", userId)
     .single();
 
   await supabaseAdmin
@@ -351,7 +351,7 @@ async function creditReferralBonus(userId: string) {
       token_balance_cents: (newUserProfile?.token_balance_cents || 0) + referralTokens,
       updated_at: new Date().toISOString(),
     })
-    .eq("user_id", userId);
+    .eq("user_id_uuid", userId);
 
   // Mark reward as credited
   await supabaseAdmin

@@ -28,9 +28,9 @@ export async function POST(req: Request) {
     for (const task of completedToday) {
       // Check if already awarded
       const { data: existing } = await supabaseAdmin
-        .from("xp_logs")
+        .from("xp_transactions")
         .select("id")
-        .eq("user_id", userId)
+        .eq("user_id_uuid", userId)
         .eq("source_id", task.id)
         .maybeSingle();
 

@@ -25,9 +25,9 @@ export async function POST(req: Request) {
     for (const habit of completedToday) {
       // Check if already awarded today
       const { data: existing } = await supabaseAdmin
-        .from("xp_logs")
+        .from("xp_transactions")
         .select("id")
-        .eq("user_id", userId)
+        .eq("user_id_uuid", userId)
         .eq("source_id", habit.id)
         .gte("created_at", `${today}T00:00:00.000Z`)
         .maybeSingle();
