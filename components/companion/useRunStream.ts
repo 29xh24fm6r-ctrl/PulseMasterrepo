@@ -3,15 +3,12 @@
 
 import { useEffect, useRef, useState } from "react";
 
-type StreamEvent = {
-    event: string;
-    data: any;
-};
+type StreamEvent = { event: string; data: any };
 
 export function useRunStream(args: { runId: string | null; ownerUserId: string | null }) {
     const [events, setEvents] = useState<StreamEvent[]>([]);
     const [status, setStatus] = useState<"idle" | "streaming" | "ended">("idle");
-    const abortControllerRef = useRef<AbortController | null>(null);
+    const abortRef = useRef<AbortController | null>(null);
 
     useEffect(() => {
         if (!args.runId || !args.ownerUserId) return;
@@ -19,75 +16,98 @@ export function useRunStream(args: { runId: string | null; ownerUserId: string |
         setEvents([]);
         setStatus("streaming");
 
-        if (abortControllerRef.current) abortControllerRef.current.abort();
         const ac = new AbortController();
-        abortControllerRef.current = ac;
+        abortRef.current = ac;
 
-        const fetchStream = async () => {
+        const url = `/api/runs/${args.runId}/stream`;
+
+        (async () => {
             try {
-                const res = await fetch(`/api/runs/${args.runId}/stream`, {
+                const res = await fetch(url, {
+                    method: "GET",
                     headers: {
-                        'x-owner-user-id': args.ownerUserId!
+                        "Accept": "text/event-stream",
+                        "x-owner-user-id": args.ownerUserId,
                     },
-                    signal: ac.signal
+                    signal: ac.signal,
                 });
 
-                if (!res.body) throw new Error("No body");
-                const reader = res.body.getReader();
-                const decoder = new TextDecoder();
+                if (!res.ok || !res.body) throw new Error("stream_failed");
 
-                let buffer = '';
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder("utf-8");
+                let buffer = "";
+
+                const push = (event: string, data: any) => {
+                    setEvents((prev) => [...prev, { event, data }]);
+                };
 
                 while (true) {
-                    const { done, value } = await reader.read();
+                    const { value, done } = await reader.read();
                     if (done) break;
-
                     buffer += decoder.decode(value, { stream: true });
-                    const lines = buffer.split('\n\n');
-                    buffer = lines.pop() || ''; // Keep incomplete part
 
-                    for (const group of lines) {
-                        const eventLines = group.split('\n');
-                        let event = '';
-                        let data = '';
+                    // Parse SSE frames split by \n\n
+                    while (true) {
+                        const idx = buffer.indexOf("\n\n");
+                        if (idx === -1) break;
 
-                        for (const line of eventLines) {
-                            if (line.startsWith('event: ')) event = line.substring(7);
-                            if (line.startsWith('data: ')) data = line.substring(6);
+                        const frame = buffer.slice(0, idx);
+                        buffer = buffer.slice(idx + 2);
+
+                        const { event, data } = parseSseFrame(frame);
+                        if (!event) continue;
+
+                        if (event === "END") {
+                            push("END", data);
+                            setStatus("ended");
+                            ac.abort();
+                            return;
                         }
 
-                        if (event && data) {
-                            const parsed = safeJson(data);
-                            setEvents(prev => [...prev, { event, data: parsed }]);
-                            if (event === 'END') {
-                                setStatus("ended");
-                                return; // Stop reading
-                            }
-                        }
+                        push(event, data);
                     }
                 }
 
-            } catch (err: any) {
-                if (err.name === 'AbortError') return;
-                console.error("Stream error", err);
                 setStatus("ended");
+            } catch {
+                // Only set error if not aborted
+                if (!ac.signal.aborted) {
+                    setEvents((prev) => [...prev, { event: "ERROR", data: { message: "stream_error" } }]);
+                    setStatus("ended");
+                }
             }
-        };
-
-        fetchStream();
+        })();
 
         return () => {
             ac.abort();
+            abortRef.current = null;
         };
     }, [args.runId, args.ownerUserId]);
 
     return { events, status };
 }
 
-function safeJson(s: any) {
+function parseSseFrame(frame: string): { event: string | null; data: any } {
+    let event: string | null = null;
+    let data: any = null;
+
+    const lines = frame.split("\n");
+    for (const line of lines) {
+        if (line.startsWith("event:")) event = line.slice("event:".length).trim();
+        if (line.startsWith("data:")) {
+            const raw = line.slice("data:".length).trim();
+            data = safeJson(raw);
+        }
+    }
+
+    return { event, data };
+}
+
+function safeJson(raw: string) {
     try {
-        return JSON.parse(String(s));
+        return JSON.parse(raw);
     } catch {
-        return s;
+        return raw;
     }
 }

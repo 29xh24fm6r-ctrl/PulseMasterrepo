@@ -1,25 +1,57 @@
 // components/companion/PulseCompanionShell.tsx
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { QuickTalkButton } from "@/components/companion/QuickTalkButton";
 import { RunEventFeed } from "@/components/companion/RunEventFeed";
+import { IntentProposalCard } from "@/components/companion/IntentProposalCard";
+import { PatternsPanel } from "@/components/companion/PatternsPanel";
 import { subscribeToContextBus } from "@/lib/companion/contextBus";
 
-/**
- * Canon:
- * - Companion is always present
- * - Buttons remain primary UX
- * - Voice is additive and observable
- */
+type PulseIntent =
+    | { type: "RUN_ORACLE"; confidence: number; oracle_id: string; args?: Record<string, any> }
+    | { type: "NAVIGATE"; confidence: number; path: string }
+    | { type: "CREATE_REMINDER"; confidence: number; content: string; when?: string }
+    | { type: "UNKNOWN"; confidence: number; reason?: string };
+
 export function PulseCompanionShell(props: { ownerUserId: string }) {
     const [context, setContext] = useState<any>({});
     const [activeRunId, setActiveRunId] = useState<string | null>(null);
+    const [latestIntent, setLatestIntent] = useState<PulseIntent | null>(null);
 
     useEffect(() => {
         const unsub = subscribeToContextBus((frame) => setContext(frame));
         return () => unsub();
     }, []);
+
+    const pageActions = useMemo(() => (Array.isArray(context?.actions) ? context.actions : []), [context]);
+
+    function onDismissProposal() {
+        setLatestIntent(null);
+    }
+
+    async function runOracle(oracleId: string, args?: Record<string, any>) {
+        // Start oracle run through the execution plane
+        const res = await fetch(`/api/oracles/${oracleId}/start`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "x-owner-user-id": props.ownerUserId,
+            },
+            body: JSON.stringify({ input: args ?? {}, context }),
+        });
+
+        if (!res.ok) return;
+        const json = await res.json();
+        if (json?.run_id) {
+            setActiveRunId(json.run_id);
+        }
+    }
+
+    function navigateTo(path: string) {
+        // Canon: navigation is still user-controlled; we can later integrate router push.
+        window.location.href = path;
+    }
 
     return (
         <div className="pointer-events-auto h-full w-full rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl shadow-xl flex flex-col">
@@ -34,8 +66,6 @@ export function PulseCompanionShell(props: { ownerUserId: string }) {
             </div>
 
             <div className="p-4 space-y-3 flex-1 overflow-y-auto">
-                <div className="text-xs opacity-70 text-slate-400">Standing by</div>
-
                 <div className="rounded-xl border border-white/10 bg-black/20 p-3">
                     <div className="text-xs opacity-70 text-slate-400">Context</div>
                     <div className="text-sm mt-1 text-white font-medium">{context?.title ?? context?.route ?? "—"}</div>
@@ -50,18 +80,38 @@ export function PulseCompanionShell(props: { ownerUserId: string }) {
                     ) : null}
                 </div>
 
-                <div className="mt-3">
-                    <QuickTalkButton ownerUserId={props.ownerUserId} context={context} onRunId={setActiveRunId} />
-                </div>
+                <QuickTalkButton
+                    ownerUserId={props.ownerUserId}
+                    context={context}
+                    onRunId={(id) => {
+                        setActiveRunId(id);
+                        setLatestIntent(null); // reset proposal until we parse new intent
+                    }}
+                />
 
-                <div className="mt-3">
-                    <RunEventFeed runId={activeRunId} ownerUserId={props.ownerUserId} />
-                </div>
+                {/* Live Trace (voice or oracle) */}
+                <RunEventFeed
+                    runId={activeRunId}
+                    ownerUserId={props.ownerUserId}
+                    onRunDoneExtractIntent={(intent) => setLatestIntent(intent)}
+                />
 
-                <div className="text-xs opacity-60 text-slate-500 leading-relaxed">
-                    Pulse stays present while you navigate pages. Pages publish context frames automatically.
+                <IntentProposalCard
+                    intent={latestIntent}
+                    pageActions={pageActions}
+                    onRunOracle={runOracle}
+                    onNavigate={navigateTo}
+                    onDismiss={onDismissProposal}
+                />
+
+                <PatternsPanel ownerUserId={props.ownerUserId} context={context} />
+
+                <div className="text-[11px] opacity-70 text-slate-500">
+                    Canon: Voice proposes. You click to execute. Everything streams.
                 </div>
             </div>
         </div>
     );
 }
+// Maintain default export for compatibility
+export default PulseCompanionShell;
