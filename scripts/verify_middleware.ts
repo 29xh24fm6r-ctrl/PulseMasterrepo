@@ -35,7 +35,7 @@ async function verify() {
             const res = await fetch(`${BASE_URL}${check.path}`, {
                 redirect: 'manual',
                 headers: {
-                    // Simulate a browser-like request if needed, but simple GET should suffice
+                    'x-pulse-verify': 'true'
                 }
             });
 
