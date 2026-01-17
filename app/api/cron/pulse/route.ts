@@ -8,7 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { runThirdBrainDailyCycle } from "@/lib/third-brain/service";
 import { runAutonomyCycle } from "@/lib/autonomy/engine";
 import { recomputeDomainKPIs, generateExecutiveSummary } from "@/lib/executive/engine";
@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    const { data: activeUsers, error } = await supabaseAdmin
+    const { data: activeUsers, error } = await getSupabaseAdminRuntimeClient()
       .from("third_brain_events")
       .select("user_id")
       .gte("occurred_at", sevenDaysAgo.toISOString())

@@ -4,12 +4,9 @@ import { logThirdBrainEvent } from "@/lib/third-brain/service";
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAdminRuntimeClient, getSupabaseRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+
 
 // XP rewards by quest type and difficulty
 const XP_REWARDS = {
@@ -30,6 +27,7 @@ const ACHIEVEMENTS = {
 };
 
 export async function POST(req: NextRequest) {
+  const supabase = getSupabaseAdminRuntimeClient();
   try {
     const { userId } = await auth();
     if (!userId) {
@@ -246,6 +244,7 @@ async function updateDailyStreak(userId: string) {
 
 // GET - Get quest stats
 export async function GET(req: NextRequest) {
+  const supabase = getSupabaseAdminRuntimeClient();
   try {
     const { userId } = await auth();
     if (!userId) {

@@ -5,64 +5,32 @@
  * Use this for all AI calls to ensure usage is tracked
  */
 
-import OpenAI from "openai";
+import { getOpenAI } from "@/services/ai/openai";
 import { trackAIUsage, canMakeAICall } from "@/services/usage";
 
-const openai = new OpenAI();
 
 export interface CallAIOptions {
   userId: string;
-  model?: "gpt-4o" | "gpt-4o-mini" | "gpt-4-turbo" | "gpt-3.5-turbo";
-  systemPrompt?: string;
-  userPrompt: string;
-  temperature?: number;
+  feature: string;
+  model?: string;
+  messages: any[];
   maxTokens?: number;
-  feature?: string;
+  temperature?: number;
   jsonMode?: boolean;
 }
 
-export interface CallAIResult {
-  success: boolean;
-  content: string | null;
-  error?: string;
-  tokensUsed?: number;
-  inputTokens?: number;
-  outputTokens?: number;
-}
-
-/**
- * Call AI with automatic usage tracking
- * Returns the text response or null on failure
- */
-export async function callAI(options: CallAIOptions): Promise<CallAIResult> {
-  const {
-    userId,
-    model = "gpt-4o-mini",
-    systemPrompt,
-    userPrompt,
-    temperature = 0.3,
-    maxTokens = 1500,
-    feature = "third_brain",
-    jsonMode = false,
-  } = options;
-
+export async function callAI({
+  userId,
+  feature,
+  model = "gpt-4-turbo-preview",
+  messages,
+  maxTokens = 1000,
+  temperature = 0.7,
+  jsonMode = false,
+}: CallAIOptions) {
   try {
-    // Check if user has enough tokens
-    const usageCheck = await canMakeAICall(userId, feature);
-    if (!usageCheck.allowed) {
-      return {
-        success: false,
-        content: null,
-        error: usageCheck.reason || "Usage limit reached",
-      };
-    }
-
-    // Build messages
-    const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [];
-    if (systemPrompt) {
-      messages.push({ role: "system", content: systemPrompt });
-    }
-    messages.push({ role: "user", content: userPrompt });
+    // Get OpenAI client
+    const openai = await getOpenAI();
 
     // Call OpenAI
     const completion = await openai.chat.completions.create({

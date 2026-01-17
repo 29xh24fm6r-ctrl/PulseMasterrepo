@@ -5,7 +5,7 @@
  * Customizable AI personality profiles for different contexts
  */
 
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 // ============================================
 // TYPES
@@ -111,7 +111,7 @@ Hold the user accountable to their goals and commitments.`,
  * Get all personas for a user
  */
 export async function getPersonas(userId: string): Promise<Persona[]> {
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getSupabaseAdminRuntimeClient()
     .from("personas")
     .select("*")
     .eq("user_id", userId)
@@ -126,7 +126,7 @@ export async function getPersonas(userId: string): Promise<Persona[]> {
  * Get active persona
  */
 export async function getActivePersona(userId: string): Promise<Persona | null> {
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getSupabaseAdminRuntimeClient()
     .from("personas")
     .select("*")
     .eq("user_id", userId)
@@ -154,7 +154,7 @@ export async function createPersonaFromTemplate(
 
   const now = new Date().toISOString();
 
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getSupabaseAdminRuntimeClient()
     .from("personas")
     .insert({
       user_id: userId,
@@ -194,7 +194,7 @@ export async function createPersona(
 ): Promise<Persona | null> {
   const now = new Date().toISOString();
 
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getSupabaseAdminRuntimeClient()
     .from("personas")
     .insert({
       user_id: userId,
@@ -235,7 +235,7 @@ export async function updatePersona(
   if (updates.systemPrompt !== undefined) record.system_prompt = updates.systemPrompt;
   if (updates.context !== undefined) record.context = updates.context;
 
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getSupabaseAdminRuntimeClient()
     .from("personas")
     .update(record)
     .eq("id", personaId)
@@ -252,13 +252,13 @@ export async function updatePersona(
  */
 export async function setActivePersona(userId: string, personaId: string): Promise<boolean> {
   // Deactivate all
-  await supabaseAdmin
+  await getSupabaseAdminRuntimeClient()
     .from("personas")
     .update({ is_active: false })
     .eq("user_id", userId);
 
   // Activate selected
-  const { error } = await supabaseAdmin
+  const { error } = await getSupabaseAdminRuntimeClient()
     .from("personas")
     .update({ is_active: true, updated_at: new Date().toISOString() })
     .eq("id", personaId)
@@ -271,7 +271,7 @@ export async function setActivePersona(userId: string, personaId: string): Promi
  * Delete persona
  */
 export async function deletePersona(userId: string, personaId: string): Promise<boolean> {
-  const { error } = await supabaseAdmin
+  const { error } = await getSupabaseAdminRuntimeClient()
     .from("personas")
     .delete()
     .eq("id", personaId)
@@ -314,7 +314,7 @@ export async function getSystemPromptForUser(userId: string): Promise<string> {
  * Initialize default personas for new user
  */
 export async function initializeDefaultPersonas(userId: string): Promise<void> {
-  const { count } = await supabaseAdmin
+  const { count } = await getSupabaseAdminRuntimeClient()
     .from("personas")
     .select("*", { count: "exact", head: true })
     .eq("user_id", userId);
@@ -324,7 +324,7 @@ export async function initializeDefaultPersonas(userId: string): Promise<void> {
   const now = new Date().toISOString();
   const defaultTemplate = PERSONA_TEMPLATES[0];
 
-  await supabaseAdmin.from("personas").insert({
+  await getSupabaseAdminRuntimeClient().from("personas").insert({
     user_id: userId,
     name: defaultTemplate.name,
     description: defaultTemplate.description,

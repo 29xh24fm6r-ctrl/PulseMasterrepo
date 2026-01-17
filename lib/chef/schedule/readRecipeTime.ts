@@ -1,7 +1,7 @@
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export async function readRecipeTimeDefaults(recipe_id: string) {
-    const sb = supabaseAdmin();
+    const sb = getSupabaseAdminRuntimeClient();
     const { data, error } = await sb
         .from("chef_recipes")
         .select("id,title,prep_minutes,cook_minutes")

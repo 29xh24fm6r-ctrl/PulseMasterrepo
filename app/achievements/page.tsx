@@ -1,7 +1,10 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
+
 import React, { useState, useEffect } from "react";
-import Link from "next/link";
+import { usePulseContext } from "@/lib/companion/usePulseContext";
 import {
   ArrowLeft,
   Trophy,
@@ -63,6 +66,11 @@ const CATEGORY_CONFIG: Record<string, { label: string; icon: any; color: string 
 const RARITY_ORDER = ["common", "uncommon", "rare", "epic", "legendary"];
 
 export default function AchievementsPage() {
+  usePulseContext({
+    title: "Achievements",
+    focus: { type: "system", id: "xp_engine", label: "Logic Gate: XP" },
+    hints: ["Review Recent Awards", "Check Streak"]
+  });
   const [badges, setBadges] = useState<BadgeData[]>([]);
   const [stats, setStats] = useState<AchievementStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -201,11 +209,10 @@ export default function AchievementsPage() {
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  filter === f
-                    ? "bg-amber-500 text-black"
-                    : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
-                }`}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${filter === f
+                  ? "bg-amber-500 text-black"
+                  : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                  }`}
               >
                 {f.charAt(0).toUpperCase() + f.slice(1)}
               </button>
@@ -215,11 +222,10 @@ export default function AchievementsPage() {
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setCategoryFilter("all")}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                categoryFilter === "all"
-                  ? "bg-zinc-700 text-white"
-                  : "bg-zinc-800/50 text-zinc-500 hover:bg-zinc-800"
-              }`}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${categoryFilter === "all"
+                ? "bg-zinc-700 text-white"
+                : "bg-zinc-800/50 text-zinc-500 hover:bg-zinc-800"
+                }`}
             >
               All
             </button>
@@ -229,11 +235,10 @@ export default function AchievementsPage() {
                 <button
                   key={key}
                   onClick={() => setCategoryFilter(key)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 ${
-                    categoryFilter === key
-                      ? "bg-zinc-700 text-white"
-                      : "bg-zinc-800/50 text-zinc-500 hover:bg-zinc-800"
-                  }`}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 ${categoryFilter === key
+                    ? "bg-zinc-700 text-white"
+                    : "bg-zinc-800/50 text-zinc-500 hover:bg-zinc-800"
+                    }`}
                 >
                   <Icon className="w-3.5 h-3.5" style={{ color: config.color }} />
                   {config.label}

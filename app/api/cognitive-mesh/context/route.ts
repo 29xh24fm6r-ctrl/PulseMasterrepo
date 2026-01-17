@@ -4,9 +4,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { CognitiveMesh } from "@/lib/cognitive-mesh";
-import OpenAI from "openai";
+import { getOpenAI } from "@/services/ai/openai";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
 
 export async function POST(req: NextRequest) {
   try {
@@ -83,7 +83,8 @@ async function generateContextSummary(
     ? `Given this query: "${query}"\n\nSummarize the relevant context:\n\nKnowledge:\n${fragmentText}\n\nEntities:\n${entityText}`
     : `Summarize this user context:\n\nKnowledge:\n${fragmentText}\n\nEntities:\n${entityText}`;
 
-  const response = await openai.chat.completions.create({
+  const openai = await getOpenAI();
+  const correlation = await openai.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [
       {
@@ -97,5 +98,5 @@ async function generateContextSummary(
     temperature: 0.3,
   });
 
-  return response.choices[0]?.message?.content || "Unable to generate summary.";
+  return correlation.choices[0]?.message?.content || "Unable to generate summary.";
 }

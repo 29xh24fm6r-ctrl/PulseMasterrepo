@@ -6,17 +6,11 @@
  */
 
 import { supabaseAdmin } from "../supabase";
-import OpenAI from "openai";
 import { Memory, MemoryType, MemoryPattern, MemoryContext, MemoryLayer } from "./types";
 
+import { getOpenAI } from "@/services/ai/openai";
 
-let openaiInstance: OpenAI | null = null;
-function getOpenAI(): OpenAI {
-  if (!openaiInstance) {
-    openaiInstance = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-  }
-  return openaiInstance;
-}
+// removed module scope init
 
 // ============================================
 // CORE FUNCTIONS
@@ -262,7 +256,8 @@ Respond in JSON:
 }`;
 
   try {
-    const completion = await getOpenAI().chat.completions.create({
+    const openai = await getOpenAI();
+    const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
       response_format: { type: "json_object" },
@@ -360,7 +355,8 @@ ${patterns.map((p) => `- ${p.description}`).join("\n") || "None"}
 Current query: "${query}"`;
 
     try {
-      const completion = await getOpenAI().chat.completions.create({
+      const openai = await getOpenAI();
+      const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [{ role: "user", content: prompt }],
         max_tokens: 150,
@@ -406,7 +402,8 @@ Respond in JSON:
 Only extract genuinely important, long-term relevant information. If nothing important, return empty array.`;
 
   try {
-    const completion = await getOpenAI().chat.completions.create({
+    const openai = await getOpenAI();
+    const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
       response_format: { type: "json_object" },
@@ -439,11 +436,12 @@ Only extract genuinely important, long-term relevant information. If nothing imp
 
 async function generateEmbedding(text: string): Promise<number[] | null> {
   try {
-    const response = await getOpenAI().embeddings.create({
+    const openai = await getOpenAI();
+    const embedding = await openai.embeddings.create({
       model: "text-embedding-3-small",
       input: text,
     });
-    return response.data[0].embedding;
+    return embedding.data[0].embedding;
   } catch {
     return null;
   }

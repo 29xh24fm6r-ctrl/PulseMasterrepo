@@ -5,7 +5,7 @@
  * Pre-configured setups for different professions and industries
  */
 
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { createTeaching } from "@/lib/teaching/engine";
 import { createPersonaFromTemplate } from "@/lib/personas/engine";
 import { createCampaignFromTemplate } from "@/lib/campaigns/engine";
@@ -270,7 +270,7 @@ export async function installPack(
   const now = new Date().toISOString();
 
   // Check if already installed
-  const { data: existing } = await supabaseAdmin
+  const { data: existing } = await getSupabaseAdminRuntimeClient()
     .from("user_packs")
     .select("*")
     .eq("user_id", userId)
@@ -279,7 +279,7 @@ export async function installPack(
 
   if (existing) {
     // Reactivate
-    await supabaseAdmin
+    await getSupabaseAdminRuntimeClient()
       .from("user_packs")
       .update({ is_active: true, customizations })
       .eq("id", existing.id);
@@ -287,7 +287,7 @@ export async function installPack(
   }
 
   // Install new
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getSupabaseAdminRuntimeClient()
     .from("user_packs")
     .insert({
       user_id: userId,
@@ -319,7 +319,7 @@ export async function installPack(
  * Uninstall pack
  */
 export async function uninstallPack(userId: string, packId: string): Promise<boolean> {
-  const { error } = await supabaseAdmin
+  const { error } = await getSupabaseAdminRuntimeClient()
     .from("user_packs")
     .update({ is_active: false })
     .eq("user_id", userId)
@@ -332,7 +332,7 @@ export async function uninstallPack(userId: string, packId: string): Promise<boo
  * Get user's installed packs
  */
 export async function getUserPacks(userId: string): Promise<UserPack[]> {
-  const { data } = await supabaseAdmin
+  const { data } = await getSupabaseAdminRuntimeClient()
     .from("user_packs")
     .select("*")
     .eq("user_id", userId)
@@ -347,7 +347,7 @@ export async function getUserPacks(userId: string): Promise<UserPack[]> {
  */
 export async function getPackRecommendations(userId: string): Promise<IndustryPack[]> {
   // Get user's job/role from memory or profile
-  const { data: memories } = await supabaseAdmin
+  const { data: memories } = await getSupabaseAdminRuntimeClient()
     .from("memories")
     .select("content")
     .eq("user_id", userId)

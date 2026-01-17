@@ -1,7 +1,7 @@
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export async function getActiveExecution(args: { owner_user_id: string }) {
-    const sb = supabaseAdmin();
+    const sb = getSupabaseAdminRuntimeClient();
 
     // Active = has no finished_at, most recent started_at
     const { data, error } = await sb
@@ -20,7 +20,7 @@ export async function startExecution(args: {
     owner_user_id: string;
     cook_plan_id: string;
 }) {
-    const sb = supabaseAdmin();
+    const sb = getSupabaseAdminRuntimeClient();
 
     // Ensure plan is marked started
     const { error: planErr } = await sb
@@ -52,7 +52,7 @@ export async function updateExecution(args: {
     execution_id: string;
     patch: Record<string, any>;
 }) {
-    const sb = supabaseAdmin();
+    const sb = getSupabaseAdminRuntimeClient();
     const { data, error } = await sb
         .from("chef_cook_executions")
         .update(args.patch)
@@ -71,7 +71,7 @@ export async function finishExecution(args: {
     cook_plan_id: string;
     status: "completed" | "cancelled";
 }) {
-    const sb = supabaseAdmin();
+    const sb = getSupabaseAdminRuntimeClient();
     const now = new Date().toISOString();
 
     const { error: execErr } = await sb

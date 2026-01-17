@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export type InventorySnapshotItem = {
     ingredient_id: string;
@@ -12,7 +12,7 @@ export async function readInventorySnapshot(args: {
     // Only consider recent scans; V1 default 14 days
     within_days?: number;
 }) {
-    const sb = supabaseAdmin();
+    const sb = getSupabaseAdminRuntimeClient();
     const withinDays = args.within_days ?? 14;
 
     // Pull raw rows then reduce in JS to keep V1 simple + portable.

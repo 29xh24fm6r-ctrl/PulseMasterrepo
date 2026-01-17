@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 /**
  * Enqueue replay jobs for a user across evidence in a time range.
@@ -16,7 +16,7 @@ export async function enqueueReplayJobs(params: {
 }) {
     const { userId, evaluatorKey, fromVersion, toVersion, evidenceType, since, until, limit = 500 } = params;
 
-    let q = supabaseAdmin
+    let q = getSupabaseAdminRuntimeClient()
         .from("life_evidence")
         .select("id")
         .eq("user_id", userId)
@@ -41,7 +41,7 @@ export async function enqueueReplayJobs(params: {
 
     if (rows.length === 0) return { queued: 0 };
 
-    const { error: e2 } = await supabaseAdmin.from("xp_replay_jobs").insert(rows);
+    const { error: e2 } = await getSupabaseAdminRuntimeClient().from("xp_replay_jobs").insert(rows);
     // on conflict handled by unique constraint; if you want upsert, add it later
     if (e2) throw new Error(e2.message);
 

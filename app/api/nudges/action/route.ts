@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { withOpsGuard } from "@/lib/api/opsGuard";
 
 export async function POST(req: Request) {
@@ -24,7 +24,7 @@ export async function POST(req: Request) {
                 return { status: 400, body: { error: "Missing nudge_id/action" } };
             }
 
-            const supa = supabaseAdmin;
+            const supa = getSupabaseAdminRuntimeClient();
 
             if (action === "shown") {
                 const { error } = await supa.rpc("nudge_mark_shown", { p_nudge_id: nudge_id });

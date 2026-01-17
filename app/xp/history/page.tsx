@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
@@ -307,8 +309,8 @@ export default function XPHistoryPage() {
                         ${entry.wasCrit
                           ? "bg-yellow-500/10 border-yellow-500/30"
                           : entry.identityBonus
-                          ? "bg-violet-500/10 border-violet-500/30"
-                          : "bg-zinc-900/50 border-zinc-800/50 hover:border-zinc-700"
+                            ? "bg-violet-500/10 border-violet-500/30"
+                            : "bg-zinc-900/50 border-zinc-800/50 hover:border-zinc-700"
                         }
                       `}
                     >
@@ -348,9 +350,8 @@ export default function XPHistoryPage() {
                       {/* Amount */}
                       <div className="text-right">
                         <div
-                          className={`text-lg font-bold ${
-                            entry.wasCrit ? "text-yellow-400" : ""
-                          }`}
+                          className={`text-lg font-bold ${entry.wasCrit ? "text-yellow-400" : ""
+                            }`}
                           style={{ color: entry.wasCrit ? undefined : config?.color }}
                         >
                           +{entry.amount}

@@ -1,12 +1,9 @@
 // Memory Compression - Weekly/Monthly rollups
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAdminRuntimeClient, getSupabaseRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { llmJson } from "../llm/client";
 
 function getSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  return getSupabaseAdminRuntimeClient();
 }
 
 interface PeriodSummary {

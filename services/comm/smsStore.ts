@@ -1,6 +1,6 @@
 // Pulse Communications OS - SMS Store (Supabase)
 import { SMSMessage, CallDirection } from "./types";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export async function storeSMS(params: {
     clerkId?: string;
@@ -13,7 +13,7 @@ export async function storeSMS(params: {
     let userId = null;
 
     if (params.clerkId) {
-        const { data: user } = await supabaseAdmin
+        const { data: user } = await getSupabaseAdminRuntimeClient()
             .from("users")
             .select("id")
             .eq("clerk_id", params.clerkId)
@@ -23,7 +23,7 @@ export async function storeSMS(params: {
 
     // For inbound SMS, find user by phone number
     if (!userId && params.direction === "inbound") {
-        const { data: user } = await supabaseAdmin
+        const { data: user } = await getSupabaseAdminRuntimeClient()
             .from("users")
             .select("id")
             .eq("phone", params.toNumber)
@@ -31,7 +31,7 @@ export async function storeSMS(params: {
         userId = user?.id;
     }
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdminRuntimeClient()
         .from("sms_messages")
         .insert({
             user_id: userId,
@@ -54,7 +54,7 @@ export async function storeSMS(params: {
 }
 
 export async function listSMS(clerkId: string): Promise<SMSMessage[]> {
-    const { data: user } = await supabaseAdmin
+    const { data: user } = await getSupabaseAdminRuntimeClient()
         .from("users")
         .select("id")
         .eq("clerk_id", clerkId)
@@ -62,7 +62,7 @@ export async function listSMS(clerkId: string): Promise<SMSMessage[]> {
 
     if (!user) return [];
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdminRuntimeClient()
         .from("sms_messages")
         .select()
         .eq("user_id", user.id)
@@ -73,7 +73,7 @@ export async function listSMS(clerkId: string): Promise<SMSMessage[]> {
 }
 
 export async function getSMSByPhone(clerkId: string, phoneNumber: string): Promise<SMSMessage[]> {
-    const { data: user } = await supabaseAdmin
+    const { data: user } = await getSupabaseAdminRuntimeClient()
         .from("users")
         .select("id")
         .eq("clerk_id", clerkId)
@@ -81,7 +81,7 @@ export async function getSMSByPhone(clerkId: string, phoneNumber: string): Promi
 
     if (!user) return [];
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdminRuntimeClient()
         .from("sms_messages")
         .select()
         .eq("user_id", user.id)

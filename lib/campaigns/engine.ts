@@ -5,10 +5,11 @@
  * Multi-step automated campaigns for relationship nurturing, follow-ups, and outreach
  */
 
-import { supabaseAdmin } from "@/lib/supabase";
-import OpenAI from "openai";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
+import { getOpenAI } from "@/services/ai/openai";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// lazy singleton removed, use imported one
+
 
 // ============================================
 // TYPES
@@ -131,7 +132,7 @@ export const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
  * Get all campaigns for a user
  */
 export async function getCampaigns(userId: string): Promise<Campaign[]> {
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getSupabaseAdminRuntimeClient()
     .from("campaigns")
     .select("*")
     .eq("user_id", userId)
@@ -145,7 +146,7 @@ export async function getCampaigns(userId: string): Promise<Campaign[]> {
  * Get a single campaign
  */
 export async function getCampaign(userId: string, id: string): Promise<Campaign | null> {
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getSupabaseAdminRuntimeClient()
     .from("campaigns")
     .select("*")
     .eq("user_id", userId)
@@ -170,7 +171,7 @@ export async function createCampaignFromTemplate(
 
   const now = new Date().toISOString();
 
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getSupabaseAdminRuntimeClient()
     .from("campaigns")
     .insert({
       user_id: userId,
@@ -205,7 +206,7 @@ export async function createCampaign(
 ): Promise<Campaign | null> {
   const now = new Date().toISOString();
 
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getSupabaseAdminRuntimeClient()
     .from("campaigns")
     .insert({
       user_id: userId,
@@ -242,7 +243,7 @@ export async function updateCampaignStatus(
     updates.completed_at = new Date().toISOString();
   }
 
-  const { error } = await supabaseAdmin
+  const { error } = await getSupabaseAdminRuntimeClient()
     .from("campaigns")
     .update(updates)
     .eq("user_id", userId)
@@ -274,7 +275,7 @@ export async function enrollInCampaign(
     nextStepAt = new Date(now.getTime() + firstStep.config.waitDays * 24 * 60 * 60 * 1000);
   }
 
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getSupabaseAdminRuntimeClient()
     .from("campaign_enrollments")
     .insert({
       campaign_id: campaignId,
@@ -294,7 +295,7 @@ export async function enrollInCampaign(
   if (error || !data) return null;
 
   // Update enrolled count
-  await supabaseAdmin
+  await getSupabaseAdminRuntimeClient()
     .from("campaigns")
     .update({
       enrolled_count: campaign.enrolledCount + 1,
@@ -312,7 +313,7 @@ export async function getCampaignEnrollments(
   userId: string,
   campaignId: string
 ): Promise<CampaignEnrollment[]> {
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getSupabaseAdminRuntimeClient()
     .from("campaign_enrollments")
     .select("*")
     .eq("user_id", userId)
@@ -329,7 +330,7 @@ export async function getCampaignEnrollments(
 export async function processDueCampaignSteps(): Promise<{ processed: number; errors: number }> {
   const now = new Date();
 
-  const { data: dueEnrollments } = await supabaseAdmin
+  const { data: dueEnrollments } = await getSupabaseAdminRuntimeClient()
     .from("campaign_enrollments")
     .select("*, campaigns(*)")
     .eq("status", "active")
@@ -351,7 +352,7 @@ export async function processDueCampaignSteps(): Promise<{ processed: number; er
 
       if (!currentStep) {
         // Campaign completed
-        await supabaseAdmin
+        await getSupabaseAdminRuntimeClient()
           .from("campaign_enrollments")
           .update({
             status: "completed",
@@ -359,7 +360,7 @@ export async function processDueCampaignSteps(): Promise<{ processed: number; er
           })
           .eq("id", enrollment.id);
 
-        await supabaseAdmin
+        await getSupabaseAdminRuntimeClient()
           .from("campaigns")
           .update({
             completed_count: (campaign.completed_count || 0) + 1,
@@ -382,7 +383,7 @@ export async function processDueCampaignSteps(): Promise<{ processed: number; er
         nextStepAt = new Date(now.getTime() + nextStep.config.waitDays * 24 * 60 * 60 * 1000);
       }
 
-      await supabaseAdmin
+      await getSupabaseAdminRuntimeClient()
         .from("campaign_enrollments")
         .update({
           current_step_index: nextIndex,
@@ -408,7 +409,7 @@ async function executeStep(enrollment: any, step: CampaignStep): Promise<void> {
   switch (step.type) {
     case "email":
       // Create draft in delegation engine
-      await supabaseAdmin.from("delegation_drafts").insert({
+      await getSupabaseAdminRuntimeClient().from("delegation_drafts").insert({
         user_id: enrollment.user_id,
         type: "email",
         target: enrollment.contact_email,
@@ -424,7 +425,7 @@ async function executeStep(enrollment: any, step: CampaignStep): Promise<void> {
 
     case "task":
       // Create task
-      await supabaseAdmin.from("autonomy_actions").insert({
+      await getSupabaseAdminRuntimeClient().from("autonomy_actions").insert({
         user_id: enrollment.user_id,
         type: "task",
         title: step.config.taskTitle?.replace("{name}", enrollment.contact_name),
@@ -455,7 +456,7 @@ export async function generateCampaignContent(
   enrollmentId: string,
   stepType: "email" | "task"
 ): Promise<string | null> {
-  const { data: enrollment } = await supabaseAdmin
+  const { data: enrollment } = await getSupabaseAdminRuntimeClient()
     .from("campaign_enrollments")
     .select("*, campaigns(*)")
     .eq("id", enrollmentId)

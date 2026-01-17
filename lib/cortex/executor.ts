@@ -1,6 +1,6 @@
 
 import { ProposedAction } from "./engine";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export async function executeAction(action: ProposedAction): Promise<boolean> {
     console.log(`[Cortex Executor] Executing action: ${action.title} (${action.type})`);
@@ -31,7 +31,7 @@ export async function executeAction(action: ProposedAction): Promise<boolean> {
         }
 
         // Update status in DB
-        const { error } = await supabaseAdmin
+        const { error } = await getSupabaseAdminRuntimeClient()
             .from('proposed_actions')
             .update({ status: 'executed', updated_at: new Date().toISOString() })
             .eq('id', action.id);

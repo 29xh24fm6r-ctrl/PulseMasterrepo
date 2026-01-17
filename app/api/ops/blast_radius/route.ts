@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
 import { readTargetUserId } from "@/lib/auth/readTargetUser";
 import { opsLimit } from "@/lib/ops/limits";
@@ -38,7 +38,7 @@ export async function GET(req: Request) {
     let resolvedTraceId = trace_id ?? null;
 
     if (!resolvedTraceId && execution_id) {
-        const { data: runs } = await supabaseAdmin
+        const { data: runs } = await getSupabaseAdminRuntimeClient()
             .from("execution_runs")
             .select("trace_id")
             .eq("user_id", gate.userId)
@@ -52,7 +52,7 @@ export async function GET(req: Request) {
     // Links (provenance graph)
     let links: any[] = [];
     if (resolvedTraceId) {
-        const { data } = await supabaseAdmin
+        const { data } = await getSupabaseAdminRuntimeClient()
             .from("artifact_links")
             .select("id,from_type,from_id,from_key,relation,meta,to_type,to_id,to_key,created_at,trace_id,execution_id,execution_run_id")
             .eq("user_id", gate.userId)
@@ -69,7 +69,7 @@ export async function GET(req: Request) {
     let outbox: any[] = [];
 
     if (resolvedTraceId) {
-        const e1 = await supabaseAdmin
+        const e1 = await getSupabaseAdminRuntimeClient()
             .from("life_evidence")
             .select("id,evidence_type,created_at,trace_id")
             .eq("user_id", gate.userId)
@@ -78,7 +78,7 @@ export async function GET(req: Request) {
             .limit(300);
         if (!e1.error) evidence = e1.data ?? [];
 
-        const t1 = await supabaseAdmin
+        const t1 = await getSupabaseAdminRuntimeClient()
             .from("tasks")
             .select("id,title,status,created_at,trace_id")
             .eq("user_id", gate.userId)
@@ -87,7 +87,7 @@ export async function GET(req: Request) {
             .limit(300);
         if (!t1.error) tasks = t1.data ?? [];
 
-        const o1 = await supabaseAdmin
+        const o1 = await getSupabaseAdminRuntimeClient()
             .from("email_outbox")
             .select("id,to_email,subject,status,created_at,trace_id")
             .eq("user_id", gate.userId)

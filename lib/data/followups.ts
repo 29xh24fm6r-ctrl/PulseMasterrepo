@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export type FollowUp = {
     id: string;
@@ -32,7 +32,7 @@ function mapFollowUpFromDB(f: any): FollowUp {
 }
 
 export async function getFollowUps(userId: string) {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdminRuntimeClient()
         .from("follow_ups")
         .select("*")
         .eq("user_id_uuid", userId)
@@ -52,7 +52,7 @@ export async function getFollowUps(userId: string) {
 }
 
 export async function createFollowUp(userId: string, followup: Partial<FollowUp>) {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdminRuntimeClient()
         .from("follow_ups")
         .insert({
             person_name: followup.name || followup.person_name || "Unknown",
@@ -88,7 +88,7 @@ export async function updateFollowUp(userId: string, followUpId: string, updates
         dbUpdates.last_action = 'sent';
     }
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdminRuntimeClient()
         .from("follow_ups")
         .update(dbUpdates)
         .eq("id", followUpId)

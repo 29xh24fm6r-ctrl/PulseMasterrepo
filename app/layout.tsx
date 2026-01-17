@@ -1,9 +1,13 @@
 import type { Metadata, Viewport } from "next";
-import { assertServerEnv } from "@/lib/env/guard";
+import { isBuildPhase, assertServerEnv } from "@/lib/env/guard";
 
-assertServerEnv();
+// ❌ REMOVE this if it exists at module scope:
+// assertServerEnv();
 
-import { ClerkProvider } from "@clerk/nextjs";
+// ClerkProvider handled by ClerkProviderSafe
+import { ClerkProviderSafe } from "@/components/auth/ClerkProviderSafe";
+import { PulseCompanionShell } from "@/components/companion/PulseCompanionShell";
+
 
 import { Inter } from "next/font/google";
 import "./globals.css";
@@ -39,8 +43,13 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  // ✅ Optional: runtime-only assertion (safe)
+  if (!isBuildPhase()) {
+    assertServerEnv();
+  }
+
   return (
-    <ClerkProvider>
+    <ClerkProviderSafe>
       <html lang="en">
         <head>
           <link rel="apple-touch-icon" href="/icons/icon-192.png" />
@@ -51,17 +60,22 @@ export default function RootLayout({
               <ToastProvider>
                 <div className="flex h-screen w-full bg-zinc-50 dark:bg-black">
                   <PrimaryNav />
-                  <main className="flex-1 h-full overflow-y-auto relative scrollbar-hide">
-                    {children}
-                    <WhisperFeed />
-                    <ServiceWorkerRegistration />
-                  </main>
+                  <div className="flex-1 flex h-full overflow-hidden">
+                    <main className="flex-1 h-full overflow-y-auto relative scrollbar-hide min-w-0">
+                      {children}
+                      <WhisperFeed />
+                      <ServiceWorkerRegistration />
+                    </main>
+                    <aside className="hidden xl:block w-[400px] border-l border-zinc-200 dark:border-white/10 p-4 shrink-0 bg-zinc-900/50">
+                      <PulseCompanionShell />
+                    </aside>
+                  </div>
                 </div>
               </ToastProvider>
             </UserProvider>
           </Providers>
         </body>
       </html>
-    </ClerkProvider>
+    </ClerkProviderSafe>
   );
 }

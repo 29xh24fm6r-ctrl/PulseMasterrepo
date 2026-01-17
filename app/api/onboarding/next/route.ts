@@ -4,20 +4,16 @@ import { canMakeAICall, trackAIUsage } from "@/services/usage";
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { createClient } from "@supabase/supabase-js";
-import OpenAI from "openai";
+import { getSupabaseAdminRuntimeClient, getSupabaseRuntimeClient } from "@/lib/runtime/supabase.runtime";
+import { getOpenAI } from "@/services/ai/openai";
 import { ONBOARDING_SYSTEM_PROMPT, FIRST_QUESTION, OnboardingResponse } from "@/lib/onboarding/system";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-});
+
+
 
 export async function POST(req: NextRequest) {
+  const supabase = getSupabaseAdminRuntimeClient();
   try {
     const { userId } = await auth();
     if (!userId) {
@@ -143,6 +139,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Call OpenAI
+    const openai = getOpenAI();
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: openaiMessages,

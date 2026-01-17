@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export async function linkArtifact(params: {
     userId: string;
@@ -33,7 +33,7 @@ export async function linkArtifact(params: {
     } = params;
 
     try {
-        await supabaseAdmin.rpc("rpc_artifact_link_insert", {
+        await getSupabaseAdminRuntimeClient().rpc("rpc_artifact_link_insert", {
             p_user_id: userId,
             p_trace_id: traceId,
             p_execution_id: executionId,

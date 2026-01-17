@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,7 +12,7 @@ export async function POST(req: Request) {
     if (!kind) return NextResponse.json({ ok: false, error: "kind required" }, { status: 400 });
 
     // Admin insert (bypasses RLS) — safe because server is authoritative
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdminRuntimeClient()
         .from("executions")
         .insert({
             user_id,
@@ -31,7 +31,7 @@ export async function POST(req: Request) {
     // To keep this route idempotent, fallback to select existing row by dedupe_key.
     if (error) {
         if (String(error.message).toLowerCase().includes("duplicate key")) {
-            const { data: existing } = await supabaseAdmin
+            const { data: existing } = await getSupabaseAdminRuntimeClient()
                 .from("executions")
                 .select("id")
                 .eq("user_id", user_id)

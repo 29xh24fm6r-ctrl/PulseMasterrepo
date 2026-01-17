@@ -1,46 +1,32 @@
 /**
  * LEGACY EXCEPTION (Phase 3A):
- * This file performs IO and would normally live in /services.
- * It remains in /lib temporarily due to high import blast radius (>170 refs).
- * Do not copy this pattern. New external IO integrations belong in /services.
+ * Refactored to be runtime-safe.
  */
-import { createClient } from '@supabase/supabase-js'
-import { Database } from '../types/supabase'
-import { getSupabaseUrl, getSupabaseAnonKey, getServiceRoleKey } from './env'
+import type { Database } from '../types/supabase'
 
 // Factory functions for runtime initialization (Build safe)
-export function createBrowserClient() {
-    return createClient<Database>(getSupabaseUrl(), getSupabaseAnonKey());
+export async function createBrowserClient() {
+    if (typeof window === 'undefined') return null; // Server side check roughly
+    const { getSupabaseRuntimeClient } = await import('@/lib/runtime/supabase.runtime');
+    return getSupabaseRuntimeClient();
 }
 
-export function createAdminClient() {
-    return createClient<Database>(getSupabaseUrl(), getServiceRoleKey());
+export async function createAdminClient() {
+    const { getSupabaseAdminRuntimeClient } = await import('@/lib/runtime/supabase.runtime');
+    return getSupabaseAdminRuntimeClient();
 }
 
-// Global Singletons (May throw at runtime if env missing, but now safeguarded by env.ts getters if imported)
-// We use a try-catch pattern or just standard init to maintain compatibility
-// Global Singletons (Lazy Proxies to prevent build-time crashes)
-let supabaseInstance: ReturnType<typeof createClient<Database>> | null = null;
-export const supabase = new Proxy({} as ReturnType<typeof createClient<Database>>, {
-    get: (_target, prop) => {
-        if (!supabaseInstance) {
-            const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
-            const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder';
-            supabaseInstance = createClient<Database>(url, anon);
-        }
-        return (supabaseInstance as any)[prop];
+// DEPRECATED SINGLETONS
+// These will throw if accessed. Consumers must migrate to `await getSupabaseRuntimeClient()`
+export const supabase = new Proxy({}, {
+    get: () => {
+        throw new Error("Generic 'supabase' export is deprecated. Use `await import('@/lib/runtime/supabase.runtime')`");
     }
 });
 
-let adminInstance: ReturnType<typeof createClient<Database>> | null = null;
-export const supabaseAdmin = new Proxy({} as ReturnType<typeof createClient<Database>>, {
-    get: (_target, prop) => {
-        if (!adminInstance) {
-            const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
-            const service = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder';
-            adminInstance = createClient<Database>(url, service);
-        }
-        return (adminInstance as any)[prop];
+export const supabaseAdmin = new Proxy({}, {
+    get: () => {
+        throw new Error("Generic 'supabaseAdmin' export is deprecated. Use `await import('@/lib/runtime/supabase.runtime')`");
     }
 });
 

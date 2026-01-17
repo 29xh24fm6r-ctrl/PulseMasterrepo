@@ -1,22 +1,26 @@
 import { CanaryCheckResult } from "./types";
 import { withTimeout } from "./timeout";
+import { getResend } from "@/services/email/resend";
 
 export async function checkEmail(): Promise<CanaryCheckResult> {
     const started = Date.now();
     const timeoutMs = Number(process.env.CANARY_EMAIL_TIMEOUT_MS ?? "2500");
 
     try {
+        const resend = getResend();
         await withTimeout("email", timeoutMs, async () => {
-            // Example: Resend
-            const key = process.env.RESEND_API_KEY;
-            if (!key) throw new Error("RESEND_API_KEY missing");
-
-            // Dynamic import avoids bundling issues if not installed in some envs
-            const { Resend } = await import("resend");
-            const client = new Resend(key);
-
             // No-send check: just ensure client exists
-            if (!client) throw new Error("Resend client init failed");
+            // This part might need to be updated to actually send an email
+            // or to check the client's readiness more robustly.
+            // For now, we'll assume the original intent of checking client existence.
+            if (!resend) throw new Error("Resend client init failed");
+            // If the intent was to actually send an email, it would look like this:
+            // await resend.emails.send({
+            //   from: 'onboarding@example.com',
+            //   to: 'user@example.com',
+            //   subject: 'Hello World',
+            //   html: '<p>Congrats on sending your <strong>first email</strong>!</p>',
+            // });
         });
 
         return { name: "email", ok: true, ms: Date.now() - started };

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 function requireOwnerUserId(req: Request): string {
     const owner = req.headers.get("x-owner-user-id");
@@ -23,7 +23,7 @@ export async function GET(req: Request) {
             unread_only: url.searchParams.get("unread_only") ?? undefined,
         });
 
-        const sb = supabaseAdmin();
+        const sb = getSupabaseAdminRuntimeClient();
         let query = sb
             .from("chef_notifications")
             .select("*")
@@ -50,7 +50,7 @@ export async function POST(req: Request) {
             ids: z.array(z.string().uuid()).min(1),
         }).parse(await req.json());
 
-        const sb = supabaseAdmin();
+        const sb = getSupabaseAdminRuntimeClient();
         const { error } = await sb
             .from("chef_notifications")
             .update({ is_read: true })

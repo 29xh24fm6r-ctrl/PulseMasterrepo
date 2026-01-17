@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { updatePlanItemStatus, PlanItemStatus } from "@/lib/planning/engine";
 
 export async function PATCH(
@@ -37,7 +37,7 @@ export async function PATCH(
     }
 
     // Verify ownership
-    const { data: existing } = await supabaseAdmin
+    const { data: existing } = await getSupabaseAdminRuntimeClient()
       .from("plan_items")
       .select("id, user_id")
       .eq("id", id)

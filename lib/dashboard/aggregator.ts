@@ -5,7 +5,7 @@
  * Unified data aggregation for the ultimate life dashboard
  */
 
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 // ============================================
 // TYPES
@@ -159,40 +159,40 @@ async function getStats(userId: string, todayStart: Date, todayEnd: Date): Promi
     weeklyPlan,
     streak,
   ] = await Promise.all([
-    supabaseAdmin
+    getSupabaseAdminRuntimeClient()
       .from("autonomy_actions")
       .select("*", { count: "exact", head: true })
       .eq("user_id_uuid", userId) // Updated to user_id_uuid
       .eq("status", "pending"),
-    // supabaseAdmin
+    // getSupabaseAdminRuntimeClient()
     //   .from("delegation_drafts")
     //   .select("*", { count: "exact", head: true })
     //   .eq("user_id_uuid", userId)
     //   .eq("status", "pending"),
-    supabaseAdmin
+    getSupabaseAdminRuntimeClient()
       .from("email_threads")
       .select("*", { count: "exact", head: true })
       .eq("user_id_uuid", userId) // Updated to user_id_uuid
       .eq("unread", true),
-    supabaseAdmin
+    getSupabaseAdminRuntimeClient()
       .from("calendar_events_cache")
       .select("*", { count: "exact", head: true })
       .eq("user_id_uuid", userId) // Updated to user_id_uuid
       .gte("start_time", todayStart.toISOString())
       .lt("start_time", todayEnd.toISOString()),
-    supabaseAdmin
+    getSupabaseAdminRuntimeClient()
       .from("relationships")
       .select("*", { count: "exact", head: true })
       .eq("user_id_uuid", userId) // Updated to user_id_uuid
       .gte("health_score", 50),
-    supabaseAdmin
+    getSupabaseAdminRuntimeClient()
       .from("weekly_plans")
       .select("top_priorities, goals")
       .eq("user_id_uuid", userId) // Updated to user_id_uuid
       .order("week_start", { ascending: false })
       .limit(1)
       .single(),
-    supabaseAdmin
+    getSupabaseAdminRuntimeClient()
       .from("streaks")
       .select("current_count")
       .eq("user_id_uuid", userId) // Updated to user_id_uuid
@@ -235,7 +235,7 @@ async function getUrgentItems(userId: string): Promise<UrgentItem[]> {
   // Urgent autonomy actions
   // Urgent autonomy actions (Table 'autonomy_actions' missing from schema)
   /*
-  const { data: urgentActions } = await supabaseAdmin
+  const { data: urgentActions } = await getSupabaseAdminRuntimeClient()
     .from("autonomy_actions")
     .select("*")
     .eq("user_id_uuid", userId)
@@ -256,7 +256,7 @@ async function getUrgentItems(userId: string): Promise<UrgentItem[]> {
   */
 
   // Overdue follow-ups
-  const { data: overdueFollowups } = await supabaseAdmin
+  const { data: overdueFollowups } = await getSupabaseAdminRuntimeClient()
     .from("email_followups")
     .select("*, email_threads(*)")
     .eq("user_id_uuid", userId)
@@ -281,7 +281,7 @@ async function getUrgentItems(userId: string): Promise<UrgentItem[]> {
   }
 
   // Cold relationships (VIP/Key only)
-  const { data: coldRelationships } = await supabaseAdmin
+  const { data: coldRelationships } = await getSupabaseAdminRuntimeClient()
     .from("relationships")
     .select("*")
     .eq("user_id_uuid", userId)
@@ -312,7 +312,7 @@ async function getTodaySchedule(
   todayStart: Date,
   todayEnd: Date
 ): Promise<ScheduleItem[]> {
-  const { data: events } = await supabaseAdmin
+  const { data: events } = await getSupabaseAdminRuntimeClient()
     .from("calendar_events_cache")
     .select("*")
     .eq("user_id_uuid", userId)
@@ -335,7 +335,7 @@ async function getTodaySchedule(
 // ============================================
 
 async function getActiveGoals(userId: string): Promise<GoalProgress[]> {
-  const { data: plan } = await supabaseAdmin
+  const { data: plan } = await getSupabaseAdminRuntimeClient()
     .from("weekly_plans")
     .select("goals")
     .eq("user_id_uuid", userId) // Updated to user_id_uuid
@@ -358,7 +358,7 @@ async function getActiveGoals(userId: string): Promise<GoalProgress[]> {
 // ============================================
 
 async function getRelationshipAlerts(userId: string): Promise<RelationshipAlert[]> {
-  const { data } = await supabaseAdmin
+  const { data } = await getSupabaseAdminRuntimeClient()
     .from("relationships")
     .select("*")
     .eq("user_id_uuid", userId) // Updated to user_id_uuid
@@ -389,7 +389,7 @@ async function getRelationshipAlerts(userId: string): Promise<RelationshipAlert[
 // ============================================
 
 async function getRecentInsights(userId: string): Promise<Insight[]> {
-  const { data } = await supabaseAdmin
+  const { data } = await getSupabaseAdminRuntimeClient()
     .from("third_brain_insights") // Assumed user_id_uuid
     .select("*")
     .eq("user_id_uuid", userId)
@@ -409,7 +409,7 @@ async function getRecentInsights(userId: string): Promise<Insight[]> {
 // ============================================
 
 async function getStreaks(userId: string): Promise<Streak[]> {
-  const { data } = await supabaseAdmin
+  const { data } = await getSupabaseAdminRuntimeClient()
     .from("streaks")
     .select("*")
     .eq("user_id_uuid", userId) // Updated to user_id_uuid
@@ -430,7 +430,7 @@ async function getStreaks(userId: string): Promise<Streak[]> {
 // ============================================
 
 async function getWeeklyProgress(userId: string): Promise<WeeklyProgress> {
-  const { data: plan } = await supabaseAdmin
+  const { data: plan } = await getSupabaseAdminRuntimeClient()
     .from("weekly_plans")
     .select("*")
     .eq("user_id_uuid", userId) // Updated to user_id_uuid
@@ -446,7 +446,7 @@ async function getWeeklyProgress(userId: string): Promise<WeeklyProgress> {
   weekStart.setDate(weekStart.getDate() - weekStart.getDay());
   weekStart.setHours(0, 0, 0, 0);
 
-  const { count: interactions } = await supabaseAdmin
+  const { count: interactions } = await getSupabaseAdminRuntimeClient()
     .from("relationship_interactions")
     .select("*", { count: "exact", head: true })
     .eq("user_id_uuid", userId) // Updated to user_id_uuid

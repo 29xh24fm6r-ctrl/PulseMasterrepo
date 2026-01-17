@@ -6,10 +6,10 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { supabaseAdmin } from "@/lib/supabase";
-import OpenAI from "openai";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
+import { getOpenAI } from "@/services/ai/openai";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
 
 export async function GET(
   req: NextRequest,
@@ -25,7 +25,7 @@ export async function GET(
     const mode = req.nextUrl.searchParams.get("mode");
 
     if (mode === "interactions") {
-      const { data } = await supabaseAdmin
+      const { data } = await getSupabaseAdminRuntimeClient()
         .from("relationship_interactions")
         .select("*")
         .eq("relationship_id", id)
@@ -49,13 +49,13 @@ export async function GET(
     if (mode === "summary") {
       // Get relationship and recent interactions
       const [relRes, intRes] = await Promise.all([
-        supabaseAdmin
+        getSupabaseAdminRuntimeClient()
           .from("relationships")
           .select("*")
           .eq("id", id)
           .eq("user_id_uuid", userId)
           .single(),
-        supabaseAdmin
+        getSupabaseAdminRuntimeClient()
           .from("relationship_interactions")
           .select("*")
           .eq("relationship_id", id)
@@ -86,6 +86,7 @@ ${interactions.map((i) => `- ${i.type} (${i.direction}): ${i.subject || i.summar
 
 Provide a 2-3 sentence summary and 1-2 specific suggestions to strengthen this relationship.`;
 
+      const openai = await getOpenAI();
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [{ role: "user", content: prompt }],
@@ -96,7 +97,7 @@ Provide a 2-3 sentence summary and 1-2 specific suggestions to strengthen this r
     }
 
     // Default: get relationship
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdminRuntimeClient()
       .from("relationships")
       .select("*")
       .eq("id", id)
@@ -148,7 +149,7 @@ export async function POST(
     const now = new Date().toISOString();
 
     // Log interaction
-    const { data: interaction, error: intError } = await supabaseAdmin
+    const { data: interaction, error: intError } = await getSupabaseAdminRuntimeClient()
       .from("relationship_interactions")
       .insert({
         user_id_uuid: userId,
@@ -168,17 +169,17 @@ export async function POST(
     }
 
     // Update relationship
-    await supabaseAdmin
+    await getSupabaseAdminRuntimeClient()
       .from("relationships")
       .update({
         last_contact_at: now,
-        interaction_count: supabaseAdmin.rpc("increment_count", { row_id: id }),
+        interaction_count: getSupabaseAdminRuntimeClient().rpc("increment_count", { row_id: id }),
       })
       .eq("id", id)
       .eq("user_id_uuid", userId);
     // Increment interaction count via RPC (ignore if fails)
     try {
-      await supabaseAdmin.rpc("increment_relationship_interaction", { rel_id: id });
+      await getSupabaseAdminRuntimeClient().rpc("increment_relationship_interaction", { rel_id: id });
     } catch {
       // RPC not available, skip increment
     }

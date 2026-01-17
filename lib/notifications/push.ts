@@ -6,7 +6,7 @@
  */
 
 import webpush from "web-push";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 // ============================================
 // CONFIGURATION
@@ -85,7 +85,7 @@ export async function saveSubscription(
   deviceInfo?: { userAgent?: string; deviceName?: string }
 ): Promise<{ success: boolean; id?: string }> {
   try {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdminRuntimeClient()
       .from("push_subscriptions")
       .upsert(
         {
@@ -122,7 +122,7 @@ export async function removeSubscription(
   userId: string,
   endpoint: string
 ): Promise<boolean> {
-  const { error } = await supabaseAdmin
+  const { error } = await getSupabaseAdminRuntimeClient()
     .from("push_subscriptions")
     .delete()
     .eq("user_id", userId)
@@ -137,7 +137,7 @@ export async function removeSubscription(
 export async function getUserSubscriptions(
   userId: string
 ): Promise<PushSubscription[]> {
-  const { data } = await supabaseAdmin
+  const { data } = await getSupabaseAdminRuntimeClient()
     .from("push_subscriptions")
     .select("*")
     .eq("user_id", userId)
@@ -163,7 +163,7 @@ export async function getUserSubscriptions(
 export async function getNotificationPreferences(
   userId: string
 ): Promise<NotificationPreferences> {
-  const { data } = await supabaseAdmin
+  const { data } = await getSupabaseAdminRuntimeClient()
     .from("notification_preferences")
     .select("*")
     .eq("user_id", userId)
@@ -225,7 +225,7 @@ export async function updateNotificationPreferences(
   if (updates.maxPerHour !== undefined)
     dbUpdates.max_per_hour = updates.maxPerHour;
 
-  const { error } = await supabaseAdmin
+  const { error } = await getSupabaseAdminRuntimeClient()
     .from("notification_preferences")
     .upsert(
       { user_id: userId, ...dbUpdates },
@@ -315,7 +315,7 @@ export async function sendPushNotification(
       sent++;
 
       // Update last_used_at
-      await supabaseAdmin
+      await getSupabaseAdminRuntimeClient()
         .from("push_subscriptions")
         .update({ last_used_at: new Date().toISOString() })
         .eq("id", sub.id);
@@ -325,7 +325,7 @@ export async function sendPushNotification(
 
       // Remove invalid subscriptions (410 Gone or 404 Not Found)
       if (error.statusCode === 410 || error.statusCode === 404) {
-        await supabaseAdmin
+        await getSupabaseAdminRuntimeClient()
           .from("push_subscriptions")
           .delete()
           .eq("id", sub.id);
@@ -463,7 +463,7 @@ async function checkRateLimit(userId: string, maxPerHour: number): Promise<boole
   const oneHourAgo = new Date();
   oneHourAgo.setHours(oneHourAgo.getHours() - 1);
 
-  const { count } = await supabaseAdmin
+  const { count } = await getSupabaseAdminRuntimeClient()
     .from("notification_log")
     .select("id", { count: "exact", head: true })
     .eq("user_id", userId)
@@ -477,7 +477,7 @@ async function logNotification(
   payload: NotificationPayload,
   status: "sent" | "failed"
 ): Promise<void> {
-  await supabaseAdmin.from("notification_log").insert({
+  await getSupabaseAdminRuntimeClient().from("notification_log").insert({
     user_id: userId,
     type: payload.type || "general",
     title: payload.title,

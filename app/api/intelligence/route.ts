@@ -2,19 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { canMakeAICall, trackAIUsage } from "@/services/usage";
 import { NextRequest, NextResponse } from "next/server";
 import { getContacts, type Contact } from "@/lib/data/journal";
-import OpenAI from "openai";
 
-export const maxDuration = 120; // 2 minutes for deep scan
-export const dynamic = 'force-dynamic';
-
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const BRAVE_API_KEY = process.env.BRAVE_SEARCH_API_KEY;
-
-if (!OPENAI_API_KEY) {
-  throw new Error("Missing OPENAI_API_KEY");
-}
-
-const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
 // ============================================
 // Types
@@ -31,6 +19,7 @@ type SearchCategory = {
 // ============================================
 
 async function searchBrave(query: string, count: number = 10): Promise<Array<{ title: string; description: string; url: string }>> {
+  const BRAVE_API_KEY = process.env.BRAVE_SEARCH_API_KEY;
   if (!BRAVE_API_KEY) {
     console.log("⚠️ No Brave API key - skipping web search");
     return [];
@@ -198,6 +187,7 @@ Create a comprehensive profile (JSON):
 }`;
 
   try {
+    const openai = await getOpenAI();
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
@@ -348,6 +338,7 @@ export async function POST(req: NextRequest) {
       const { analysis, confidence } = await researchContact(name, company, role, email, existingContext);
 
       const briefingPrompt = `Create pre-call briefing for ${name} (${company}). Intel: ${JSON.stringify(analysis)}`;
+      const openai = await getOpenAI();
       const briefingCompletion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [{ role: "user", content: briefingPrompt }],

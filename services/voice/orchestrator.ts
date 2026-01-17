@@ -5,8 +5,8 @@
  * Processes voice commands and generates spoken responses
  */
 
-import OpenAI from "openai";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getOpenAI } from "@/services/ai/openai";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { callAIJson } from "@/lib/ai/call";
 import { getEmotionalState } from "@/lib/emotional/engine";
 import { getTodaysPlan } from "@/lib/planning/engine";
@@ -14,7 +14,7 @@ import { getLatestExecutiveSummary } from "@/lib/executive/engine";
 import { getSuggestedActions } from "@/lib/autonomy/engine";
 import { trackTTSUsage } from "@/services/usage";
 
-const openai = new OpenAI();
+
 
 // ============================================
 // TYPES
@@ -422,6 +422,7 @@ export async function generateSpeech(
   text: string,
   voice: "alloy" | "echo" | "fable" | "onyx" | "nova" | "shimmer" = "nova"
 ): Promise<Buffer> {
+  const openai = getOpenAI();
   const response = await openai.audio.speech.create({
     model: "tts-1",
     voice,
@@ -472,7 +473,7 @@ async function logVoiceInteraction(
   result: VoiceCommandResult
 ): Promise<void> {
   try {
-    await (supabaseAdmin as any).from("third_brain_events").insert({
+    await (getSupabaseAdminRuntimeClient() as any).from("third_brain_events").insert({
       user_id: userId,
       type: "voice_command",
       source: "voice_orchestrator",

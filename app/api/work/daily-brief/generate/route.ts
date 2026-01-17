@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 function todayDate(): string {
     const d = new Date();
@@ -20,7 +20,7 @@ export async function POST(req: Request) {
     const day = todayDate();
 
     // Pull the work queue quickly
-    const inbox = await supabaseAdmin
+    const inbox = await getSupabaseAdminRuntimeClient()
         .from("inbox_items")
         .select("id, subject, triage_status, triage_priority")
         .eq("user_id_uuid", gate.canon.userIdUuid)
@@ -29,7 +29,7 @@ export async function POST(req: Request) {
         .order("triage_priority", { ascending: false })
         .limit(20);
 
-    const tasks = await supabaseAdmin
+    const tasks = await getSupabaseAdminRuntimeClient()
         .from("tasks")
         .select("id, title, due_at, status")
         .eq("user_id_uuid", gate.canon.userIdUuid)
@@ -37,7 +37,7 @@ export async function POST(req: Request) {
         .order("due_at", { ascending: true })
         .limit(20);
 
-    const fus = await supabaseAdmin
+    const fus = await getSupabaseAdminRuntimeClient()
         .from("follow_ups")
         .select("id, title, due_at, status")
         .eq("user_id_uuid", gate.canon.userIdUuid)
@@ -59,7 +59,7 @@ export async function POST(req: Request) {
         `\n\nTop Follow-ups:\n` +
         (fus.data ?? []).slice(0, 8).map((x: any) => `- ${x.title}`).join("\n");
 
-    const up = await supabaseAdmin
+    const up = await getSupabaseAdminRuntimeClient()
         .from("daily_briefs")
         .upsert(
             { user_id_uuid: gate.canon.userIdUuid, day, title: "Daily Brief", content, meta: { source: "v1" } },

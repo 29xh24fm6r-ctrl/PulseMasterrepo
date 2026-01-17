@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export type Habit = {
     id: string;
@@ -33,7 +33,7 @@ function mapHabitFromDB(row: any): Habit {
 }
 
 export async function getHabits(userId: string) {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdminRuntimeClient()
         .from("habits")
         .select("*")
         .eq("user_id_uuid", userId)
@@ -49,7 +49,7 @@ export async function logHabitCompletion(userId: string, habitId: string, xp: nu
     const now = new Date();
     const today = now.toISOString().split('T')[0];
 
-    const { error: logError } = await supabaseAdmin
+    const { error: logError } = await getSupabaseAdminRuntimeClient()
         .from("habit_logs")
         .insert({
             user_id_uuid: userId,
@@ -64,7 +64,7 @@ export async function logHabitCompletion(userId: string, habitId: string, xp: nu
     if (logError) throw logError;
 
     // 2. Update streak on habit
-    const { data: habit } = await supabaseAdmin.from("habits").select("streak, updated_at").eq("id", habitId).single();
+    const { data: habit } = await getSupabaseAdminRuntimeClient().from("habits").select("streak, updated_at").eq("id", habitId).single();
 
     let newStreak = (habit?.streak || 0) + 1;
     const lastCompleted = habit?.updated_at ? new Date(habit.updated_at) : null;
@@ -77,7 +77,7 @@ export async function logHabitCompletion(userId: string, habitId: string, xp: nu
         if (diffDays > 1) newStreak = 1;
     }
 
-    const { data: updatedHabit, error: updateError } = await supabaseAdmin
+    const { data: updatedHabit, error: updateError } = await getSupabaseAdminRuntimeClient()
         .from("habits")
         .update({
             streak: newStreak,
@@ -93,7 +93,7 @@ export async function logHabitCompletion(userId: string, habitId: string, xp: nu
 }
 
 export async function createHabit(userId: string, name: string) {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdminRuntimeClient()
         .from("habits")
         .insert({
             user_id_uuid: userId,

@@ -1,13 +1,12 @@
 
-import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import { getRuntimePhase } from "@/lib/env/runtime-phase";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn("Supabase credentials missing in environment variables.");
-}
-
-export function createClient() {
-    return createSupabaseClient(supabaseUrl, supabaseAnonKey);
+export async function createClient() {
+    if (getRuntimePhase() === "build") {
+        // Return a mock or throw? Client side usually safe but this export might be used in server components.
+        // Best to be safe.
+        return null;
+    }
+    const { getSupabaseRuntimeClient } = await import("@/lib/runtime/supabase.runtime");
+    return getSupabaseRuntimeClient();
 }

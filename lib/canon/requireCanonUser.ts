@@ -1,5 +1,5 @@
 // lib/canon/requireCanonUser.ts
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export type CanonUser = {
     clerkUserId: string;
@@ -37,7 +37,7 @@ export async function requireCanonUser(
     }
 
     // Use admin client for canonical lookup
-    const supabase = supabaseAdmin;
+    const supabase = getSupabaseAdminRuntimeClient();
 
     const { data, error } = await supabase
         .from("identity_users")

@@ -2,15 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { canMakeAICall, trackAIUsage } from "@/services/usage";
 import { NextResponse } from "next/server";
 import { getContacts, type Contact } from "@/lib/data/journal";
-import OpenAI from "openai";
-
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-
-if (!OPENAI_API_KEY) {
-  throw new Error("Missing API keys");
-}
-
-const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+import { getOpenAI } from "@/services/ai/openai";
 
 export async function POST(req: Request) {
   try {
@@ -18,6 +10,8 @@ export async function POST(req: Request) {
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const usageCheck = await canMakeAICall(userId, "generate_agenda", 3);
     if (!usageCheck.allowed) return NextResponse.json({ error: usageCheck.reason, requiresUpgrade: usageCheck.requiresUpgrade }, { status: 402 });
+
+    const openai = getOpenAI();
 
     const body = await req.json();
     const { dealName, dealStage, meetingType, duration } = body;

@@ -1,4 +1,6 @@
-'use client';
+"use client";
+
+export const dynamic = "force-dynamic";
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -174,11 +176,10 @@ export default function TeachingPage() {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-4 py-3 text-sm font-medium border-b-2 transition ${
-                  activeTab === tab
-                    ? 'border-violet-500 text-violet-400'
-                    : 'border-transparent text-slate-400 hover:text-slate-300'
-                }`}
+                className={`px-4 py-3 text-sm font-medium border-b-2 transition ${activeTab === tab
+                  ? 'border-violet-500 text-violet-400'
+                  : 'border-transparent text-slate-400 hover:text-slate-300'
+                  }`}
               >
                 {tab.charAt(0).toUpperCase() + tab.slice(1)}
               </button>
@@ -205,9 +206,8 @@ export default function TeachingPage() {
                     {typeTeachings.map((teaching) => (
                       <div
                         key={teaching.id}
-                        className={`p-4 bg-slate-900 border rounded-xl transition ${
-                          teaching.isActive ? 'border-slate-800' : 'border-slate-800/50 opacity-60'
-                        }`}
+                        className={`p-4 bg-slate-900 border rounded-xl transition ${teaching.isActive ? 'border-slate-800' : 'border-slate-800/50 opacity-60'
+                          }`}
                       >
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1 min-w-0">

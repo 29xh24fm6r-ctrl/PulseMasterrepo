@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
@@ -83,7 +85,7 @@ export default function IdentityDashboardPage() {
   const [identityStrength, setIdentityStrength] = useState(0);
   const [activating, setActivating] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-  
+
   // North Star state
   const [northStarModalOpen, setNorthStarModalOpen] = useState(false);
   const [editingVision, setEditingVision] = useState("");
@@ -154,7 +156,7 @@ export default function IdentityDashboardPage() {
         setState(data.newState);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data.newState));
         setRecentlyTracked(actionId);
-        
+
         const profileRes = await fetch("/api/identity/profile", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -182,8 +184,8 @@ export default function IdentityDashboardPage() {
       const res = await fetch("/api/identity/activate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          archetypeId, 
+        body: JSON.stringify({
+          archetypeId,
           currentState: state,
           action: 'activate',
         }),
@@ -213,8 +215,8 @@ export default function IdentityDashboardPage() {
       const res = await fetch("/api/identity/activate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          archetypeId: state.activeArchetype, 
+        body: JSON.stringify({
+          archetypeId: state.activeArchetype,
           currentState: state,
           action: 'deactivate',
         }),
@@ -254,7 +256,7 @@ export default function IdentityDashboardPage() {
       const res = await fetch("/api/identity/north-star", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           vision: editingVision.trim(),
           mission: editingMission.trim(),
           currentState: state,
@@ -331,11 +333,10 @@ export default function IdentityDashboardPage() {
     <div className="min-h-screen bg-zinc-950 text-white">
       {/* Toast notification */}
       {toast && (
-        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2 animate-slide-in ${
-          toast.type === 'success' 
-            ? 'bg-emerald-500/90 text-white' 
-            : 'bg-red-500/90 text-white'
-        }`}>
+        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2 animate-slide-in ${toast.type === 'success'
+          ? 'bg-emerald-500/90 text-white'
+          : 'bg-red-500/90 text-white'
+          }`}>
           {toast.type === 'success' ? <Check className="w-5 h-5" /> : <X className="w-5 h-5" />}
           {toast.message}
         </div>
@@ -344,7 +345,7 @@ export default function IdentityDashboardPage() {
       {/* North Star Modal */}
       {northStarModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div 
+          <div
             className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             onClick={() => setNorthStarModalOpen(false)}
           />
@@ -608,7 +609,7 @@ export default function IdentityDashboardPage() {
                 const canActivate = current >= 500;
                 const isActive = state?.activeArchetype === id;
                 const isActivating = activating === id;
-                
+
                 return (
                   <div key={id} className="group">
                     <div className="flex items-center justify-between mb-1.5">
@@ -670,7 +671,7 @@ export default function IdentityDashboardPage() {
             <div className="space-y-4">
               {topValues.map(({ id, value, score, trend }) => {
                 if (!value) return null;
-                
+
                 return (
                   <div key={id} className="group">
                     <div className="flex items-center justify-between mb-1.5">
@@ -692,8 +693,8 @@ export default function IdentityDashboardPage() {
                             score >= 70
                               ? "linear-gradient(90deg, #10b981, #34d399)"
                               : score >= 50
-                              ? "linear-gradient(90deg, #f59e0b, #fbbf24)"
-                              : "linear-gradient(90deg, #ef4444, #f87171)",
+                                ? "linear-gradient(90deg, #f59e0b, #fbbf24)"
+                                : "linear-gradient(90deg, #ef4444, #f87171)",
                         }}
                       />
                     </div>

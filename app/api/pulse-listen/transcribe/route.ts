@@ -1,15 +1,10 @@
+
 import { NextResponse } from "next/server";
-import OpenAI from "openai";
+import { getOpenAI } from "@/services/ai/openai";
 import fs from "fs";
 import path from "path";
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
-if (!OPENAI_API_KEY) {
-  throw new Error("OPENAI_API_KEY is not set");
-}
-
-const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
 export async function POST(req: Request) {
   try {
@@ -23,8 +18,8 @@ export async function POST(req: Request) {
       );
     }
 
-    console.log(`🎤 Transcribing audio file: ${audioFile.name}`);
-    console.log(`📦 File size: ${(audioFile.size / 1024 / 1024).toFixed(2)} MB`);
+    console.log(`Transcribing audio file: ${audioFile.name} `);
+    console.log(`File size: ${(audioFile.size / 1024 / 1024).toFixed(2)} MB`);
 
     // Convert File to buffer
     const bytes = await audioFile.arrayBuffer();
@@ -39,9 +34,10 @@ export async function POST(req: Request) {
     const tempFilePath = path.join(tempDir, audioFile.name);
     fs.writeFileSync(tempFilePath, buffer);
 
-    console.log("🔊 Sending to Whisper API...");
+    console.log("Sending to Whisper API...");
 
     // Transcribe with Whisper
+    const openai = await getOpenAI();
     const transcription = await openai.audio.transcriptions.create({
       file: fs.createReadStream(tempFilePath),
       model: "whisper-1",
@@ -60,7 +56,7 @@ export async function POST(req: Request) {
     const formattedTranscript = segments
       .map((seg: any) => {
         const timestamp = new Date(seg.start * 1000).toISOString().substr(11, 8);
-        return `[${timestamp}] ${seg.text}`;
+        return `[${timestamp}] ${seg.text} `;
       })
       .join("\n");
 

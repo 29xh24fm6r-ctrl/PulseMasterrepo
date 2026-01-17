@@ -5,7 +5,7 @@
  * Computes life domain KPIs, trends, and generates executive summaries
  */
 
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { callAIJson } from "@/lib/ai/call";
 
 // ============================================
@@ -62,7 +62,7 @@ const DEFAULT_DOMAINS = [
  * Ensure user has default domains set up
  */
 export async function ensureUserDomains(userId: string): Promise<void> {
-  const { data: existing } = await supabaseAdmin
+  const { data: existing } = await getSupabaseAdminRuntimeClient()
     .from("life_domains")
     .select("key")
     .eq("user_id_uuid", userId);
@@ -82,7 +82,7 @@ export async function ensureUserDomains(userId: string): Promise<void> {
   );
 
   if (toInsert.length > 0) {
-    await supabaseAdmin.from("life_domains").insert(toInsert);
+    await getSupabaseAdminRuntimeClient().from("life_domains").insert(toInsert);
   }
 }
 
@@ -94,7 +94,7 @@ export async function getUserDomains(
 ): Promise<Array<{ key: string; label: string; weight: number }>> {
   await ensureUserDomains(userId);
 
-  const { data } = await supabaseAdmin
+  const { data } = await getSupabaseAdminRuntimeClient()
     .from("life_domains")
     .select("key, label, weight")
     .eq("user_id_uuid", userId)
@@ -167,7 +167,7 @@ export async function recomputeDomainKPIs(input: DomainKPIInput): Promise<void> 
 
   // Upsert KPIs
   for (const kpi of domainKPIs) {
-    await supabaseAdmin.from("domain_kpis").upsert(
+    await getSupabaseAdminRuntimeClient().from("domain_kpis").upsert(
       {
         user_id_uuid: userId,
         owner_user_id_legacy: userId,
@@ -195,7 +195,7 @@ export async function generateExecutiveSummary(
   const endStr = formatDate(period.end);
 
   // Get domain KPIs for this period
-  const { data: kpis } = await supabaseAdmin
+  const { data: kpis } = await getSupabaseAdminRuntimeClient()
     .from("domain_kpis")
     .select("*")
     .eq("user_id_uuid", userId)
@@ -208,7 +208,7 @@ export async function generateExecutiveSummary(
     // Compute KPIs first
     await recomputeDomainKPIs({ userId, startDate: period.start, endDate: period.end });
 
-    const { data: freshKpis } = await supabaseAdmin
+    const { data: freshKpis } = await getSupabaseAdminRuntimeClient()
       .from("domain_kpis")
       .select("*")
       .eq("user_id_uuid", userId)
@@ -287,7 +287,7 @@ Output as JSON:
   const periodType = daysDiff > 14 ? "monthly" : "weekly";
 
   // Save summary
-  const { data: saved, error } = await supabaseAdmin
+  const { data: saved, error } = await getSupabaseAdminRuntimeClient()
     .from("executive_summaries")
     .upsert(
       {
@@ -322,7 +322,7 @@ Output as JSON:
 export async function getLatestExecutiveSummary(
   userId: string
 ): Promise<ExecutiveSummary | null> {
-  const { data } = await supabaseAdmin
+  const { data } = await getSupabaseAdminRuntimeClient()
     .from("executive_summaries")
     .select("*")
     .eq("user_id_uuid", userId)
@@ -341,7 +341,7 @@ export async function getDomainKPIs(
   startDate: Date,
   endDate: Date
 ): Promise<DomainKPI[]> {
-  const { data } = await supabaseAdmin
+  const { data } = await getSupabaseAdminRuntimeClient()
     .from("domain_kpis")
     .select("*")
     .eq("user_id_uuid", userId)
@@ -364,14 +364,14 @@ async function computeHabitMetrics(
   start: Date,
   end: Date
 ): Promise<Record<string, any>> {
-  const { data: logs } = await supabaseAdmin
+  const { data: logs } = await getSupabaseAdminRuntimeClient()
     .from("habit_logs")
     .select("habit_id, occurred_at")
     .eq("user_id_uuid", userId)
     .gte("occurred_at", start.toISOString())
     .lte("occurred_at", end.toISOString());
 
-  const { data: habits } = await supabaseAdmin
+  const { data: habits } = await getSupabaseAdminRuntimeClient()
     .from("habits")
     .select("id, name")
     .eq("user_id_uuid", userId);
@@ -406,7 +406,7 @@ async function computeJournalMetrics(
   start: Date,
   end: Date
 ): Promise<Record<string, any>> {
-  const { data: entries } = await supabaseAdmin
+  const { data: entries } = await getSupabaseAdminRuntimeClient()
     .from("journal_entries")
     .select("id, mood, created_at")
     .eq("user_id_uuid", userId)
@@ -454,7 +454,7 @@ async function computeRelationshipMetrics(
   start: Date,
   end: Date
 ): Promise<Record<string, any>> {
-  const { data: events } = await supabaseAdmin
+  const { data: events } = await getSupabaseAdminRuntimeClient()
     .from("third_brain_events")
     .select("type, title, raw_payload")
     .eq("user_id_uuid", userId)
@@ -462,7 +462,7 @@ async function computeRelationshipMetrics(
     .gte("occurred_at", start.toISOString())
     .lte("occurred_at", end.toISOString());
 
-  const { data: memories } = await supabaseAdmin
+  const { data: memories } = await getSupabaseAdminRuntimeClient()
     .from("third_brain_memories")
     .select("key, content, metadata")
     .eq("user_id_uuid", userId)
@@ -501,7 +501,7 @@ async function computeTaskMetrics(
   start: Date,
   end: Date
 ): Promise<Record<string, any>> {
-  const { data: events } = await supabaseAdmin
+  const { data: events } = await getSupabaseAdminRuntimeClient()
     .from("third_brain_events")
     .select("type, title")
     .eq("user_id_uuid", userId)
@@ -509,7 +509,7 @@ async function computeTaskMetrics(
     .gte("occurred_at", start.toISOString())
     .lte("occurred_at", end.toISOString());
 
-  const { data: planItems } = await supabaseAdmin
+  const { data: planItems } = await getSupabaseAdminRuntimeClient()
     .from("plan_items")
     .select("status")
     .eq("user_id_uuid", userId)
@@ -534,7 +534,7 @@ async function computeXPMetrics(
   start: Date,
   end: Date
 ): Promise<Record<string, any>> {
-  const { data: transactions } = await supabaseAdmin
+  const { data: transactions } = await getSupabaseAdminRuntimeClient()
     .from("xp_transactions")
     .select("amount, source_type")
     .eq("user_id_uuid", userId)

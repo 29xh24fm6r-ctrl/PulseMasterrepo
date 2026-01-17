@@ -2,17 +2,19 @@ import { NextResponse } from "next/server";
 import ytdl from "@distube/ytdl-core";
 import fs from "fs";
 import path from "path";
-import OpenAI from "openai";
+import { getOpenAI } from "@/services/ai/openai";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+// const OPENAI_API_KEY = process.env.OPENAI_API_KEY; // This line is no longer needed as getOpenAI handles it
 
-if (!OPENAI_API_KEY) {
-  throw new Error("OPENAI_API_KEY is not set");
-}
+// if (!OPENAI_API_KEY) { // This block is no longer needed as getOpenAI handles the API key check
+//   throw new Error("OPENAI_API_KEY is not set");
+// }
 
-const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+
 
 export async function POST(req: Request) {
+  const openai = await getOpenAI();
   try {
     const body = await req.json();
     const { youtubeUrl } = body;
@@ -42,10 +44,10 @@ export async function POST(req: Request) {
         },
       },
     });
-    
+
     const videoTitle = info.videoDetails.title;
     const videoDuration = parseInt(info.videoDetails.lengthSeconds);
-    
+
     console.log(`📹 Title: ${videoTitle}`);
     console.log(`⏱️ Duration: ${Math.floor(videoDuration / 60)} minutes`);
 
@@ -91,7 +93,7 @@ export async function POST(req: Request) {
     // Check file size (Whisper has 25MB limit)
     const stats = fs.statSync(audioPath);
     const fileSizeMB = stats.size / (1024 * 1024);
-    
+
     if (fileSizeMB > 24) {
       fs.unlinkSync(audioPath);
       return NextResponse.json(
@@ -103,6 +105,7 @@ export async function POST(req: Request) {
     console.log(`📦 File size: ${fileSizeMB.toFixed(2)} MB`);
 
     // Transcribe with Whisper
+    const openai = getOpenAI();
     const transcription = await openai.audio.transcriptions.create({
       file: fs.createReadStream(audioPath),
       model: "whisper-1",
@@ -122,10 +125,10 @@ export async function POST(req: Request) {
     });
   } catch (err: any) {
     console.error("YouTube processing error:", err?.message ?? err);
-    
+
     // Better error messages
     let errorMessage = "Failed to process YouTube video";
-    
+
     if (err?.message?.includes("410")) {
       errorMessage = "This video is restricted or unavailable. Try a different public video or upload an audio file instead.";
     } else if (err?.message?.includes("403")) {
@@ -133,7 +136,7 @@ export async function POST(req: Request) {
     } else if (err?.message?.includes("404")) {
       errorMessage = "Video not found. Check the URL and try again.";
     }
-    
+
     return NextResponse.json(
       {
         ok: false,

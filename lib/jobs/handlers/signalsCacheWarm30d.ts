@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 type Payload = {
     // optional tuning knobs
@@ -27,7 +27,7 @@ export const signalsCacheWarm30d: JobHandler<"signals_cache_warm_30d"> = async (
     let totalRebuiltDays = 0;
 
     while (warmedUsers < maxUsers) {
-        const { data: users, error } = await supabaseAdmin.rpc("signals_cache_warm_candidates", {
+        const { data: users, error } = await getSupabaseAdminRuntimeClient().rpc("signals_cache_warm_candidates", {
             p_days: days,
             p_limit: batchSize,
             p_offset: offset,
@@ -42,7 +42,7 @@ export const signalsCacheWarm30d: JobHandler<"signals_cache_warm_30d"> = async (
             const ownerUserId = row.owner_user_id as string;
             if (!ownerUserId) continue;
 
-            const { data: rebuilt, error: warmErr } = await supabaseAdmin.rpc(
+            const { data: rebuilt, error: warmErr } = await getSupabaseAdminRuntimeClient().rpc(
                 "user_daily_signals_cache_warm_range",
                 {
                     p_owner_user_id: ownerUserId,

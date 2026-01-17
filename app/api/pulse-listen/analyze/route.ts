@@ -1,15 +1,10 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { getContact } from "@/lib/data/journal";
-import OpenAI from "openai";
+import { getOpenAI } from "@/services/ai/openai";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
-if (!OPENAI_API_KEY) {
-  throw new Error("Missing API keys");
-}
-
-const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
 export async function POST(req: Request) {
   try {
@@ -82,6 +77,7 @@ Analyze this call and provide a comprehensive performance review.
 
 Respond ONLY with valid JSON.`;
 
+    const openai = await getOpenAI();
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [{ role: "user", content: prompt }],

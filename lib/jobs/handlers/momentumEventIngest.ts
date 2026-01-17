@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { mapCanonToMomentum } from "@/lib/momentum/mapCanonToMomentum";
 import { CanonEvent } from "@/lib/momentum/types";
 import { JobHandler } from "./types";
@@ -13,10 +13,10 @@ export const momentumEventIngest: JobHandler<"momentum_event_ingest"> = async ({
     const signals = mapCanonToMomentum(canon_event);
 
     for (const signal of signals) {
-        // We use ctx.supabaseAdmin if available or global one, but handler type usually implies we just use ctx or import.
-        // The spec used supabaseAdmin directly.
+        // We use ctx.getSupabaseAdminRuntimeClient() if available or global one, but handler type usually implies we just use ctx or import.
+        // The spec used getSupabaseAdminRuntimeClient() directly.
         // We'll use the one from ctx if we want consistency, but sticking to spec pattern for simplicity.
-        const sb = ctx.supabaseAdmin || supabaseAdmin;
+        const sb = ctx.getSupabaseAdminRuntimeClient() || getSupabaseAdminRuntimeClient();
 
         const { error } = await sb.rpc("momentum_event_ingest", {
             p_owner_user_id: canon_event.owner_user_id,

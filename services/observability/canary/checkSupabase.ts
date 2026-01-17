@@ -2,7 +2,7 @@ import { CanaryCheckResult } from "./types";
 import { withTimeout } from "./timeout";
 
 // Using the project's standard admin client
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export async function checkSupabase(): Promise<CanaryCheckResult> {
     const started = Date.now();
@@ -11,7 +11,7 @@ export async function checkSupabase(): Promise<CanaryCheckResult> {
     try {
         await withTimeout("supabase", timeoutMs, async () => {
             // Preferred: RPC ping (create later if you want)
-            const { data: rpcData, error: rpcErr } = await supabaseAdmin.rpc("canary_ping");
+            const { data: rpcData, error: rpcErr } = await getSupabaseAdminRuntimeClient().rpc("canary_ping");
             if (!rpcErr) return rpcData;
 
             // Fallback: configurable lightweight select
@@ -19,7 +19,7 @@ export async function checkSupabase(): Promise<CanaryCheckResult> {
             if (!table) throw rpcErr ?? new Error("No canary_ping RPC and CANARY_SUPABASE_TABLE not set");
 
             // Minimal fetch
-            const { error: selErr } = await supabaseAdmin.from(table).select("*", { count: "exact", head: true }).limit(1);
+            const { error: selErr } = await getSupabaseAdminRuntimeClient().from(table).select("*", { count: "exact", head: true }).limit(1);
             if (selErr) throw selErr;
         });
 

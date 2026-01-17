@@ -8,7 +8,7 @@ import {
   DetectedAction
 } from "@/lib/pulse/email-intelligence";
 import { generateAutoDraft } from "@/lib/pulse/email-drafter";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 // Increase timeout for this route
 export const maxDuration = 120; // 2 minutes
@@ -18,7 +18,7 @@ async function getRecentActions(userId: string): Promise<Set<string>> {
   const recentActions = new Set<string>();
 
   // Get Tasks
-  const { data: tasks } = await supabaseAdmin
+  const { data: tasks } = await getSupabaseAdminRuntimeClient()
     .from("tasks")
     .select("title")
     .eq("user_id", userId)
@@ -28,7 +28,7 @@ async function getRecentActions(userId: string): Promise<Set<string>> {
   (tasks || []).forEach((t: any) => recentActions.add(t.title.toLowerCase().trim()));
 
   // Get Follow-Ups
-  const { data: followUps } = await supabaseAdmin
+  const { data: followUps } = await getSupabaseAdminRuntimeClient()
     .from("follow_ups")
     .select("name")
     .eq("user_id", userId)
@@ -41,7 +41,7 @@ async function getRecentActions(userId: string): Promise<Set<string>> {
 }
 
 async function getAllExistingContacts(userId: string): Promise<any[]> {
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getSupabaseAdminRuntimeClient()
     .from("contacts")
     .select("id, name, email")
     .eq("user_id", userId)

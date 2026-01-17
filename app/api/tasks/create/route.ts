@@ -1,6 +1,6 @@
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
 import { withCompatTelemetry } from "@/lib/compat/withCompatTelemetry";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export async function POST(req: Request) {
   const gate = await requireOpsAuth(req as any);
@@ -28,11 +28,11 @@ export async function POST(req: Request) {
       };
 
       // Try with meta; retry without if column missing
-      const res1 = await supabaseAdmin.from("tasks").insert(payload).select("*").single();
+      const res1 = await getSupabaseAdminRuntimeClient().from("tasks").insert(payload).select("*").single();
       if (!res1.error) return Response.json({ ok: true, task: res1.data }, { status: 200 });
 
       delete payload.meta;
-      const res2 = await supabaseAdmin.from("tasks").insert(payload).select("*").single();
+      const res2 = await getSupabaseAdminRuntimeClient().from("tasks").insert(payload).select("*").single();
       if (res2.error) throw res2.error;
 
       return Response.json({ ok: true, task: res2.data }, { status: 200 });

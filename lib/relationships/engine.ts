@@ -5,10 +5,10 @@
  * Tracks relationship health, interaction history, and suggests follow-ups
  */
 
-import { supabaseAdmin } from "@/lib/supabase";
-import OpenAI from "openai";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
+import { getOpenAI } from "@/services/ai/openai";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// ... existing code ...
 
 // ============================================
 // TYPES
@@ -74,7 +74,7 @@ export async function getRelationships(
     limit?: number;
   }
 ): Promise<Relationship[]> {
-  let query = supabaseAdmin
+  let query = getSupabaseAdminRuntimeClient()
     .from("relationships")
     .select("*")
     .eq("user_id_uuid", userId);
@@ -101,7 +101,7 @@ export async function getRelationships(
  * Get a single relationship
  */
 export async function getRelationship(userId: string, id: string): Promise<Relationship | null> {
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getSupabaseAdminRuntimeClient()
     .from("relationships")
     .select("*")
     .eq("user_id_uuid", userId)
@@ -141,7 +141,7 @@ export async function upsertRelationship(
   };
 
   if (data.id) {
-    const { data: updated, error } = await supabaseAdmin
+    const { data: updated, error } = await getSupabaseAdminRuntimeClient()
       .from("relationships")
       .update(record)
       .eq("id", data.id)
@@ -153,7 +153,7 @@ export async function upsertRelationship(
     return mapRelationship(updated);
   }
 
-  const { data: created, error } = await supabaseAdmin
+  const { data: created, error } = await getSupabaseAdminRuntimeClient()
     .from("relationships")
     .insert({ ...record, created_at: now })
     .select()
@@ -181,7 +181,7 @@ export async function logInteraction(
   const now = new Date();
 
   // Insert interaction
-  const { error: interactionError } = await supabaseAdmin
+  const { error: interactionError } = await getSupabaseAdminRuntimeClient()
     .from("relationship_interactions")
     .insert({
       user_id_uuid: userId,
@@ -198,7 +198,7 @@ export async function logInteraction(
   if (interactionError) return false;
 
   // Update relationship
-  const { data: rel } = await supabaseAdmin
+  const { data: rel } = await getSupabaseAdminRuntimeClient()
     .from("relationships")
     .select("interaction_count, followup_cadence_days")
     .eq("id", relationshipId)
@@ -207,7 +207,7 @@ export async function logInteraction(
   const nextFollowup = new Date();
   nextFollowup.setDate(nextFollowup.getDate() + (rel?.followup_cadence_days || 30));
 
-  await supabaseAdmin
+  await getSupabaseAdminRuntimeClient()
     .from("relationships")
     .update({
       last_contact_at: now.toISOString(),
@@ -225,7 +225,7 @@ export async function logInteraction(
  * Calculate health scores for all relationships
  */
 export async function recalculateHealthScores(userId: string): Promise<number> {
-  const { data: relationships } = await supabaseAdmin
+  const { data: relationships } = await getSupabaseAdminRuntimeClient()
     .from("relationships")
     .select("id, last_contact_at, followup_cadence_days, next_followup_at")
     .eq("user_id_uuid", userId);
@@ -258,7 +258,7 @@ export async function recalculateHealthScores(userId: string): Promise<number> {
       score = 50; // Never contacted
     }
 
-    await supabaseAdmin
+    await getSupabaseAdminRuntimeClient()
       .from("relationships")
       .update({ health_score: score, updated_at: now.toISOString() })
       .eq("id", rel.id);
@@ -331,7 +331,7 @@ export async function getInteractions(
   relationshipId: string,
   limit = 20
 ): Promise<Interaction[]> {
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getSupabaseAdminRuntimeClient()
     .from("relationship_interactions")
     .select("*")
     .eq("user_id_uuid", userId)
@@ -387,6 +387,7 @@ ${interactions.map((i) => `- ${i.occurredAt.toLocaleDateString()}: ${i.type} (${
 Provide a 2-3 sentence summary of this relationship and one suggestion for strengthening it.`;
 
   try {
+    const openai = await getOpenAI();
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],

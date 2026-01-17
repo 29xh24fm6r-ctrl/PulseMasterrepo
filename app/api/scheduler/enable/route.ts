@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,7 +10,7 @@ export async function POST(req: Request) {
 
     if (!user_id) return NextResponse.json({ ok: false, error: "user_id required" }, { status: 400 });
 
-    const { error } = await supabaseAdmin
+    const { error } = await getSupabaseAdminRuntimeClient()
         .from("scheduler_targets")
         .upsert({ user_id, is_enabled: enabled ?? true }, { onConflict: "user_id" });
 

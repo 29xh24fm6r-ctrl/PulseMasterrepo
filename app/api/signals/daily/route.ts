@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { withOpsGuard } from "@/lib/api/opsGuard";
 
 export async function GET(req: Request) {
@@ -28,7 +28,7 @@ export async function GET(req: Request) {
         },
         async () => {
             // Cache fast path
-            const { data: cached, error: cacheErr } = await supabaseAdmin.rpc("user_daily_signals_cache_read", {
+            const { data: cached, error: cacheErr } = await getSupabaseAdminRuntimeClient().rpc("user_daily_signals_cache_read", {
                 p_owner_user_id: owner_user_id,
                 p_day: day,
             });
@@ -36,7 +36,7 @@ export async function GET(req: Request) {
             if (cached) return { status: 200, body: cached };
 
             // Fallback compute+write
-            const { data: built, error: buildErr } = await supabaseAdmin.rpc("user_daily_signals_cache_build", {
+            const { data: built, error: buildErr } = await getSupabaseAdminRuntimeClient().rpc("user_daily_signals_cache_build", {
                 p_owner_user_id: owner_user_id,
                 p_day: day,
                 p_days: days,

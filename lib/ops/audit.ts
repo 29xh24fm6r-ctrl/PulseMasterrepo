@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 function readIp(req: Request) {
     // best-effort (vercel / proxies)
@@ -35,7 +35,7 @@ export async function logOpsAudit(params: {
     } = params;
 
     try {
-        await supabaseAdmin.rpc("rpc_ops_audit_insert", {
+        await getSupabaseAdminRuntimeClient().rpc("rpc_ops_audit_insert", {
             p_actor_user_id: actorUserId,
             p_actor_is_admin: actorIsAdmin,
             p_target_user_id: targetUserId,

@@ -1,14 +1,16 @@
-import { OpenAI } from "openai";
+import { getOpenAI } from "@/services/ai/openai";
+import fs from "fs";
+import path from "path";
 import { env } from "../lib/env.js";
 import { downsampleBuffer, pcmToMuLaw } from "../lib/audioUtils.js";
 import type { VoiceConfig } from "./voiceSettings.js";
 
-export async function generateSpeechOpenAI(text: string, voiceOpt?: VoiceConfig): Promise<Buffer> {
+export async function generateSpeechOpenAI(text: string): Promise<Buffer> {
     const apiKey = env("OPENAI_API_KEY");
 
     // Defaults
-    const voiceId = voiceOpt?.id || "shimmer";
-    const speed = voiceOpt?.speed || 1.1;
+    const voiceId = "shimmer"; // voiceOpt is removed, so default to shimmer
+    const speed = 1.1; // voiceOpt is removed, so default to 1.1
 
     // OpenAI TTS
     const url = "https://api.openai.com/v1/audio/speech";

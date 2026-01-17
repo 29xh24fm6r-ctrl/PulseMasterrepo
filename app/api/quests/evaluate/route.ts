@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     // Compute checkpoints (server-derived)
     const results: any[] = [];
     for (const key of quest_keys) {
-        const { data: checkpointId, error } = await supabaseAdmin.rpc("rpc_compute_quest_checkpoint", {
+        const { data: checkpointId, error } = await getSupabaseAdminRuntimeClient().rpc("rpc_compute_quest_checkpoint", {
             p_quest_key: key,
             p_at: at ?? new Date().toISOString(),
         });
@@ -26,7 +26,7 @@ export async function POST(req: Request) {
             continue;
         }
 
-        const { data: row, error: e2 } = await supabaseAdmin
+        const { data: row, error: e2 } = await getSupabaseAdminRuntimeClient()
             .from("quest_checkpoints")
             .select("*")
             .eq("id", checkpointId)

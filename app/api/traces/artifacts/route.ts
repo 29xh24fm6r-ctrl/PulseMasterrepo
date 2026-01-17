@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
 import { readTargetUserId } from "@/lib/auth/readTargetUser";
 import { opsLimit } from "@/lib/ops/limits";
@@ -30,7 +30,7 @@ export async function GET(req: Request) {
         meta: { scoped_user_id: gate.userId },
     });
 
-    const { data: evidence, error: e1 } = await supabaseAdmin
+    const { data: evidence, error: e1 } = await getSupabaseAdminRuntimeClient()
         .from("life_evidence")
         .select("id,evidence_type,evidence_payload,confidence,source,created_at,trace_id")
         .eq("user_id", gate.userId)
@@ -42,7 +42,7 @@ export async function GET(req: Request) {
 
     let tasks: any[] = [];
     {
-        const { data, error } = await supabaseAdmin
+        const { data, error } = await getSupabaseAdminRuntimeClient()
             .from("tasks")
             .select("id,title,status,priority,due_at,created_at,trace_id")
             .eq("user_id", gate.userId)
@@ -54,7 +54,7 @@ export async function GET(req: Request) {
 
     let outbox: any[] = [];
     {
-        const { data, error } = await supabaseAdmin
+        const { data, error } = await getSupabaseAdminRuntimeClient()
             .from("email_outbox")
             .select("id,to_email,subject,status,provider_message_id,created_at,trace_id")
             .eq("user_id", gate.userId)

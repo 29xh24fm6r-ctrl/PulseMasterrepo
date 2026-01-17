@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import type { ChefOrderDraftItem } from "./types";
 
 export async function createOrderDraft(args: {
@@ -6,7 +6,7 @@ export async function createOrderDraft(args: {
     vendor_id: string;
     items: ChefOrderDraftItem[];
 }) {
-    const sb = supabaseAdmin();
+    const sb = getSupabaseAdminRuntimeClient();
 
     const { data, error } = await sb
         .from("chef_order_drafts")

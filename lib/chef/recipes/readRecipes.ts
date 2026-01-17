@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export type RecipeWithIngredients = {
     id: string;
@@ -22,7 +22,7 @@ export async function readRecipesWithIngredients(args?: {
     max_minutes?: number;
     limit?: number;
 }) {
-    const sb = supabaseAdmin();
+    const sb = getSupabaseAdminRuntimeClient();
     const limit = args?.limit ?? 200;
 
     // 1) Recipes

@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export type RecipeSteps = {
     recipe_id: string;
@@ -7,7 +7,7 @@ export type RecipeSteps = {
 };
 
 export async function readRecipeSteps(recipe_id: string): Promise<RecipeSteps> {
-    const sb = supabaseAdmin();
+    const sb = getSupabaseAdminRuntimeClient();
 
     const { data, error } = await sb
         .from("chef_recipes")

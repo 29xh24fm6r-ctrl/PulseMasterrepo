@@ -2,7 +2,7 @@
 import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { VoiceResponse, APP_BASE_URL } from "@/services/twilio";
 
 export async function POST(request: Request) {
@@ -16,14 +16,14 @@ export async function POST(request: Request) {
     console.log(`📞 Inbound call: ${callSid} from ${from}`);
 
     // Find user by their Twilio number
-    const { data: user } = await (supabaseAdmin as any)
+    const { data: user } = await (getSupabaseAdminRuntimeClient() as any)
       .from("users")
       .select("id")
       .eq("phone", to)
       .single();
 
     // Create call record
-    const { data: call } = await (supabaseAdmin as any)
+    const { data: call } = await (getSupabaseAdminRuntimeClient() as any)
       .from("calls")
       .insert({
         user_id: user?.id || null,

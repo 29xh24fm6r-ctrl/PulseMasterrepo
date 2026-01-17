@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
 import { withCompatTelemetry } from "@/lib/compat/withCompatTelemetry";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export async function GET(req: Request) {
     const gate = await requireOpsAuth(req as any);
@@ -15,7 +15,7 @@ export async function GET(req: Request) {
         clerkUserId: gate.gate.canon.clerkUserId,
         eventName: "api.deals.enriched.get",
         handler: async () => {
-            const dealsRes = await supabaseAdmin
+            const dealsRes = await getSupabaseAdminRuntimeClient()
                 .from("deals" as any)
                 .select("*")
                 .eq("user_id_uuid", gate.canon.userIdUuid)
@@ -31,7 +31,7 @@ export async function GET(req: Request) {
             let crmRows: any[] = [];
 
             // Try: crm_deals.deal_id IN (...)
-            const crmTryDealId = await supabaseAdmin
+            const crmTryDealId = await getSupabaseAdminRuntimeClient()
                 .from("crm_deals")
                 .select("*")
                 // @ts-ignore - may error if deal_id doesn't exist; we catch and continue
@@ -40,7 +40,7 @@ export async function GET(req: Request) {
             if (!crmTryDealId.error) crmRows = crmTryDealId.data ?? [];
 
             // Try: crm_deals.id IN (...) and merge
-            const crmTryId = await supabaseAdmin
+            const crmTryId = await getSupabaseAdminRuntimeClient()
                 .from("crm_deals")
                 .select("*")
                 .in("id", dealIds);

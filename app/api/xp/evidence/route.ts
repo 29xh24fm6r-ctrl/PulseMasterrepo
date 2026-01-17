@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { readTraceHeaders, traceFromBody } from "@/lib/executions/traceHeaders";
 import { linkArtifact } from "@/lib/executions/artifactLinks";
 
@@ -25,7 +25,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ ok: false, error: "Missing required fields" }, { status: 400 });
     }
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdminRuntimeClient()
         .from("life_evidence")
         .insert({
             user_id,

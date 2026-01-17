@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export type ExecLogLevel = "info" | "warn" | "error";
 
@@ -14,7 +14,7 @@ export async function execLog(params: {
 
     // Best-effort logging: never throw
     try {
-        await supabaseAdmin.from("execution_logs").insert({
+        await getSupabaseAdminRuntimeClient().from("execution_logs").insert({
             user_id: userId,
             execution_id: executionId,
             trace_id: traceId,

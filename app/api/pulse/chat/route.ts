@@ -1,10 +1,9 @@
 import { auth } from '@clerk/nextjs/server';
 import { canMakeAICall, trackAIUsage } from '@/services/usage';
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
-import { loadKernel, loadRelevantModules, detectRelevantModules } from '../../../lib/brain-loader';
+import { getOpenAI } from "@/services/ai/openai";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
 
 // Message type for conversation history
 interface Message {
@@ -169,6 +168,7 @@ Current date: ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 
     ];
 
     // Call OpenAI
+    const openai = await getOpenAI();
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: openaiMessages,

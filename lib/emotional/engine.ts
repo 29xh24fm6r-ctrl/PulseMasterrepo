@@ -5,7 +5,7 @@
  * Mood tracking, emotional check-ins, pattern detection, and supportive interventions
  */
 
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { callAIJson } from "@/lib/ai/call";
 
 // ============================================
@@ -79,7 +79,7 @@ const MOOD_SCORES: Record<MoodLevel, number> = {
 export async function recordCheckIn(input: CheckInInput): Promise<EmotionalCheckIn> {
   const { userId, mood, energy, stress, notes, triggers, activities } = input;
 
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getSupabaseAdminRuntimeClient()
     .from("emotional_checkins")
     .insert({
       user_id: userId,
@@ -110,7 +110,7 @@ export async function getRecentCheckIns(
   userId: string,
   limit: number = 7
 ): Promise<EmotionalCheckIn[]> {
-  const { data } = await supabaseAdmin
+  const { data } = await getSupabaseAdminRuntimeClient()
     .from("emotional_checkins")
     .select("*")
     .eq("user_id", userId)
@@ -127,7 +127,7 @@ export async function getTodaysCheckIn(userId: string): Promise<EmotionalCheckIn
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const { data } = await supabaseAdmin
+  const { data } = await getSupabaseAdminRuntimeClient()
     .from("emotional_checkins")
     .select("*")
     .eq("user_id", userId)
@@ -323,7 +323,7 @@ async function upsertPattern(
   }
 ): Promise<void> {
   // Check if pattern already exists
-  const { data: existing } = await supabaseAdmin
+  const { data: existing } = await getSupabaseAdminRuntimeClient()
     .from("emotional_patterns")
     .select("id, occurrences")
     .eq("user_id", userId)
@@ -331,7 +331,7 @@ async function upsertPattern(
     .single();
 
   if (existing) {
-    await supabaseAdmin
+    await getSupabaseAdminRuntimeClient()
       .from("emotional_patterns")
       .update({
         confidence: pattern.confidence,
@@ -341,7 +341,7 @@ async function upsertPattern(
       })
       .eq("id", existing.id);
   } else {
-    await supabaseAdmin.from("emotional_patterns").insert({
+    await getSupabaseAdminRuntimeClient().from("emotional_patterns").insert({
       user_id: userId,
       pattern_type: pattern.patternType,
       title: pattern.title,
@@ -356,7 +356,7 @@ async function upsertPattern(
  * Get user's detected patterns
  */
 export async function getEmotionalPatterns(userId: string): Promise<EmotionalPattern[]> {
-  const { data } = await supabaseAdmin
+  const { data } = await getSupabaseAdminRuntimeClient()
     .from("emotional_patterns")
     .select("*")
     .eq("user_id", userId)
@@ -410,7 +410,7 @@ Provide a brief supportive message. Output as JSON:
 
   if (aiResult.success && aiResult.data) {
     // Log the interaction
-    await supabaseAdmin.from("emotional_support_logs").insert({
+    await getSupabaseAdminRuntimeClient().from("emotional_support_logs").insert({
       user_id: userId,
       trigger: context || "check_in",
       intervention_type: aiResult.data.type,

@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import type { JobHandler } from "./types";
 
 function toISODate(d: Date) {
@@ -8,7 +8,7 @@ function toISODate(d: Date) {
 export const rollupBackfillNightly: JobHandler<"rollup_backfill_nightly"> = async () => {
     // Note: This handler likely needs to be an 'any' generic or mapped correctly if strictly typed. 
     // The registry expects JobHandler<any> compatibility.
-    const supabase = supabaseAdmin;
+    const supabase = getSupabaseAdminRuntimeClient();
     const { data: rollups, error } = await supabase
         .from("rollup_definitions")
         .select("rollup_key")

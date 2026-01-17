@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { logActivityEvent } from "@/lib/activity/log";
 
 export const runtime = "nodejs";
@@ -46,7 +46,7 @@ export async function POST(req: Request) {
         const { outbox_id, action, defer_until, note } = parsed.data;
 
         // Fetch first to ensure it exists
-        const { data: row, error: getErr } = await supabaseAdmin
+        const { data: row, error: getErr } = await getSupabaseAdminRuntimeClient()
             .from("email_outbox")
             .select("id,approval_status,status")
             .eq("id", outbox_id)
@@ -63,7 +63,7 @@ export async function POST(req: Request) {
         }
 
         if (action === "approve") {
-            const { data, error } = await supabaseAdmin
+            const { data, error } = await getSupabaseAdminRuntimeClient()
                 .from("email_outbox")
                 .update({
                     approval_status: "approved",
@@ -96,7 +96,7 @@ export async function POST(req: Request) {
         }
 
         if (action === "dismiss") {
-            const { data, error } = await supabaseAdmin
+            const { data, error } = await getSupabaseAdminRuntimeClient()
                 .from("email_outbox")
                 .update({
                     approval_status: "dismissed",
@@ -128,7 +128,7 @@ export async function POST(req: Request) {
         // defer
         const until = defer_until ?? defaultDeferUntilIso(24);
 
-        const { data, error } = await supabaseAdmin
+        const { data, error } = await getSupabaseAdminRuntimeClient()
             .from("email_outbox")
             .update({
                 approval_status: "deferred",

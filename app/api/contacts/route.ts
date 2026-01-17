@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 // GET - List all contacts for user
 export async function GET() {
@@ -11,7 +11,7 @@ export async function GET() {
     }
 
     // Get user's Supabase ID
-    const { data: user } = await supabaseAdmin
+    const { data: user } = await getSupabaseAdminRuntimeClient()
       .from("users")
       .select("id")
       .eq("clerk_id", userId)
@@ -21,7 +21,7 @@ export async function GET() {
       return NextResponse.json({ ok: true, contacts: [] });
     }
 
-    const { data: contacts, error } = await supabaseAdmin
+    const { data: contacts, error } = await getSupabaseAdminRuntimeClient()
       .from("contacts")
       .select("*")
       .eq("user_id", user.id)
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
 
     // Get user's Supabase ID
-    const { data: user } = await supabaseAdmin
+    const { data: user } = await getSupabaseAdminRuntimeClient()
       .from("users")
       .select("id")
       .eq("clerk_id", userId)
@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
 
     // Check for duplicates
     if (body.name) {
-      const { data: existing } = await supabaseAdmin
+      const { data: existing } = await getSupabaseAdminRuntimeClient()
         .from("contacts")
         .select("id")
         .eq("user_id", user.id)
@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const { data: contact, error } = await supabaseAdmin
+    const { data: contact, error } = await getSupabaseAdminRuntimeClient()
       .from("contacts")
       .insert({
         user_id_uuid: user.id,

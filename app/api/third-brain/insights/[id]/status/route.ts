@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export async function PATCH(
   req: NextRequest,
@@ -30,7 +30,7 @@ export async function PATCH(
     }
 
     // Verify ownership
-    const { data: existing } = await supabaseAdmin
+    const { data: existing } = await getSupabaseAdminRuntimeClient()
       .from("third_brain_insights")
       .select("id, user_id")
       .eq("id", id)
@@ -50,7 +50,7 @@ export async function PATCH(
       updateData.acted_at = new Date().toISOString();
     }
 
-    const { error } = await supabaseAdmin
+    const { error } = await getSupabaseAdminRuntimeClient()
       .from("third_brain_insights")
       .update(updateData)
       .eq("id", id);

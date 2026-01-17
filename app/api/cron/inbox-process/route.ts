@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 /**
  * Cron safety model:
@@ -13,7 +13,7 @@ export async function POST(req: Request) {
     }
 
     // active users with at least one enabled rule
-    const usersRes = await supabaseAdmin
+    const usersRes = await getSupabaseAdminRuntimeClient()
         .from("inbox_rules")
         .select("user_id_uuid")
         .eq("enabled", true);

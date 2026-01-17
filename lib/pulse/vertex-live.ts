@@ -1,6 +1,6 @@
-
 import WebSocket from 'ws';
-import { GoogleAuth } from 'google-auth-library';
+import type { GoogleAuth } from 'google-auth-library';
+import { isBuildPhase } from '@/lib/env/guard';
 
 // Configuration
 const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT || 'pulse-life-os-2a8c9';
@@ -11,16 +11,23 @@ const MODEL = 'gemini-1.5-pro-001'; // Verify if this model supports BidiStreami
 
 export class GeminiLiveClient {
     private ws: WebSocket | null = null;
-    private auth: GoogleAuth;
+    private auth: GoogleAuth | null = null;
 
     constructor() {
-        this.auth = new GoogleAuth({
-            scopes: ['https://www.googleapis.com/auth/cloud-platform']
-        });
+        // Auth is initialized lazily or in connect to be async/safe
     }
 
     async connect(onAudio: (data: Buffer) => void, onText: (text: string) => void) {
+        if (isBuildPhase()) {
+            throw new Error("[RUNTIME VIOLATION] GeminiLiveClient accessed during build phase");
+        }
+
         console.log("🔌 Authenticating with Google Cloud...");
+
+        // Dynamic import for runtime enclave
+        const { createGoogleCloudPlatformAuth } = await import('@/lib/runtime/google.runtime');
+        this.auth = createGoogleCloudPlatformAuth();
+
         const client = await this.auth.getClient();
         const accessToken = await client.getAccessToken();
         const token = accessToken.token;

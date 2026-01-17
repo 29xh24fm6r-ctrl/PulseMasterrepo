@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import {
   getDelegatedDraft,
   updateDraftStatus,
@@ -59,7 +59,7 @@ export async function PATCH(
     const { status, subject, body: draftBody } = body;
 
     // Verify ownership
-    const { data: existing } = await supabaseAdmin
+    const { data: existing } = await getSupabaseAdminRuntimeClient()
       .from("delegated_drafts")
       .select("id, user_id")
       .eq("id", id)
@@ -133,7 +133,7 @@ export async function DELETE(
     const { id } = await params;
 
     // Verify ownership
-    const { data: existing } = await supabaseAdmin
+    const { data: existing } = await getSupabaseAdminRuntimeClient()
       .from("delegated_drafts")
       .select("id, user_id")
       .eq("id", id)

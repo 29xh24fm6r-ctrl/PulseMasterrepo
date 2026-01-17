@@ -1,11 +1,9 @@
 import { canMakeAICall, trackAIUsage } from "@/services/usage";
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import OpenAI from 'openai';
-import { supabaseAdmin } from '@/lib/supabase';
-import { loadRelevantModules } from '@/app/lib/brain-loader';
+import { getOpenAI } from "@/services/ai/openai";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
 
 // Fetch user's day summary from Supabase
 async function getDaySummary(userId: string) {
@@ -373,6 +371,7 @@ If this is the START of the conversation, greet them warmly and simply. Maybe ac
       })),
     ];
 
+    const openai = await getOpenAI();
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: openaiMessages,
@@ -425,6 +424,7 @@ Respond in JSON only:
     let extracted = { theme: '', wins: [], challenges: [], gratitude: [], lessons: [], tomorrowFocus: '', mood: 5 };
 
     try {
+      const openai = await getOpenAI();
       const extraction = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [{ role: 'user', content: extractionPrompt }],

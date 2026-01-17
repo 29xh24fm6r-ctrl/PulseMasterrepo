@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { jsonError, rateLimitOrThrow } from "@/lib/api/guards";
 import { logActivity } from "@/lib/activity/logActivity";
 
@@ -48,7 +48,7 @@ export async function POST(req: Request) {
                 // ---- Canonical refresh: re-evaluate today's quests BEFORE claim ----
                 const day = utcDay();
                 const { error: evalErr } = await supabaseSpan("quests.claim.evaluate_rpc", async () =>
-                    await supabaseAdmin.rpc("evaluate_daily_quests", {
+                    await getSupabaseAdminRuntimeClient().rpc("evaluate_daily_quests", {
                         p_user_id: userId,
                         p_quest_date: day,
                     })
@@ -60,7 +60,7 @@ export async function POST(req: Request) {
 
                 // Reload quest after evaluation (ownership enforced)
                 const { data: quest, error } = await supabaseSpan("quests.claim.fetch", async () =>
-                    await supabaseAdmin
+                    await getSupabaseAdminRuntimeClient()
                         .from("daily_quests")
                         .select("*")
                         .eq("id", body.quest_id)
@@ -100,7 +100,7 @@ export async function POST(req: Request) {
 
                 // Mark claimed
                 const { error: markErr } = await supabaseSpan("quests.claim.mark_complete", async () =>
-                    await supabaseAdmin
+                    await getSupabaseAdminRuntimeClient()
                         .from("daily_quests")
                         .update({ meta: { ...(quest.meta ?? {}), claimed: true, claimed_at: new Date().toISOString() } })
                         .eq("id", quest.id)

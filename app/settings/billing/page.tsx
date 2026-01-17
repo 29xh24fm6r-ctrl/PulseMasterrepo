@@ -1,10 +1,12 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import React, { Suspense, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
-  CreditCard, Zap, Check, Crown, Sparkles, 
+  CreditCard, Zap, Check, Crown, Sparkles,
   ExternalLink, RefreshCw, Gift, Copy, CheckCircle2, Coins
 } from "lucide-react";
 
@@ -171,7 +173,7 @@ function BillingContent() {
   return (
     <div className="min-h-screen bg-zinc-950 text-white pb-24">
       <div className="max-w-4xl mx-auto px-4 py-8 space-y-8">
-        
+
         <div>
           <h1 className="text-2xl font-bold">Billing & Tokens</h1>
           <p className="text-zinc-400 mt-1">Manage your subscription and purchase tokens</p>
@@ -203,7 +205,7 @@ function BillingContent() {
             </div>
             <Coins className="w-16 h-16 text-violet-400 opacity-50" />
           </div>
-          
+
           {profile?.plan === "plus" && (
             <div className="mt-4">
               <div className="flex justify-between text-xs text-zinc-400 mb-1">
@@ -212,11 +214,10 @@ function BillingContent() {
               </div>
               <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
                 <div
-                  className={`h-full transition-all ${
-                    (usage?.percentUsed || 0) > 80 ? "bg-red-500" :
+                  className={`h-full transition-all ${(usage?.percentUsed || 0) > 80 ? "bg-red-500" :
                     (usage?.percentUsed || 0) > 50 ? "bg-yellow-500" :
-                    "bg-violet-500"
-                  }`}
+                      "bg-violet-500"
+                    }`}
                   style={{ width: `${Math.min(100, usage?.percentUsed || 0)}%` }}
                 />
               </div>
@@ -225,11 +226,10 @@ function BillingContent() {
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">
-          <div className={`p-6 rounded-2xl border ${
-            profile?.plan === "free" 
-              ? "bg-zinc-900 border-zinc-700 ring-2 ring-zinc-600" 
-              : "bg-zinc-900/50 border-zinc-800"
-          }`}>
+          <div className={`p-6 rounded-2xl border ${profile?.plan === "free"
+            ? "bg-zinc-900 border-zinc-700 ring-2 ring-zinc-600"
+            : "bg-zinc-900/50 border-zinc-800"
+            }`}>
             <h3 className="text-lg font-semibold mb-2">Free</h3>
             <p className="text-3xl font-bold mb-4">$0</p>
             <ul className="space-y-2 mb-6">
@@ -247,27 +247,26 @@ function BillingContent() {
             )}
           </div>
 
-          <div className={`p-6 rounded-2xl border ${
-            profile?.plan === "plus" 
-              ? "bg-gradient-to-b from-violet-900/30 to-zinc-900 border-violet-500/50 ring-2 ring-violet-500" 
-              : "bg-gradient-to-b from-violet-900/20 to-zinc-900 border-violet-500/30"
-          }`}>
+          <div className={`p-6 rounded-2xl border ${profile?.plan === "plus"
+            ? "bg-gradient-to-b from-violet-900/30 to-zinc-900 border-violet-500/50 ring-2 ring-violet-500"
+            : "bg-gradient-to-b from-violet-900/20 to-zinc-900 border-violet-500/30"
+            }`}>
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-lg font-semibold">Pulse+</h3>
               <Crown className="w-5 h-5 text-amber-400" />
             </div>
-            
+
             <div className="flex items-baseline gap-1 mb-1">
               <span className="text-3xl font-bold">
-                ${billingPeriod === "yearly" ? Math.round(50/12) : 5}
+                ${billingPeriod === "yearly" ? Math.round(50 / 12) : 5}
               </span>
               <span className="text-zinc-400">/mo</span>
             </div>
-            
+
             {billingPeriod === "yearly" && (
               <p className="text-xs text-emerald-400 mb-4">Billed $50/year (2 months free!)</p>
             )}
-            
+
             <ul className="space-y-2 mb-6">
               {PLANS.plus.features.map((f, i) => (
                 <li key={i} className="flex items-center gap-2 text-sm">
@@ -295,17 +294,15 @@ function BillingContent() {
                 <div className="flex bg-zinc-800 rounded-lg p-1">
                   <button
                     onClick={() => setBillingPeriod("monthly")}
-                    className={`flex-1 py-1.5 rounded text-sm font-medium transition-colors ${
-                      billingPeriod === "monthly" ? "bg-violet-600 text-white" : "text-zinc-400"
-                    }`}
+                    className={`flex-1 py-1.5 rounded text-sm font-medium transition-colors ${billingPeriod === "monthly" ? "bg-violet-600 text-white" : "text-zinc-400"
+                      }`}
                   >
                     Monthly
                   </button>
                   <button
                     onClick={() => setBillingPeriod("yearly")}
-                    className={`flex-1 py-1.5 rounded text-sm font-medium transition-colors ${
-                      billingPeriod === "yearly" ? "bg-violet-600 text-white" : "text-zinc-400"
-                    }`}
+                    className={`flex-1 py-1.5 rounded text-sm font-medium transition-colors ${billingPeriod === "yearly" ? "bg-violet-600 text-white" : "text-zinc-400"
+                      }`}
                   >
                     Yearly
                   </button>
@@ -334,7 +331,7 @@ function BillingContent() {
           <p className="text-zinc-400 text-sm mb-6">
             Need more AI power? Buy tokens that never expire. 1 token ≈ 1 AI interaction.
           </p>
-          
+
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {TOKEN_PACKAGES.map((pkg) => (
               <div
@@ -376,7 +373,7 @@ function BillingContent() {
             <Gift className="w-5 h-5 text-pink-400" />
             <h2 className="text-xl font-semibold">Refer Friends, Get Free Tokens</h2>
           </div>
-          
+
           <p className="text-zinc-300 mb-4">
             Share your link. When friends sign up and upgrade, you both get 500 free tokens!
           </p>

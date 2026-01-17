@@ -3,19 +3,30 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { createClient } from "@supabase/supabase-js";
+import { getRuntimePhase } from "@/lib/env/runtime-phase";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
+  // Build-time safety: Next can import/evaluate route modules during build.
+  if (getRuntimePhase() === "build") {
+    return NextResponse.json({ ok: true, buildPhase: true }, { status: 200 });
+  }
+
   try {
     const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const { getSupabaseAdminRuntimeClient } = await import(
+      "@/lib/runtime/supabase.runtime"
+    );
+
+    // Note: The original code accessed SUPABASE_SERVICE_ROLE_KEY, so we use the admin client
+    // If user-scoped access is preferred, we should switch to getSupabaseRuntimeClient()
+    // However, the original code used process.env.SUPABASE_SERVICE_ROLE_KEY directly.
+    const supabase = getSupabaseAdminRuntimeClient();
 
     // Get today's date range
     const today = new Date();

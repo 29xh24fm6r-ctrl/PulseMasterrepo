@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { getEvaluator } from "@/lib/xp/evaluators/registry";
 
 /**
@@ -13,7 +13,7 @@ export async function runReplayWorker(params: { userId: string; maxJobs?: number
     const { userId, maxJobs = 50 } = params;
 
     /*
-    const { data: jobs, error } = await supabaseAdmin
+    const { data: jobs, error } = await getSupabaseAdminRuntimeClient()
         .from("xp_replay_jobs")
         .select("*")
         .eq("user_id", userId)
@@ -33,13 +33,13 @@ export async function runReplayWorker(params: { userId: string; maxJobs?: number
             const jobId = job.id as string;
     
             try {
-                await supabaseAdmin
+                await getSupabaseAdminRuntimeClient()
                     .from("xp_replay_jobs")
                     .update({ status: "running", started_at: new Date().toISOString(), error: null })
                     .eq("id", jobId)
                     .eq("user_id", userId);
     
-                const { data: evidence, error: e1 } = await supabaseAdmin
+                const { data: evidence, error: e1 } = await getSupabaseAdminRuntimeClient()
                     .from("life_evidence")
                     .select("*")
                     .eq("id", job.evidence_id)
@@ -53,7 +53,7 @@ export async function runReplayWorker(params: { userId: string; maxJobs?: number
                 const result = evaluator.evaluate(evidence as any);
     
                 // Create eval run (idempotent)
-                const { data: evalRunId, error: e2 } = await supabaseAdmin.rpc("rpc_xp_create_eval_run", {
+                const { data: evalRunId, error: e2 } = await getSupabaseAdminRuntimeClient().rpc("rpc_xp_create_eval_run", {
                     p_evaluator_key: evaluator.key,
                     p_evaluator_version: evaluator.version,
                     p_evidence_id: evidence.id,
@@ -63,12 +63,12 @@ export async function runReplayWorker(params: { userId: string; maxJobs?: number
                 if (e2 || !evalRunId) throw new Error(e2?.message ?? "create eval run failed");
     
                 // Issue ledger (idempotent)
-                const { data: issuedCount, error: e3 } = await supabaseAdmin.rpc("rpc_xp_issue_from_eval_run", {
+                const { data: issuedCount, error: e3 } = await getSupabaseAdminRuntimeClient().rpc("rpc_xp_issue_from_eval_run", {
                     p_eval_run_id: evalRunId,
                 });
                 if (e3) throw new Error(e3.message);
     
-                await supabaseAdmin
+                await getSupabaseAdminRuntimeClient()
                     .from("xp_replay_jobs")
                     .update({ status: "done", finished_at: new Date().toISOString() })
                     .eq("id", jobId)
@@ -77,7 +77,7 @@ export async function runReplayWorker(params: { userId: string; maxJobs?: number
                 processed += 1;
             } catch (err: any) {
                 failed += 1;
-                await supabaseAdmin
+                await getSupabaseAdminRuntimeClient()
                     .from("xp_replay_jobs")
                     .update({ status: "failed", error: err?.message ?? "failed", finished_at: new Date().toISOString() })
                     .eq("id", jobId)

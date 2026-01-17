@@ -1,12 +1,13 @@
 import { auth } from "@clerk/nextjs/server";
 import { canMakeAICall, trackAIUsage } from "@/services/usage";
 import { NextRequest, NextResponse } from "next/server";
-import OpenAI from "openai";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getOpenAI } from "@/services/ai/openai";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
-const openai = new OpenAI();
+
 
 export async function POST(req: NextRequest) {
+  const openai = await getOpenAI();
   try {
     const { userId } = await auth();
     if (!userId) {
@@ -16,7 +17,7 @@ export async function POST(req: NextRequest) {
     const { coach, message, context, history = [] } = await req.json();
 
     // Get user info
-    const { data: user } = await supabaseAdmin
+    const { data: user } = await getSupabaseAdminRuntimeClient()
       .from("users")
       .select("id, name")
       .eq("clerk_id", userId)
@@ -33,6 +34,7 @@ export async function POST(req: NextRequest) {
     ];
 
     // Generate response
+    const openai = getOpenAI();
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages,
@@ -141,6 +143,7 @@ Coach: ${lastResponse}
 
 Return JSON: {"summary": "1-2 sentence summary", "goals_discussed": ["goal1"], "action_items": ["action1"], "mood": "positive/neutral/struggling", "breakthrough": true/false}`;
 
+    const openai = getOpenAI();
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: summaryPrompt }],
@@ -152,7 +155,7 @@ Return JSON: {"summary": "1-2 sentence summary", "goals_discussed": ["goal1"], "
     if (match) {
       const data = JSON.parse(match[0]);
 
-      await supabaseAdmin.from("coach_sessions").insert({
+      await getSupabaseAdminRuntimeClient().from("coach_sessions").insert({
         user_id_uuid: userId,
         coach,
         summary: data.summary,

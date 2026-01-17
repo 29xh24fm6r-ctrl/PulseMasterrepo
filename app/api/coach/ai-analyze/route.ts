@@ -1,18 +1,13 @@
 import { auth } from "@clerk/nextjs/server";
 import { canMakeAICall, trackAIUsage } from "@/services/usage";
 import { NextResponse } from "next/server";
-import OpenAI from "openai";
+import { getOpenAI } from "@/services/ai/openai";
+
 
 import { getTasks } from '@/lib/data/tasks';
 import { getContacts, type Contact } from "@/lib/data/journal";
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
-if (!OPENAI_API_KEY) {
-  throw new Error("OPENAI_API_KEY is not set");
-}
-
-const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
 export async function POST(req: Request) {
   try {
@@ -145,6 +140,7 @@ Using ALL available intelligence above, provide a DEEP, PREDICTIVE analysis that
 **CRITICAL:** Be specific. Be predictive. Respond ONLY with valid JSON - no markdown, no code blocks.`;
 
     // Call OpenAI API
+    const openai = getOpenAI();
     const completion = await openai.chat.completions.create({
       model: "gpt-4o", // Changed from o1 to 4o for JSON reliability, o1 sometimes tougher with format
       messages: [

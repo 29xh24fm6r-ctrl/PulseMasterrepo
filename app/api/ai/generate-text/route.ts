@@ -2,15 +2,9 @@ import { auth } from "@clerk/nextjs/server";
 import { canMakeAICall, trackAIUsage } from "@/services/usage";
 import { NextResponse } from "next/server";
 import { getContacts, type Contact } from "@/lib/data/journal";
-import OpenAI from "openai";
+import { getOpenAI } from "@/services/ai/openai";
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-
-if (!OPENAI_API_KEY) {
-  throw new Error("Missing API keys");
-}
-
-const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+// ... existing code ...
 
 export async function POST(req: Request) {
   try {
@@ -83,6 +77,7 @@ Write a text message that:
 
 Respond ONLY with valid JSON.`;
 
+    const openai = getOpenAI();
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [

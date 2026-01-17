@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 // --- Journal Types & Access ---
 export type JournalEntry = {
@@ -27,7 +27,7 @@ function mapJournalEntryFromDB(row: any): JournalEntry {
 }
 
 export async function createJournalEntry(userId: string, entry: Omit<JournalEntry, "id" | "user_id_uuid" | "created_at">) {
-    const { data, error } = await (supabaseAdmin as any)
+    const { data, error } = await (getSupabaseAdminRuntimeClient() as any)
         .from("journal_entries")
         .insert({
             title: entry.title,
@@ -46,7 +46,7 @@ export async function createJournalEntry(userId: string, entry: Omit<JournalEntr
 }
 
 export async function getJournalEntries(userId: string, limit = 50) {
-    const { data, error } = await (supabaseAdmin as any)
+    const { data, error } = await (getSupabaseAdminRuntimeClient() as any)
         .from("journal_entries")
         .select("*")
         .eq("user_id_uuid", userId)
@@ -98,7 +98,7 @@ function mapContactFromDB(row: any): Contact {
 }
 
 export async function createContact(userId: string, contact: Omit<Contact, "id" | "user_id_uuid">) {
-    const { data, error } = await (supabaseAdmin as any)
+    const { data, error } = await (getSupabaseAdminRuntimeClient() as any)
         .from("crm_contacts")
         .insert({
             full_name: contact.name,
@@ -127,7 +127,7 @@ export async function updateContact(userId: string, contactId: string, updates: 
 
     dbUpdates.updated_at = new Date().toISOString();
 
-    const { data, error } = await (supabaseAdmin as any)
+    const { data, error } = await (getSupabaseAdminRuntimeClient() as any)
         .from("crm_contacts")
         .update(dbUpdates)
         .eq("id", contactId)
@@ -140,7 +140,7 @@ export async function updateContact(userId: string, contactId: string, updates: 
 }
 
 export async function getContacts(userId: string, limit = 50) {
-    const { data, error } = await (supabaseAdmin as any)
+    const { data, error } = await (getSupabaseAdminRuntimeClient() as any)
         .from("crm_contacts")
         .select("*")
         .eq("user_id_uuid", userId)
@@ -152,7 +152,7 @@ export async function getContacts(userId: string, limit = 50) {
 }
 
 export async function getContact(userId: string, contactId: string) {
-    const { data, error } = await (supabaseAdmin as any)
+    const { data, error } = await (getSupabaseAdminRuntimeClient() as any)
         .from("crm_contacts")
         .select("*")
         .eq("id", contactId)
@@ -164,7 +164,7 @@ export async function getContact(userId: string, contactId: string) {
 }
 
 export async function getContactByEmail(userId: string, email: string) {
-    const { data, error } = await (supabaseAdmin as any)
+    const { data, error } = await (getSupabaseAdminRuntimeClient() as any)
         .from("crm_contacts")
         .select("*")
         .eq("user_id_uuid", userId)

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { readTraceHeaders, traceFromBody } from "@/lib/executions/traceHeaders";
 import { linkArtifact } from "@/lib/executions/artifactLinks";
-import { Resend } from "resend";
+import { getResend } from "@/services/email/resend";
 import { logActivityEvent } from "@/lib/activity/log";
 import { bumpScore } from "@/lib/work/scoreboard";
 import { logActivity } from "@/lib/activity/logActivity";
@@ -10,8 +10,8 @@ import { logActivity } from "@/lib/activity/logActivity";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Instantiate Resend client
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Local helper to match the user's pattern
+
 const FROM_EMAIL = "Pulse OS <onboarding@resend.dev>"; // Fallback default
 
 type SendEmailOptions = {
@@ -26,9 +26,7 @@ type SendEmailOptions = {
 
 // Local helper to match the user's pattern
 async function sendEmail({ to, subject, text, html, replyTo, headers }: SendEmailOptions) {
-    if (!process.env.RESEND_API_KEY) {
-        throw new Error("Missing RESEND_API_KEY");
-    }
+    const resend = getResend();
 
     // Construct payload
     const payload: any = {
@@ -66,7 +64,7 @@ export async function POST(req: Request) {
 
     try {
         // 1. SELECT GATED ROWS
-        const { data: toSend, error } = await supabaseAdmin
+        const { data: toSend, error } = await getSupabaseAdminRuntimeClient()
             .from("email_outbox")
             .select("*")
             .eq("approval_status", "approved")
@@ -89,7 +87,7 @@ export async function POST(req: Request) {
         // 2. PROCESS LOOP
         for (const row of rows) {
             // Lock row as processing
-            await supabaseAdmin
+            await getSupabaseAdminRuntimeClient()
                 .from("email_outbox")
                 .update({ status: "sending", updated_at: new Date().toISOString() })
                 .eq("id", row.id);
@@ -124,7 +122,7 @@ export async function POST(req: Request) {
                 }
 
                 // Mark Sent
-                await supabaseAdmin
+                await getSupabaseAdminRuntimeClient()
                     .from("email_outbox")
                     .update({
                         status: "sent",
@@ -168,7 +166,7 @@ export async function POST(req: Request) {
             } catch (err: any) {
                 console.error(`Flush error for ${row.id}:`, err);
                 // Mark Failed
-                await supabaseAdmin
+                await getSupabaseAdminRuntimeClient()
                     .from("email_outbox")
                     .update({
                         status: "failed",

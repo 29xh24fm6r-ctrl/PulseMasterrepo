@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
     try {
         // NOTE: If you have per-user scoping (recommended), add `.eq("user_id", <authUserId>)` here.
-        const { data, error } = await supabaseAdmin
+        const { data, error } = await getSupabaseAdminRuntimeClient()
             .from("email_outbox")
             .select(
                 "id,to_email,to_name,subject,body,status,approval_status,approved_at,dismissed_at,defer_until,created_at,updated_at"

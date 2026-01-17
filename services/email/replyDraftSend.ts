@@ -1,5 +1,5 @@
 import "server-only";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export async function ensureOutboxForReplyDraft(args: {
     userIdUuid: string;
@@ -10,7 +10,7 @@ export async function ensureOutboxForReplyDraft(args: {
     sendAt?: string | null;
 }) {
     // load draft
-    const draftRes = await supabaseAdmin
+    const draftRes = await getSupabaseAdminRuntimeClient()
         .from("reply_drafts")
         .select("*")
         .eq("id", args.draftId)
@@ -22,12 +22,12 @@ export async function ensureOutboxForReplyDraft(args: {
 
     // if already linked to outbox, return it
     if (draft.outbox_id) {
-        const out = await supabaseAdmin.from("email_outbox").select("*").eq("id", draft.outbox_id).single();
+        const out = await getSupabaseAdminRuntimeClient().from("email_outbox").select("*").eq("id", draft.outbox_id).single();
         if (!out.error && out.data) return { outbox: out.data, reused: true };
     }
 
     // create outbox row
-    const outboxIns = await supabaseAdmin
+    const outboxIns = await getSupabaseAdminRuntimeClient()
         .from("email_outbox")
         .insert({
             user_id_uuid: args.userIdUuid,
@@ -44,7 +44,7 @@ export async function ensureOutboxForReplyDraft(args: {
     if (outboxIns.error) throw new Error(outboxIns.error.message);
 
     // link draft
-    const upd = await supabaseAdmin
+    const upd = await getSupabaseAdminRuntimeClient()
         .from("reply_drafts")
         .update({
             to_email: args.to,

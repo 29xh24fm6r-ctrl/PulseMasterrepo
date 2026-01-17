@@ -5,7 +5,7 @@
  * Automatically generates follow-up drafts after call events
  */
 
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { callAIJson } from "@/lib/ai/call";
 
 // ============================================
@@ -66,7 +66,7 @@ export async function generateAutoFollowupDraftForCall(
   const { userId, eventId } = opts;
 
   // 1. Fetch the call event
-  const { data: event, error: eventError } = await supabaseAdmin
+  const { data: event, error: eventError } = await getSupabaseAdminRuntimeClient()
     .from("third_brain_events")
     .select("*")
     .eq("id", eventId)
@@ -94,7 +94,7 @@ export async function generateAutoFollowupDraftForCall(
 
   // 3. Check for existing draft for this event
   if (SKIP_IF_DRAFT_EXISTS) {
-    const { data: existingDraft } = await supabaseAdmin
+    const { data: existingDraft } = await getSupabaseAdminRuntimeClient()
       .from("delegated_drafts")
       .select("id")
       .eq("user_id", userId)
@@ -115,7 +115,7 @@ export async function generateAutoFollowupDraftForCall(
   }
 
   // 5. Create the draft
-  const { data: draft, error: draftError } = await supabaseAdmin
+  const { data: draft, error: draftError } = await getSupabaseAdminRuntimeClient()
     .from("delegated_drafts")
     .insert({
       user_id: userId,
@@ -229,7 +229,7 @@ export async function processRecentCallsForFollowups(
   cutoff.setHours(cutoff.getHours() - hoursBack);
 
   // Get recent call events without drafts
-  const { data: events } = await supabaseAdmin
+  const { data: events } = await getSupabaseAdminRuntimeClient()
     .from("third_brain_events")
     .select("id")
     .eq("user_id", userId)

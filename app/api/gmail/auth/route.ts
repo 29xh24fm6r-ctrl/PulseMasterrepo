@@ -1,14 +1,28 @@
 import { NextResponse } from "next/server";
+import { isBuildPhase } from "@/lib/env/guard";
 
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-
-if (!GOOGLE_CLIENT_ID) {
-  throw new Error("GOOGLE_CLIENT_ID is not set");
-}
+export const dynamic = "force-dynamic";
 
 export async function GET() {
-  return NextResponse.json({
-    ok: true,
-    clientId: GOOGLE_CLIENT_ID,
-  });
+  // 🛡️ Build-time safety
+  if (isBuildPhase()) {
+    return NextResponse.json({ ok: true, buildPhase: true }, { status: 200 });
+  }
+
+  const { getGoogleOAuthClient } = await import(
+    "@/lib/runtime/google.runtime"
+  );
+
+  const oauth = getGoogleOAuthClient();
+
+  return NextResponse.redirect(
+    oauth.generateAuthUrl({
+      access_type: "offline",
+      scope: [
+        "https://www.googleapis.com/auth/gmail.readonly",
+        "https://www.googleapis.com/auth/userinfo.email",
+      ],
+      prompt: "consent", // Ensure we get a refresh token
+    })
+  );
 }

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -9,10 +9,10 @@ export async function GET(req: Request) {
     const user_id = url.searchParams.get("user_id");
     if (!user_id) return NextResponse.json({ ok: false, error: "user_id required" }, { status: 400 });
 
-    const { data, error } = await (supabaseAdmin as any).from("v_xp_totals").select("*").eq("user_id", user_id);
+    const { data, error } = await (getSupabaseAdminRuntimeClient() as any).from("v_xp_totals").select("*").eq("user_id", user_id);
     if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
 
-    const { data: tracks, error: e2 } = await (supabaseAdmin as any).from("belt_tracks").select("*").eq("is_active", true);
+    const { data: tracks, error: e2 } = await (getSupabaseAdminRuntimeClient() as any).from("belt_tracks").select("*").eq("is_active", true);
     if (e2) return NextResponse.json({ ok: false, error: e2.message }, { status: 500 });
 
     const totals: Record<string, number> = {};
@@ -22,7 +22,7 @@ export async function GET(req: Request) {
     const out: any[] = [];
     for (const t of tracks ?? []) {
         const xpTotal = totals[t.xp_type] ?? 0;
-        const { data: levelRows, error: e3 } = await (supabaseAdmin as any)
+        const { data: levelRows, error: e3 } = await (getSupabaseAdminRuntimeClient() as any)
             .from("belt_levels")
             .select("*")
             .eq("track_id", t.id)

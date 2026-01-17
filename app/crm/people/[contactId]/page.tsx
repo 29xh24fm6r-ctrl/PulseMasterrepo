@@ -1,23 +1,23 @@
 import { crmContactTag, crmFollowupsTag, crmInteractionsTag } from "@/lib/crm/cacheTags";
 import { RelationshipPulseBanner } from "@/components/crm/RelationshipPulseBanner";
 import { PulseEventBridge } from "@/components/crm/PulseEventBridge";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 // Use direct DB reads for demo simplicity
 async function getContact(id: string) {
-    const sb = supabaseAdmin;
+    const sb = getSupabaseAdminRuntimeClient();
     const { data } = await sb.from('crm_contacts').select('*').eq('id', id).single();
     return data;
 }
 
 async function getFollowups(contactId: string) {
-    const sb = supabaseAdmin;
+    const sb = getSupabaseAdminRuntimeClient();
     const { data } = await sb.from('crm_followups').select('*').eq('contact_id', contactId).eq('status', 'open').order('due_at', { ascending: true });
     return data || [];
 }
 
 async function getInteractions(contactId: string) {
-    const sb = supabaseAdmin;
+    const sb = getSupabaseAdminRuntimeClient();
     const { data } = await sb.from('crm_interactions').select('*').eq('contact_id', contactId).order('happened_at', { ascending: false });
     return data || [];
 }

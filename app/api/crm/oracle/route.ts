@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAdminRuntimeClient, getSupabaseRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { auth } from "@clerk/nextjs/server";
 
 /**
@@ -25,13 +25,7 @@ export async function GET(req: Request) {
             return NextResponse.json({ ok: false, error: "No Supabase token" }, { status: 401 });
         }
 
-        const supabase = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-            {
-                global: { headers: { Authorization: `Bearer ${token}` } },
-            }
-        );
+        const supabase = getSupabaseRuntimeClient();
 
         const { data, error } = await supabase.rpc("crm_relationship_oracle_bundle");
 

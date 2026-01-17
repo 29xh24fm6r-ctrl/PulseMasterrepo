@@ -1,7 +1,7 @@
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export async function readNextCookPlan(args: { owner_user_id: string }) {
-    const sb = supabaseAdmin();
+    const sb = getSupabaseAdminRuntimeClient();
 
     // Next plan that is scheduled and not in the past too far.
     const { data, error } = await sb

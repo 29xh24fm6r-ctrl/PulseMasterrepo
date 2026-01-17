@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = "force-dynamic";
+
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
@@ -209,9 +211,8 @@ export default function PersonasPage() {
             {personas.map((persona) => (
               <div
                 key={persona.id}
-                className={`p-4 bg-slate-900 border rounded-xl transition ${
-                  persona.isActive ? 'border-violet-500/50' : 'border-slate-800'
-                }`}
+                className={`p-4 bg-slate-900 border rounded-xl transition ${persona.isActive ? 'border-violet-500/50' : 'border-slate-800'
+                  }`}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">

@@ -1,14 +1,8 @@
 import { canMakeAICall, trackAIUsage } from "@/services/usage";
 import { NextResponse } from "next/server";
-import OpenAI from "openai";
+import { getOpenAI } from "@/services/ai/openai";
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
-if (!OPENAI_API_KEY) {
-  throw new Error("OPENAI_API_KEY is not set");
-}
-
-const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
 export async function POST(req: Request) {
   try {
@@ -52,6 +46,7 @@ Examples of good responses:
 
 Respond with ONLY the coaching sentence. No JSON, no formatting, just the raw coaching text.`;
 
+    const openai = await getOpenAI();
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini", // Using mini for speed
       messages: [{ role: "user", content: prompt }],

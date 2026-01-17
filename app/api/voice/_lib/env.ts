@@ -1,5 +1,5 @@
 // app/api/voice/_lib/env.ts
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAdminRuntimeClient, getSupabaseRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 /**
  * Voice API env helper.
@@ -30,5 +30,5 @@ export function getEnv(name: string): string {
 }
 
 export function createAdminClient() {
-    return createClient(getSupabaseUrl(), getServiceRoleKey());
+    return getSupabaseAdminRuntimeClient();
 }

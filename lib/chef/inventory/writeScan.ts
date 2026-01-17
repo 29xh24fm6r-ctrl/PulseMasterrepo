@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { canonicalizeIngredientName, inferCategory } from "./canonicalize";
 import type { ChefDetectedItem } from "@/lib/chef/vision/types";
 
@@ -13,7 +13,7 @@ export async function writeInventoryScan(args: WriteScanArgs): Promise<{
     ingredients_created: number;
     inventory_rows_inserted: number;
 }> {
-    const sb = supabaseAdmin();
+    const sb = getSupabaseAdminRuntimeClient();
 
     let ingredientsCreated = 0;
     let inventoryInserted = 0;

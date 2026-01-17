@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { runExecution } from "@/lib/executions/handlers";
 import { execLog } from "@/lib/executions/logger";
 import type { ExecutionJob } from "@/lib/executions/kinds";
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
     // 1) Find an eligible queued execution for this user (server-side because admin bypasses RLS)
     const now = new Date().toISOString();
 
-    const { data: candidates, error: e0 } = await supabaseAdmin
+    const { data: candidates, error: e0 } = await getSupabaseAdminRuntimeClient()
         .from("executions")
         .select("*")
         .eq("user_id", user_id)
@@ -60,7 +60,7 @@ export async function POST(req: Request) {
     // NOTE: DB RPC claim_next uses SKIP LOCKED but relies on auth.uid(). We'll do it server-side here.
     const pick = candidates[0];
 
-    const { data: claimed, error: e1 } = await supabaseAdmin
+    const { data: claimed, error: e1 } = await getSupabaseAdminRuntimeClient()
         .from("executions")
         .update({ status: "claimed" })
         .eq("id", pick.id)
@@ -75,10 +75,10 @@ export async function POST(req: Request) {
     // 3) Start run (attempt++, create execution_run)
     const attempt = Number(claimed.attempts ?? 0) + 1;
 
-    await supabaseAdmin.from("executions").update({ status: "running", attempts: attempt }).eq("id", claimed.id).eq("user_id", user_id);
+    await getSupabaseAdminRuntimeClient().from("executions").update({ status: "running", attempts: attempt }).eq("id", claimed.id).eq("user_id", user_id);
     // 3. Insert run record
     const traceId = randomUUID();
-    const { data: runRow, error: runErr } = await supabaseAdmin
+    const { data: runRow, error: runErr } = await getSupabaseAdminRuntimeClient()
         .from("execution_runs")
         .insert({
             user_id,
@@ -95,7 +95,7 @@ export async function POST(req: Request) {
         // If run creation failed, we can't do much but release the claim
         // But realistically, this shouldn't fail if PG is up.
         // Release claimed row
-        await supabaseAdmin.from("executions").update({ status: "pending", locked_until: null }).eq("id", claimed.id);
+        await getSupabaseAdminRuntimeClient().from("executions").update({ status: "pending", locked_until: null }).eq("id", claimed.id);
         return NextResponse.json({ ok: false, error: "Failed to create run record" }, { status: 500 });
     }
 
@@ -159,12 +159,12 @@ export async function POST(req: Request) {
 
     if (result.ok) {
         // Success
-        await supabaseAdmin
+        await getSupabaseAdminRuntimeClient()
             .from("executions")
             .update({ status: "succeeded" })
             .eq("id", claimed.id);
 
-        await supabaseAdmin
+        await getSupabaseAdminRuntimeClient()
             .from("execution_runs")
             .update({ status: "succeeded", finished_at: new Date().toISOString(), output: result.output ?? {}, error: null })
             .eq("id", runRow.id);
@@ -191,7 +191,7 @@ export async function POST(req: Request) {
             nextRetryAt = new Date(Date.now() + delaySec * 1000).toISOString();
         }
 
-        await supabaseAdmin
+        await getSupabaseAdminRuntimeClient()
             .from("executions")
             .update({
                 status,
@@ -200,7 +200,7 @@ export async function POST(req: Request) {
             })
             .eq("id", claimed.id);
 
-        await supabaseAdmin
+        await getSupabaseAdminRuntimeClient()
             .from("execution_runs")
             .update({ status: "failed", finished_at: new Date().toISOString(), error: err })
             .eq("id", runRow.id);

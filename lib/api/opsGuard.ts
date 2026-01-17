@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 type GuardOpts = {
     routeKey: string;           // "GET:/api/signals/daily"
@@ -19,7 +19,7 @@ export async function withOpsGuard<T>(
     const path = url.pathname;
 
     // Rate limit check (atomic)
-    const { data: rl, error: rlErr } = await supabaseAdmin.rpc("ops_rate_limit_check", {
+    const { data: rl, error: rlErr } = await getSupabaseAdminRuntimeClient().rpc("ops_rate_limit_check", {
         p_owner_user_id: ownerUserId,
         p_route_key: opts.routeKey,
         p_window_seconds: opts.windowSeconds,
@@ -106,7 +106,7 @@ async function safeAudit(
             null;
         const userAgent = req.headers.get("user-agent") ?? null;
 
-        await supabaseAdmin.rpc("ops_audit_append", {
+        await getSupabaseAdminRuntimeClient().rpc("ops_audit_append", {
             p_owner_user_id: ownerUserId,
             p_route_key: routeKey,
             p_method: method,

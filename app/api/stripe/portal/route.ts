@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { createBillingPortalSession } from "@/services/stripe";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Get user's Stripe customer ID
-    const { data: profile } = await supabaseAdmin
+    const { data: profile } = await getSupabaseAdminRuntimeClient()
       .from("user_profiles")
       .select("stripe_customer_id")
       .eq("user_id", userId)

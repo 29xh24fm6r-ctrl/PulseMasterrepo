@@ -1,13 +1,22 @@
 
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { getRuntimePhase } from "@/lib/env/runtime-phase";
 
-export function createClient() {
-    const cookieStore = cookies()
+export async function createClient() {
+    if (getRuntimePhase() === "build") {
+        throw new Error("Server Supabase client requested during build phase");
+    }
+
+    const { createServerClient } = await import('@supabase/ssr');
+
+    const cookieStore = await cookies(); // Next 15: cookies() is async
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
     return createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        url,
+        anon,
         {
             cookies: {
                 get(name: string) {

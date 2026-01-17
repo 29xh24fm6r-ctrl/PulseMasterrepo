@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,7 +18,7 @@ export async function GET(req: Request) {
     const holder = `cron:${process.env.VERCEL_REGION ?? "unknown"}:${Date.now()}`;
 
     // 1) Acquire global lock (TTL 50s, cron runs every 60s)
-    const { data: locked, error: lerr } = await supabaseAdmin.rpc("rpc_cron_try_lock", {
+    const { data: locked, error: lerr } = await getSupabaseAdminRuntimeClient().rpc("rpc_cron_try_lock", {
         p_key: "executions-cron",
         p_ttl_seconds: 50,
         p_holder: holder,
@@ -31,7 +31,7 @@ export async function GET(req: Request) {
 
     // 2) Find users with ready work (distinct user_id)
     // Ready = queued and run_at <= now and (next_retry_at null OR <= now)
-    const { data: rows, error } = await supabaseAdmin
+    const { data: rows, error } = await getSupabaseAdminRuntimeClient()
         .from("executions")
         .select("user_id")
         .eq("status", "queued")
@@ -58,7 +58,7 @@ export async function GET(req: Request) {
     }
 
     // 4) Release lock (optional; TTL would expire anyway)
-    await supabaseAdmin.rpc("rpc_cron_release_lock", { p_key: "executions-cron" });
+    await getSupabaseAdminRuntimeClient().rpc("rpc_cron_release_lock", { p_key: "executions-cron" });
 
     return jsonOk({
         ok: true,

@@ -10,7 +10,7 @@ import { processDueCampaignSteps } from "@/lib/campaigns/engine";
 import { processNotificationQueue, sendMorningDigest, sendEveningDigest } from "@/lib/notifications/advanced";
 import { recalculateHealthScores } from "@/lib/relationships/engine";
 import { detectPatterns } from "@/lib/memory/engine";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 const CRON_SECRET = process.env.CRON_SECRET;
 
@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
         const now = new Date().toISOString();
 
         // Remove expired notifications
-        await supabaseAdmin
+        await getSupabaseAdminRuntimeClient()
           .from("notification_queue" as any)
           .delete()
           .lt("expires_at", now)
@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
 
         // Remove old sent notifications (30 days)
         const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-        await supabaseAdmin
+        await getSupabaseAdminRuntimeClient()
           .from("notification_queue" as any)
           .delete()
           .lt("created_at", thirtyDaysAgo)
@@ -161,7 +161,7 @@ export async function GET(req: NextRequest) {
 
 // Helper functions
 async function getUsersWithNotifications(): Promise<string[]> {
-  const { data } = await supabaseAdmin
+  const { data } = await getSupabaseAdminRuntimeClient()
     .from("notification_preferences" as any)
     .select("user_id")
     .eq("push_enabled", true) as any;
@@ -171,7 +171,7 @@ async function getUsersWithNotifications(): Promise<string[]> {
 
 async function getAllUsers(): Promise<string[]> {
   // Get unique users from various tables
-  const { data } = await supabaseAdmin
+  const { data } = await getSupabaseAdminRuntimeClient()
     .from("relationships" as any)
     .select("user_id")
     .limit(1000) as any;

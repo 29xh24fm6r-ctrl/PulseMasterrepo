@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export async function GET(req: Request) {
     const gate = await requireOpsAuth();
@@ -13,7 +13,7 @@ export async function GET(req: Request) {
     const inboxItemId = url.searchParams.get("inboxItemId");
     if (!inboxItemId) return NextResponse.json({ ok: false, error: "Missing inboxItemId" }, { status: 400 });
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdminRuntimeClient()
         .from("reply_drafts")
         .select("*")
         .eq("user_id_uuid", gate.canon.userIdUuid)
@@ -36,7 +36,7 @@ export async function POST(req: Request) {
     if (!inboxItemId) return NextResponse.json({ ok: false, error: "Missing inboxItemId" }, { status: 400 });
 
     // pull inbox item to seed subject/body
-    const itemRes = await supabaseAdmin
+    const itemRes = await getSupabaseAdminRuntimeClient()
         .from("inbox_items")
         .select("subject, from_email, from_name, snippet")
         .eq("id", inboxItemId)
@@ -52,7 +52,7 @@ export async function POST(req: Request) {
         `Thanks for reaching out about "${subj}".\n\n` +
         `— Matt`;
 
-    const ins = await supabaseAdmin
+    const ins = await getSupabaseAdminRuntimeClient()
         .from("reply_drafts")
         .upsert(
             {
@@ -89,7 +89,7 @@ export async function PATCH(req: Request) {
         if (body[k] !== undefined) patch[k] = body[k];
     }
 
-    const upd = await supabaseAdmin
+    const upd = await getSupabaseAdminRuntimeClient()
         .from("reply_drafts")
         .update(patch)
         .eq("id", id)

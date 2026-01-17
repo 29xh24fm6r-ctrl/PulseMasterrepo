@@ -5,7 +5,7 @@
  * Builds structured daily plans using Third Brain insights + Autonomy suggestions
  */
 
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { callAIJson } from "@/lib/ai/call";
 import { getOpenInsights } from "@/lib/third-brain/service";
 import { getSuggestedActions } from "@/lib/autonomy/engine";
@@ -79,7 +79,7 @@ export async function getOrCreateDayPlan(
   const dateStr = formatDateForDb(opts.date);
 
   // Check if plan exists
-  const { data: existing } = await supabaseAdmin
+  const { data: existing } = await getSupabaseAdminRuntimeClient()
     .from("day_plans")
     .select("id")
     .eq("user_id", opts.userId)
@@ -91,7 +91,7 @@ export async function getOrCreateDayPlan(
   }
 
   // Create new empty plan
-  const { data: newPlan, error } = await supabaseAdmin
+  const { data: newPlan, error } = await getSupabaseAdminRuntimeClient()
     .from("day_plans")
     .insert({
       user_id: opts.userId,
@@ -129,7 +129,7 @@ export async function generateDayPlan(
   ]);
 
   // Get existing plan items (if regenerating)
-  const { data: existingItems } = await supabaseAdmin
+  const { data: existingItems } = await getSupabaseAdminRuntimeClient()
     .from("plan_items")
     .select("id")
     .eq("day_plan_id", dayPlanId);
@@ -206,7 +206,7 @@ Only output valid JSON, no other text.`,
   if (!aiResult.success || !aiResult.data) {
     console.error("[Planning] AI generation failed:", aiResult.error);
     // Create a basic fallback plan
-    await supabaseAdmin
+    await getSupabaseAdminRuntimeClient()
       .from("day_plans")
       .update({
         summary: `Plan for ${dayOfWeek}`,
@@ -221,7 +221,7 @@ Only output valid JSON, no other text.`,
   const plan = aiResult.data;
 
   // Update day plan with summary
-  await supabaseAdmin
+  await getSupabaseAdminRuntimeClient()
     .from("day_plans")
     .update({
       summary: plan.summary || null,
@@ -247,7 +247,7 @@ Only output valid JSON, no other text.`,
       scheduledFor = scheduled.toISOString();
     }
 
-    const { error } = await supabaseAdmin.from("plan_items").insert({
+    const { error } = await getSupabaseAdminRuntimeClient().from("plan_items").insert({
       user_id: opts.userId,
       day_plan_id: dayPlanId,
       type: item.type,
@@ -277,7 +277,7 @@ Only output valid JSON, no other text.`,
       briefing: "task",
     };
 
-    await supabaseAdmin.from("plan_items").insert({
+    await getSupabaseAdminRuntimeClient().from("plan_items").insert({
       user_id: opts.userId,
       day_plan_id: dayPlanId,
       type: typeMap[action.type] || "task",
@@ -304,7 +304,7 @@ export async function getDayPlanWithItems(
 ): Promise<DayPlanWithItems | null> {
   const dateStr = formatDateForDb(date);
 
-  const { data: plan } = await supabaseAdmin
+  const { data: plan } = await getSupabaseAdminRuntimeClient()
     .from("day_plans")
     .select("*")
     .eq("user_id", userId)
@@ -313,7 +313,7 @@ export async function getDayPlanWithItems(
 
   if (!plan) return null;
 
-  const { data: items } = await supabaseAdmin
+  const { data: items } = await getSupabaseAdminRuntimeClient()
     .from("plan_items")
     .select("*")
     .eq("day_plan_id", plan.id)
@@ -348,7 +348,7 @@ export async function updatePlanItemStatus(
   itemId: string,
   status: PlanItemStatus
 ): Promise<boolean> {
-  const { error } = await supabaseAdmin
+  const { error } = await getSupabaseAdminRuntimeClient()
     .from("plan_items")
     .update({ status })
     .eq("id", itemId);
@@ -370,7 +370,7 @@ export async function addPlanItem(
     priority?: number;
   }
 ): Promise<string | null> {
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getSupabaseAdminRuntimeClient()
     .from("plan_items")
     .insert({
       user_id: userId,
@@ -397,7 +397,7 @@ export async function addPlanItem(
  * Delete a plan item
  */
 export async function deletePlanItem(itemId: string): Promise<boolean> {
-  const { error } = await supabaseAdmin
+  const { error } = await getSupabaseAdminRuntimeClient()
     .from("plan_items")
     .delete()
     .eq("id", itemId);
@@ -421,7 +421,7 @@ export async function getPlanStats(
   const startStr = formatDateForDb(startDate);
   const endStr = formatDateForDb(endDate);
 
-  const { data: plans } = await supabaseAdmin
+  const { data: plans } = await getSupabaseAdminRuntimeClient()
     .from("day_plans")
     .select("id")
     .eq("user_id", userId)
@@ -434,7 +434,7 @@ export async function getPlanStats(
 
   const planIds = plans.map((p) => p.id);
 
-  const { data: items } = await supabaseAdmin
+  const { data: items } = await getSupabaseAdminRuntimeClient()
     .from("plan_items")
     .select("status")
     .in("day_plan_id", planIds);

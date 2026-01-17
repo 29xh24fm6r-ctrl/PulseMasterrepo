@@ -1,4 +1,4 @@
-import { createAdminClient } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export type Deal = {
     id: string;
@@ -29,7 +29,7 @@ function mapDealFromDB(d: any): Deal {
 }
 
 export async function createDeal(userId: string, input: CreateDealInput) {
-    const admin = createAdminClient();
+    const admin = getSupabaseAdminRuntimeClient();
     // Destructure title to map to name, and keep rest
     const { title, ...rest } = input;
 
@@ -49,7 +49,7 @@ export async function createDeal(userId: string, input: CreateDealInput) {
 }
 
 export async function updateDealStatus(userId: string, dealId: string, stage: string) {
-    const admin = createAdminClient();
+    const admin = getSupabaseAdminRuntimeClient();
     const { data, error } = await admin
         .from("deals")
         .update({ stage, updated_at: new Date().toISOString() })
@@ -63,7 +63,7 @@ export async function updateDealStatus(userId: string, dealId: string, stage: st
 }
 
 export async function updateDeal(userId: string, dealId: string, updates: Partial<Deal>) {
-    const admin = createAdminClient();
+    const admin = getSupabaseAdminRuntimeClient();
     // Map title to name for updates
     const { title, ...rest } = updates;
     const dbUpdates = {
@@ -85,7 +85,7 @@ export async function updateDeal(userId: string, dealId: string, updates: Partia
 }
 
 export async function getDeals(userId: string) {
-    const admin = createAdminClient();
+    const admin = getSupabaseAdminRuntimeClient();
     const { data, error } = await admin
         .from("deals")
         .select("*")

@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export async function createCookPlan(args: {
     owner_user_id: string;
@@ -15,7 +15,7 @@ export async function createCookPlan(args: {
 
     meta?: any;
 }) {
-    const sb = supabaseAdmin();
+    const sb = getSupabaseAdminRuntimeClient();
 
     const { data, error } = await sb
         .from("chef_cook_plans")

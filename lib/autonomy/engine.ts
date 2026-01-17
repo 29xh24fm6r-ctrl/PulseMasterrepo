@@ -6,7 +6,7 @@
  * for user approval. Does NOT auto-execute anything dangerous.
  */
 
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { callAIJson } from "@/lib/ai/call";
 import { getOpenInsights, ThirdBrainInsight } from "@/lib/third-brain/service";
 
@@ -68,7 +68,7 @@ export async function createAutonomyAction(
   input: CreateActionInput
 ): Promise<string | null> {
   try {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdminRuntimeClient()
       .from("autonomy_actions")
       .insert({
         user_id: input.userId,
@@ -102,7 +102,7 @@ export async function getSuggestedActions(
   limit: number = 10
 ): Promise<AutonomyAction[]> {
   try {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdminRuntimeClient()
       .from("autonomy_actions")
       .select("*")
       .eq("user_id", userId)
@@ -128,7 +128,7 @@ export async function getActionsByStatus(
   limit: number = 20
 ): Promise<AutonomyAction[]> {
   try {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdminRuntimeClient()
       .from("autonomy_actions")
       .select("*")
       .eq("user_id", userId)
@@ -159,7 +159,7 @@ export async function updateActionStatus(
       updateData.scheduled_for = scheduledFor.toISOString();
     }
 
-    const { error } = await supabaseAdmin
+    const { error } = await getSupabaseAdminRuntimeClient()
       .from("autonomy_actions")
       .update(updateData)
       .eq("id", actionId);
@@ -176,7 +176,7 @@ export async function updateActionStatus(
  */
 export async function deleteAutonomyAction(actionId: string): Promise<boolean> {
   try {
-    const { error } = await supabaseAdmin
+    const { error } = await getSupabaseAdminRuntimeClient()
       .from("autonomy_actions")
       .delete()
       .eq("id", actionId);
@@ -204,7 +204,7 @@ async function actionExistsRecently(
   const since = new Date();
   since.setDate(since.getDate() - daysBack);
 
-  const { data } = await supabaseAdmin
+  const { data } = await getSupabaseAdminRuntimeClient()
     .from("autonomy_actions")
     .select("id")
     .eq("user_id", userId)
@@ -319,7 +319,7 @@ async function generateMorningBriefing(
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const { data: existing } = await supabaseAdmin
+  const { data: existing } = await getSupabaseAdminRuntimeClient()
     .from("autonomy_actions")
     .select("id")
     .eq("user_id", userId)
@@ -332,14 +332,14 @@ async function generateMorningBriefing(
   }
 
   // Get today's context
-  const { data: todayEvents } = await supabaseAdmin
+  const { data: todayEvents } = await getSupabaseAdminRuntimeClient()
     .from("third_brain_events")
     .select("type, title, summary")
     .eq("user_id", userId)
     .gte("occurred_at", today.toISOString())
     .limit(10);
 
-  const { data: openInsights } = await supabaseAdmin
+  const { data: openInsights } = await getSupabaseAdminRuntimeClient()
     .from("third_brain_insights")
     .select("kind, title")
     .eq("user_id", userId)
@@ -419,7 +419,7 @@ export async function runAutonomyCycle(userId: string): Promise<{
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    await supabaseAdmin
+    await getSupabaseAdminRuntimeClient()
       .from("autonomy_actions")
       .delete()
       .eq("user_id", userId)
@@ -492,7 +492,7 @@ export async function getActionCounts(
   };
 
   try {
-    const { data } = await supabaseAdmin
+    const { data } = await getSupabaseAdminRuntimeClient()
       .from("autonomy_actions")
       .select("status")
       .eq("user_id", userId);

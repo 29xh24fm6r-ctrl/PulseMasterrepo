@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 export type Task = {
     id: string;
@@ -39,7 +39,7 @@ function mapTaskFromDB(t: any): Task {
 }
 
 export async function getTasks(userId: string) {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdminRuntimeClient()
         .from("tasks")
         .select("*")
         .eq("user_id_uuid", userId)
@@ -55,7 +55,7 @@ export async function createTask(userId: string, task: Partial<Task>) {
     const dbPriority = task.priority ? (PRIORITY_MAP[task.priority] || 2) : 2;
     const taskTitle = task.title || "Untitled";
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdminRuntimeClient()
         .from("tasks")
         .insert({
             ...task,
@@ -73,7 +73,7 @@ export async function createTask(userId: string, task: Partial<Task>) {
 }
 
 export async function completeTask(userId: string, taskId: string) {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdminRuntimeClient()
         .from("tasks")
         .update({
             status: 'done',

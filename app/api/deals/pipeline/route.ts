@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
 import { withCompatTelemetry } from "@/lib/compat/withCompatTelemetry";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 async function ensureDefaultStages(userIdUuid: string) {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdminRuntimeClient()
         .from("deal_stages")
         .select("id,key,label,sort_order")
         .eq("user_id_uuid", userIdUuid)
@@ -21,7 +21,7 @@ async function ensureDefaultStages(userIdUuid: string) {
         { key: "closed", label: "Closed", sort_order: 50 },
     ].map((s) => ({ ...s, user_id_uuid: userIdUuid }));
 
-    const ins = await supabaseAdmin.from("deal_stages").insert(defaults).select("id,key,label,sort_order");
+    const ins = await getSupabaseAdminRuntimeClient().from("deal_stages").insert(defaults).select("id,key,label,sort_order");
     if (ins.error) throw ins.error;
     return ins.data ?? [];
 }
@@ -41,7 +41,7 @@ export async function GET(req: Request) {
             const stages = await ensureDefaultStages(gate.gate.canon.userIdUuid);
             const stageKeys = new Set(stages.map((s: any) => s.key));
 
-            const { data: deals, error } = await supabaseAdmin
+            const { data: deals, error } = await getSupabaseAdminRuntimeClient()
                 .from("deals")
                 .select("*")
                 .eq("user_id_uuid", gate.gate.canon.userIdUuid)

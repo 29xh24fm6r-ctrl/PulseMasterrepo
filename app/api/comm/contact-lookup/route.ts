@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { auth } from "@clerk/nextjs/server";
 
 export const runtime = "nodejs";
@@ -31,7 +31,7 @@ export async function GET(request: Request) {
     // Since phone formatting varies, we fetch all and check in JS, or use a broad ilike if possible.
     // Given the small scale of contacts usually (<10k), fetching id, name, phone is fine.
 
-    const { data: contacts, error } = await (supabaseAdmin as any)
+    const { data: contacts, error } = await (getSupabaseAdminRuntimeClient() as any)
       .from("contacts")
       .select("id, name, company, phone")
       .eq("user_id", userId)

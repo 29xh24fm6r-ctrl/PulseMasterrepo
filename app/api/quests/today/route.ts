@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { supabaseAdmin } from "@/lib/supabase";
-import OpenAI from "openai";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
+import { getOpenAI } from "@/services/ai/openai";
 import { jsonError, rateLimitOrThrow, withTimeout } from "@/lib/api/guards";
 import { withJourney } from "@/services/observability/journey";
 import { withPerf } from "@/services/observability/perf";
@@ -11,7 +11,7 @@ import { supabaseSpan } from "@/services/observability/supabaseSpan";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
+
 const ALGO_VERSION = "v1";
 
 function utcDay(): string {
@@ -161,7 +161,7 @@ async function maybeAiRerank(seeds: Seed[], signals: any): Promise<Seed[]> {
 
         const user = JSON.stringify({ signals, quests: seeds.map((s) => ({ quest_key: s.quest_key, title: s.title })) });
 
-        const resp = await withTimeout(
+        const completion = await withTimeout(
             openai.chat.completions.create({
                 model: "gpt-4o-mini",
                 temperature: 0.2,
@@ -225,13 +225,13 @@ export async function GET() {
         { data: focus7d, error: focusErr },
         { data: catalog, error: catErr },
     ] = await Promise.all([
-        supabaseAdmin
+        getSupabaseAdminRuntimeClient()
             .from("tasks")
             .select("id,status,priority,context,due_at,defer_until")
             .eq("user_id", userId)
             .in("status", ["pending", "active", "blocked"]),
 
-        supabaseAdmin
+        getSupabaseAdminRuntimeClient()
             .from("tasks")
             .select("id,completed_at,due_at")
             .eq("user_id", userId)
@@ -239,14 +239,14 @@ export async function GET() {
             .gte("completed_at", dayStart)
             .lt("completed_at", dayEnd),
 
-        supabaseAdmin
+        getSupabaseAdminRuntimeClient()
             .from("xp_events")
             .select("id,occurred_at,event_type")
             .eq("user_id", userId)
             .eq("event_type", "focus_complete")
             .gte("occurred_at", sevenDaysAgoIso),
 
-        supabaseAdmin
+        getSupabaseAdminRuntimeClient()
             .from("quest_catalog")
             .select("quest_key,title,description,base_target,base_reward_xp,meta,tags,is_active")
             .eq("is_active", true),
@@ -323,14 +323,14 @@ export async function GET() {
         meta: s.meta ?? {},
     }));
 
-    const { error: upsertErr } = await supabaseAdmin
+    const { error: upsertErr } = await getSupabaseAdminRuntimeClient()
         .from("daily_quests")
         .upsert(upserts, { onConflict: "user_id,quest_date,quest_key" });
 
     if (upsertErr) return NextResponse.json({ error: "quest_seed_failed", detail: upsertErr.message }, { status: 500 });
 
     // Audit run (best effort; don’t fail the endpoint if audit insert fails)
-    await supabaseAdmin.from("daily_quest_generation_runs").insert({
+    await getSupabaseAdminRuntimeClient().from("daily_quest_generation_runs").insert({
         user_id: userId,
         quest_date: day,
         algo_version: ALGO_VERSION,
@@ -339,7 +339,7 @@ export async function GET() {
     });
 
     // ---- Power Move: Canonical Evaluation via RPC ----
-    const { data: evaluated, error: evalErr } = await supabaseAdmin.rpc("evaluate_daily_quests", {
+    const { data: evaluated, error: evalErr } = await getSupabaseAdminRuntimeClient().rpc("evaluate_daily_quests", {
         p_user_id: userId,
         p_quest_date: day,
     });

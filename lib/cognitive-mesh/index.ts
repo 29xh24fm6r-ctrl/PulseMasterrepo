@@ -1,6 +1,6 @@
 // Third Brain v3: Cognitive Mesh Core Library
-import { createClient, SupabaseClient } from "@supabase/supabase-js";
-import OpenAI from "openai";
+import { getSupabaseAdminRuntimeClient, getSupabaseRuntimeClient } from "@/lib/runtime/supabase.runtime";
+
 import {
   RawEvent,
   MemoryFragment,
@@ -18,13 +18,10 @@ import {
   RelationType,
 } from "./types";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
 
 function getSupabase(): SupabaseClient {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  return getSupabaseAdminRuntimeClient();
 }
 
 // ============================================
@@ -36,7 +33,7 @@ export async function ingestRawEvent(
   input: CreateRawEventInput
 ): Promise<RawEvent> {
   const supabase = getSupabase();
-  
+
   const { data, error } = await supabase
     .from("tb_raw_events")
     .insert({
@@ -59,7 +56,7 @@ export async function markEventProcessed(
   error?: string
 ): Promise<void> {
   const supabase = getSupabase();
-  
+
   await supabase
     .from("tb_raw_events")
     .update({
@@ -78,7 +75,7 @@ export async function createFragment(
   input: CreateFragmentInput
 ): Promise<MemoryFragment> {
   const supabase = getSupabase();
-  
+
   const { data, error } = await supabase
     .from("tb_memory_fragments")
     .insert({
@@ -95,10 +92,10 @@ export async function createFragment(
     .single();
 
   if (error) throw new Error(`Failed to create fragment: ${error.message}`);
-  
+
   // Generate embedding asynchronously
   generateAndStoreEmbedding(userId, data.id, data.content).catch(console.error);
-  
+
   return data;
 }
 
@@ -112,7 +109,7 @@ export async function getFragments(
   } = {}
 ): Promise<MemoryFragment[]> {
   const supabase = getSupabase();
-  
+
   let query = supabase
     .from("tb_memory_fragments")
     .select("*")
@@ -142,6 +139,7 @@ export async function getFragments(
 // ============================================
 
 export async function generateEmbedding(text: string): Promise<number[]> {
+  const openai = await getOpenAI();
   const response = await openai.embeddings.create({
     model: "text-embedding-3-small",
     input: text,
@@ -155,10 +153,10 @@ export async function generateAndStoreEmbedding(
   content: string
 ): Promise<void> {
   const supabase = getSupabase();
-  
+
   try {
     const embedding = await generateEmbedding(content);
-    
+
     await supabase.from("tb_embeddings").insert({
       user_id: userId,
       fragment_id: fragmentId,
@@ -175,10 +173,10 @@ export async function semanticSearch(
   options: SemanticSearchOptions
 ): Promise<(MemoryFragment & { similarity: number })[]> {
   const supabase = getSupabase();
-  
+
   // Generate query embedding
   const queryEmbedding = await generateEmbedding(options.query);
-  
+
   // Use Supabase RPC for vector similarity search
   const { data, error } = await supabase.rpc("search_fragments_by_embedding", {
     query_embedding: queryEmbedding,
@@ -201,7 +199,7 @@ async function textSearch(
   options: SemanticSearchOptions
 ): Promise<(MemoryFragment & { similarity: number })[]> {
   const supabase = getSupabase();
-  
+
   const { data, error } = await supabase
     .from("tb_memory_fragments")
     .select("*")
@@ -223,7 +221,7 @@ export async function createEntity(
   input: CreateEntityInput
 ): Promise<Entity> {
   const supabase = getSupabase();
-  
+
   // Check for existing entity with same canonical key
   if (input.canonical_key) {
     const { data: existing } = await supabase
@@ -274,7 +272,7 @@ export async function findOrCreateEntity(
   input: CreateEntityInput
 ): Promise<Entity> {
   const supabase = getSupabase();
-  
+
   // Try to find by canonical key first
   if (input.canonical_key) {
     const { data: existing } = await supabase
@@ -326,7 +324,7 @@ export async function searchEntities(
   options: EntitySearchOptions
 ): Promise<Entity[]> {
   const supabase = getSupabase();
-  
+
   let query = supabase
     .from("tb_entities")
     .select("*")
@@ -356,7 +354,7 @@ export async function getEntity(
   entityId: string
 ): Promise<Entity | null> {
   const supabase = getSupabase();
-  
+
   const { data, error } = await supabase
     .from("tb_entities")
     .select("*")
@@ -377,7 +375,7 @@ export async function createEdge(
   input: CreateEdgeInput
 ): Promise<EntityEdge> {
   const supabase = getSupabase();
-  
+
   // Check for existing edge
   const { data: existing } = await supabase
     .from("tb_entity_edges")
@@ -422,7 +420,7 @@ export async function getEntityEdges(
   direction: "from" | "to" | "both" = "both"
 ): Promise<EntityEdge[]> {
   const supabase = getSupabase();
-  
+
   let query = supabase
     .from("tb_entity_edges")
     .select("*")
@@ -459,10 +457,10 @@ export async function traverseGraph(
 
   while (queue.length > 0) {
     const { entityId, depth } = queue.shift()!;
-    
+
     if (visited.has(entityId)) continue;
     if (depth > (options.maxDepth || 2)) continue;
-    
+
     visited.add(entityId);
 
     // Get entity
@@ -484,17 +482,17 @@ export async function traverseGraph(
     }
 
     const { data: connectedEdges } = await edgeQuery;
-    
+
     for (const edge of connectedEdges || []) {
       if (!edges.find(e => e.id === edge.id)) {
         edges.push(edge);
       }
-      
+
       // Add connected entity to queue
-      const nextEntityId = edge.from_entity_id === entityId 
-        ? edge.to_entity_id 
+      const nextEntityId = edge.from_entity_id === entityId
+        ? edge.to_entity_id
         : edge.from_entity_id;
-      
+
       if (!visited.has(nextEntityId)) {
         queue.push({ entityId: nextEntityId, depth: depth + 1 });
       }
@@ -515,7 +513,7 @@ export async function linkEntityToFragment(
   relevance: number = 0.5
 ): Promise<void> {
   const supabase = getSupabase();
-  
+
   await supabase.from("tb_entity_fragment_links").upsert({
     user_id: userId,
     entity_id: entityId,
@@ -530,7 +528,7 @@ export async function getEntityFragments(
   limit: number = 20
 ): Promise<MemoryFragment[]> {
   const supabase = getSupabase();
-  
+
   const { data: links } = await supabase
     .from("tb_entity_fragment_links")
     .select("fragment_id, relevance")
@@ -660,30 +658,30 @@ export const CognitiveMesh = {
   // Events
   ingestRawEvent,
   markEventProcessed,
-  
+
   // Fragments
   createFragment,
   getFragments,
-  
+
   // Embeddings
   generateEmbedding,
   semanticSearch,
-  
+
   // Entities
   createEntity,
   findOrCreateEntity,
   searchEntities,
   getEntity,
-  
+
   // Edges
   createEdge,
   getEntityEdges,
   traverseGraph,
-  
+
   // Linking
   linkEntityToFragment,
   getEntityFragments,
-  
+
   // Context
   buildContext,
 };

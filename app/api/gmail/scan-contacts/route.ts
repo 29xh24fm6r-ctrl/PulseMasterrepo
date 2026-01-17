@@ -2,13 +2,11 @@ import { canMakeAICall, trackAIUsage } from "@/services/usage";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { google } from "googleapis";
-import OpenAI from "openai";
+import { getOpenAI } from "@/services/ai/openai";
 import { refreshAccessToken } from "@/app/lib/gmail-utils";
 import { getContacts } from "@/lib/data/journal";
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
-const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
 function normalizeDatabaseId(id: string): string {
   return id.replace(/-/g, "");
@@ -381,6 +379,7 @@ Respond with a JSON array:
 Respond ONLY with the JSON array.`;
 
     try {
+      const openai = await getOpenAI();
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [{ role: "user", content: prompt }],

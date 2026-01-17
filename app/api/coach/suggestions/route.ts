@@ -1,12 +1,13 @@
 import { auth } from "@clerk/nextjs/server";
 import { canMakeAICall, trackAIUsage } from "@/services/usage";
 import { NextRequest, NextResponse } from "next/server";
-import OpenAI from "openai";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getOpenAI } from "@/services/ai/openai";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
-const openai = new OpenAI();
+
 
 export async function POST(req: NextRequest) {
+  const openai = await getOpenAI();
   try {
     const { userId } = await auth();
     if (!userId) {
@@ -16,7 +17,7 @@ export async function POST(req: NextRequest) {
     const { coach, count = 4 } = await req.json();
 
     // Get user's Supabase ID
-    const { data: user } = await supabaseAdmin
+    const { data: user } = await getSupabaseAdminRuntimeClient()
       .from("users")
       .select("id, name")
       .eq("clerk_id", userId)
@@ -42,7 +43,7 @@ export async function POST(req: NextRequest) {
 
 async function gatherUserContext(userId: string, coach: string) {
   // Get previous coach sessions for this specific coach
-  const { data: coachSessions } = await supabaseAdmin
+  const { data: coachSessions } = await getSupabaseAdminRuntimeClient()
     .from("coach_sessions")
     .select("*")
     .eq("user_id", userId)
@@ -51,7 +52,7 @@ async function gatherUserContext(userId: string, coach: string) {
     .limit(10);
 
   // Get all coach sessions for cross-coach insights
-  const { data: allSessions } = await supabaseAdmin
+  const { data: allSessions } = await getSupabaseAdminRuntimeClient()
     .from("coach_sessions")
     .select("coach, summary, goals_discussed, action_items, breakthrough, created_at")
     .eq("user_id", userId)
@@ -59,7 +60,7 @@ async function gatherUserContext(userId: string, coach: string) {
     .limit(20);
 
   // Get contacts for relationship context
-  const { data: contacts } = await supabaseAdmin
+  const { data: contacts } = await getSupabaseAdminRuntimeClient()
     .from("contacts")
     .select("name, relationship, status, last_contact, next_followup, notes")
     .eq("user_id", userId)
@@ -67,7 +68,7 @@ async function gatherUserContext(userId: string, coach: string) {
     .limit(15);
 
   // Get recent calls
-  const { data: calls } = await supabaseAdmin
+  const { data: calls } = await getSupabaseAdminRuntimeClient()
     .from("calls")
     .select("summary_short, summary_detailed, sentiment, action_items, created_at")
     .eq("user_id", userId)
@@ -75,7 +76,7 @@ async function gatherUserContext(userId: string, coach: string) {
     .limit(10);
 
   // Get interactions
-  const { data: interactions } = await supabaseAdmin
+  const { data: interactions } = await getSupabaseAdminRuntimeClient()
     .from("interactions")
     .select("type, summary, notes, created_at")
     .eq("user_id", userId)
@@ -160,6 +161,7 @@ Return ONLY a JSON array of ${count} strings. No explanation, no markdown.
 Example format: ["suggestion 1", "suggestion 2", "suggestion 3", "suggestion 4"]`;
 
   try {
+    const openai = getOpenAI();
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],

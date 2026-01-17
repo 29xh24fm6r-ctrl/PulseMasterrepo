@@ -3,15 +3,7 @@ import { canMakeAICall } from "@/services/usage";
 import { NextResponse } from "next/server";
 import { getContacts } from "@/lib/data/journal";
 import { generateSalesEmail } from "@/lib/ai/email-generator";
-import OpenAI from "openai";
-
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-
-if (!OPENAI_API_KEY) {
-  throw new Error("OPENAI_API_KEY is not set");
-}
-
-const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+import { getOpenAI } from "@/services/ai/openai";
 
 export async function POST(req: Request) {
   try {

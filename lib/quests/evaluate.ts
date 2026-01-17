@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 
 /**
  * Quests are derived. We compute a checkpoint for "now" (or a provided timestamp).
@@ -8,14 +8,14 @@ export async function computeQuestCheckpoint(params: { userId: string; questKey:
     const { userId, questKey, at } = params;
 
     // Note: rpc_compute_quest_checkpoint uses auth.uid() in RLS context.
-    // If your supabaseAdmin bypasses RLS, call via user client session instead.
+    // If your getSupabaseAdminRuntimeClient() bypasses RLS, call via user client session instead.
     // For now: store userId in a request-scoped user client in your stack if needed.
     // However, pure admin client RPC calls often bypass RLS policies if not careful,
     // BUT the RPC itself uses `auth.uid()`.
-    // To simulate a user call with supabaseAdmin, you'd typically need `auth.uid()` to work,
+    // To simulate a user call with getSupabaseAdminRuntimeClient(), you'd typically need `auth.uid()` to work,
     // which it WON'T with a service role key unless you set local config or pass it.
     //
-    // FIX: For this simplified implementation using supabaseAdmin (Service Role),
+    // FIX: For this simplified implementation using getSupabaseAdminRuntimeClient() (Service Role),
     // we will modify the pattern to passing user_id potentially if we could,
     // but the RPC uses `auth.uid()`.
     //
@@ -23,23 +23,23 @@ export async function computeQuestCheckpoint(params: { userId: string; questKey:
     // We will assume the RPC might need adjustment OR we use a trick.
     // But strictly following the prompt's provided code:
     // The provided SQL uses `auth.uid()`.
-    // The provided TS uses `supabaseAdmin`.
+    // The provided TS uses `getSupabaseAdminRuntimeClient()`.
     // This will fail RLS checks inside the RPC if `auth.uid()` is null.
     //
     // HOWEVER, I must follow the prompt's spec.
-    // The prompt says: "Note: rpc_compute_quest_checkpoint uses auth.uid()... If your supabaseAdmin bypasses RLS... store userId..."
+    // The prompt says: "Note: rpc_compute_quest_checkpoint uses auth.uid()... If your getSupabaseAdminRuntimeClient() bypasses RLS... store userId..."
     // It seems the user is aware.
     // I will write the code AS SPECIFIED, but I'll add a comment about this limitation/requirement.
-    // Actually, looking at `lib/supabase.ts`, `supabaseAdmin` uses the SERVICE_ROLE_KEY.
+    // Actually, looking at `lib/supabase.ts`, `getSupabaseAdminRuntimeClient()` uses the SERVICE_ROLE_KEY.
     // Service role bypasses RLS, but `auth.uid()` inside Postgres will be null.
     // The RPC explicitly assigns `v_user := auth.uid();`.
     // If `auth.uid()` is null, `v_user` is null, and queries will fail/return empty.
     //
-    // To make this work "out of the box" with `supabaseAdmin`, the SQL should ideally accept `p_user_id`.
+    // To make this work "out of the box" with `getSupabaseAdminRuntimeClient()`, the SQL should ideally accept `p_user_id`.
     // But I already wrote the SQL with `v_user := auth.uid()`.
     //
     // ACTUALLY: The SQL `rpc_compute_quest_checkpoint` is defined as `SECURITY INVOKER`.
-    // If called by `supabaseAdmin` (superuser), it runs as superuser, but `auth.uid()` is still null.
+    // If called by `getSupabaseAdminRuntimeClient()` (superuser), it runs as superuser, but `auth.uid()` is still null.
     //
     // OPTION: We can use `set_config('request.jwt.claim.sub', userId, true)` in a wrapping transaction,
     // OR we can rely on the fact that `lib/supabase.ts` might have a way to impersonate.
@@ -55,12 +55,12 @@ export async function computeQuestCheckpoint(params: { userId: string; questKey:
     //
     // The user spec for THIS task has `computeQuestCheckpoint` calling `rpc_compute_quest_checkpoint`.
     // The SQL I wrote uses `auth.uid()`.
-    // `supabaseAdmin` usage here is risky for `auth.uid()`.
+    // `getSupabaseAdminRuntimeClient()` usage here is risky for `auth.uid()`.
     //
     // I will strictly copy the provided TypeScript code from the prompt.
     // The prompt author likely assumes a specific Supabase configuration or just wants the code structure.
 
-    const { data, error } = await supabaseAdmin.rpc("rpc_compute_quest_checkpoint", {
+    const { data, error } = await getSupabaseAdminRuntimeClient().rpc("rpc_compute_quest_checkpoint", {
         p_quest_key: questKey,
         p_at: at ?? new Date().toISOString(),
     });
@@ -71,7 +71,7 @@ export async function computeQuestCheckpoint(params: { userId: string; questKey:
 
 export async function getQuestCheckpoint(params: { userId: string; checkpointId: string }) {
     const { userId, checkpointId } = params;
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdminRuntimeClient()
         .from("quest_checkpoints")
         .select("*")
         .eq("id", checkpointId)

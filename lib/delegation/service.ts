@@ -6,7 +6,7 @@
  * All drafts are user-reviewed before sending
  */
 
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { callAIJson } from "@/lib/ai/call";
 
 // ============================================
@@ -84,7 +84,7 @@ export async function generateDelegatedDraft(
   const draft = aiResult.data;
 
   // Save to database
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getSupabaseAdminRuntimeClient()
     .from("delegated_drafts")
     .insert({
       user_id: userId,
@@ -121,7 +121,7 @@ export async function listDelegatedDrafts(
   status?: DelegatedDraftStatus,
   limit: number = 20
 ): Promise<DelegatedDraft[]> {
-  let query = supabaseAdmin
+  let query = getSupabaseAdminRuntimeClient()
     .from("delegated_drafts")
     .select("*")
     .eq("user_id", userId)
@@ -148,7 +148,7 @@ export async function listDelegatedDrafts(
 export async function getDelegatedDraft(
   draftId: string
 ): Promise<DelegatedDraft | null> {
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getSupabaseAdminRuntimeClient()
     .from("delegated_drafts")
     .select("*")
     .eq("id", draftId)
@@ -168,7 +168,7 @@ export async function updateDraftStatus(
   draftId: string,
   status: DelegatedDraftStatus
 ): Promise<boolean> {
-  const { error } = await supabaseAdmin
+  const { error } = await getSupabaseAdminRuntimeClient()
     .from("delegated_drafts")
     .update({ status })
     .eq("id", draftId);
@@ -187,7 +187,7 @@ export async function updateDraftContent(
   if (updates.subject !== undefined) updateData.subject = updates.subject;
   if (updates.body !== undefined) updateData.body = updates.body;
 
-  const { error } = await supabaseAdmin
+  const { error } = await getSupabaseAdminRuntimeClient()
     .from("delegated_drafts")
     .update(updateData)
     .eq("id", draftId);
@@ -199,7 +199,7 @@ export async function updateDraftContent(
  * Delete a draft
  */
 export async function deleteDelegatedDraft(draftId: string): Promise<boolean> {
-  const { error } = await supabaseAdmin
+  const { error } = await getSupabaseAdminRuntimeClient()
     .from("delegated_drafts")
     .delete()
     .eq("id", draftId);
@@ -211,7 +211,7 @@ export async function deleteDelegatedDraft(draftId: string): Promise<boolean> {
  * Get pending drafts count
  */
 export async function getPendingDraftsCount(userId: string): Promise<number> {
-  const { count, error } = await supabaseAdmin
+  const { count, error } = await getSupabaseAdminRuntimeClient()
     .from("delegated_drafts")
     .select("id", { count: "exact", head: true })
     .eq("user_id", userId)
@@ -320,7 +320,7 @@ async function getUserContext(userId: string): Promise<{
   company?: string;
 }> {
   try {
-    const { data } = await supabaseAdmin
+    const { data } = await getSupabaseAdminRuntimeClient()
       .from("user_profiles")
       .select("name, role, company")
       .eq("user_id", userId)

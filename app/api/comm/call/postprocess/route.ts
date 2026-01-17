@@ -2,10 +2,10 @@
 import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-import OpenAI from "openai";
 import { getCallSession, updateCallSession } from "@/services/comm/store";
+import { getOpenAI } from "@/services/ai/openai";
 
-const openai = new OpenAI();
+
 
 export async function POST(request: Request) {
   try {
@@ -44,6 +44,7 @@ Respond in JSON format with these exact fields:
 }
 Only respond with valid JSON, no other text.`;
 
+    const openai = getOpenAI();
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],

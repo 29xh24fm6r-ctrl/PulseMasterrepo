@@ -2,10 +2,11 @@ import { auth } from "@clerk/nextjs/server";
 import { canMakeAICall, trackAIUsage } from "@/services/usage";
 // POST /api/contacts/intelligence - Research a contact using AI and web search
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
-import OpenAI from "openai";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
+import { getOpenAI } from "@/services/ai/openai";
 
-const openai = new OpenAI();
+
+// const openai = getOpenAI();
 
 export async function POST(req: NextRequest) {
   try {
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Need at least name, email, or company" }, { status: 400 });
     }
 
-    console.log(`🔍 Researching contact: ${name} at ${company}`);
+    console.log(`🔍 Researching contact: ${name} at ${company} `);
 
     // Build search query
     const searchParts = [];
@@ -104,6 +105,7 @@ Provide intelligence in this JSON format:
 
 Only respond with valid JSON. If you can't find information, make reasonable inferences based on the company/role and mark confidence as "low".`;
 
+    const openai = getOpenAI();
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
@@ -128,7 +130,7 @@ Only respond with valid JSON. If you can't find information, make reasonable inf
 
     // Update contact with intelligence if contactId provided
     if (contactId) {
-      await supabaseAdmin
+      await getSupabaseAdminRuntimeClient()
         .from("contacts")
         .update({
           ai_intel: intelligence,

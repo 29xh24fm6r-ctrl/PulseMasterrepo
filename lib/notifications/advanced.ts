@@ -5,7 +5,7 @@
  * Smart notification batching, priority routing, and digests
  */
 
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { sendPushNotification, getNotificationPreferences } from "./push";
 
 // ============================================
@@ -129,7 +129,7 @@ async function sendImmediately(
  * Add to digest queue
  */
 async function addToDigestQueue(notification: SmartNotification): Promise<boolean> {
-  const { error } = await supabaseAdmin.from("notification_queue").insert({
+  const { error } = await getSupabaseAdminRuntimeClient().from("notification_queue").insert({
     user_id: notification.userId,
     type: notification.type as any,
     priority: notification.priority,
@@ -152,7 +152,7 @@ async function addToDigestQueue(notification: SmartNotification): Promise<boolea
 async function getRecentNotificationCount(userId: string, minutes: number): Promise<number> {
   const since = new Date(Date.now() - minutes * 60 * 1000);
 
-  const { count } = await supabaseAdmin
+  const { count } = await getSupabaseAdminRuntimeClient()
     .from("notification_log")
     .select("*", { count: "exact", head: true })
     .eq("user_id", userId)
@@ -172,7 +172,7 @@ export async function generateMorningDigest(userId: string): Promise<Notificatio
   const items: DigestItem[] = [];
 
   // Get pending autonomy suggestions
-  const { count: autonomyCount } = await supabaseAdmin
+  const { count: autonomyCount } = await getSupabaseAdminRuntimeClient()
     .from("autonomy_actions")
     .select("*", { count: "exact", head: true })
     .eq("user_id", userId)
@@ -193,7 +193,7 @@ export async function generateMorningDigest(userId: string): Promise<Notificatio
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
 
-  const { count: eventCount } = await supabaseAdmin
+  const { count: eventCount } = await getSupabaseAdminRuntimeClient()
     .from("calendar_events_cache")
     .select("*", { count: "exact", head: true })
     .eq("user_id", userId)
@@ -210,7 +210,7 @@ export async function generateMorningDigest(userId: string): Promise<Notificatio
   }
 
   // Get relationships needing attention
-  const { count: relCount } = await supabaseAdmin
+  const { count: relCount } = await getSupabaseAdminRuntimeClient()
     .from("relationships")
     .select("*", { count: "exact", head: true })
     .eq("user_id", userId)
@@ -226,7 +226,7 @@ export async function generateMorningDigest(userId: string): Promise<Notificatio
   }
 
   // Get pending drafts
-  const { count: draftCount } = await supabaseAdmin
+  const { count: draftCount } = await getSupabaseAdminRuntimeClient()
     .from("delegation_drafts")
     .select("*", { count: "exact", head: true })
     .eq("user_id", userId)
@@ -282,7 +282,7 @@ export async function generateEveningDigest(userId: string): Promise<Notificatio
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const { count: completedCount } = await supabaseAdmin
+  const { count: completedCount } = await getSupabaseAdminRuntimeClient()
     .from("autonomy_actions")
     .select("*", { count: "exact", head: true })
     .eq("user_id", userId)
@@ -304,7 +304,7 @@ export async function generateEveningDigest(userId: string): Promise<Notificatio
   const dayAfter = new Date(tomorrow);
   dayAfter.setDate(dayAfter.getDate() + 1);
 
-  const { count: tomorrowCount } = await supabaseAdmin
+  const { count: tomorrowCount } = await getSupabaseAdminRuntimeClient()
     .from("calendar_events_cache")
     .select("*", { count: "exact", head: true })
     .eq("user_id", userId)
@@ -362,7 +362,7 @@ export async function sendEveningDigest(userId: string): Promise<boolean> {
  * Process queued notifications (run via cron)
  */
 export async function processNotificationQueue(): Promise<{ sent: number; batched: number }> {
-  const { data: queued } = await supabaseAdmin
+  const { data: queued } = await getSupabaseAdminRuntimeClient()
     .from("notification_queue")
     .select("*")
     .eq("status", "queued")
@@ -406,7 +406,7 @@ export async function processNotificationQueue(): Promise<{ sent: number; batche
 
     // Mark as sent
     const ids = items.map((i) => i.id);
-    await supabaseAdmin
+    await getSupabaseAdminRuntimeClient()
       .from("notification_queue")
       .update({ status: "sent", sent_at: new Date().toISOString() })
       .in("id", ids);

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { linkArtifact } from "@/lib/executions/artifactLinks";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
 import { internalPost } from "@/lib/executions/internalApi";
@@ -36,7 +36,7 @@ export async function POST(req: Request) {
 
     const dryRun = Boolean(dry_run ?? true); // SAFE DEFAULT
 
-    const { data: runs, error: e1 } = await supabaseAdmin
+    const { data: runs, error: e1 } = await getSupabaseAdminRuntimeClient()
         .from("execution_runs")
         .select("execution_id,trace_id,started_at")
         .eq("user_id", gate.userId)
@@ -48,7 +48,7 @@ export async function POST(req: Request) {
 
     const execIds = Array.from(new Set(runs.map((r: any) => r.execution_id)));
 
-    const { data: execs, error: e2 } = await supabaseAdmin
+    const { data: execs, error: e2 } = await getSupabaseAdminRuntimeClient()
         .from("executions")
         .select("id,kind,payload,priority,max_attempts")
         .eq("user_id", gate.userId)
@@ -71,7 +71,7 @@ export async function POST(req: Request) {
 
         const dedupe_key = `replay.${trace_id}.${ex.id}.${replayNonce} `;
 
-        const { data: created, error: e3 } = await supabaseAdmin
+        const { data: created, error: e3 } = await getSupabaseAdminRuntimeClient()
             .from("executions")
             .insert({
                 user_id: gate.userId,

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
 import { readTargetUserId } from "@/lib/auth/readTargetUser";
 import { opsLimit } from "@/lib/ops/limits";
@@ -31,7 +31,7 @@ export async function GET(req: Request) {
         meta: { baseline_days, recent_hours, scoped_user_id: gate.userId },
     });
 
-    const { data, error } = await supabaseAdmin.rpc("rpc_execution_drift_radar", {
+    const { data, error } = await getSupabaseAdminRuntimeClient().rpc("rpc_execution_drift_radar", {
         p_user_id: gate.userId,
         p_kind: kind ?? null,
         p_baseline_days: Math.min(30, Math.max(1, baseline_days)),
