@@ -33,3 +33,12 @@ out/
 
 # Pulse Specific Exclusions (Exceptions to strict rules if needed)
 # None. Hardened.
+
+# --- Antigravity / agent artifacts ---
+.agent/
+
+# --- Build artifacts ---
+tsconfig.tsbuildinfo
+.next/
+.vercel/
+
