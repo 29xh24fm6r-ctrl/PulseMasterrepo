@@ -320,6 +320,7 @@ export const GENERATED_APIS = [
   "/api/voice/coach",
   "/api/voice/command",
   "/api/voice/function-call",
+  "/api/voice/intake",
   "/api/voice/log",
   "/api/voice/morning",
   "/api/voice/oracle",

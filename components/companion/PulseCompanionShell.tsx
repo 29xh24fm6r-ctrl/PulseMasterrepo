@@ -3,8 +3,16 @@
 import React from "react";
 import { subscribePulseContext, PulseContextFrame } from "@/lib/companion/contextBus";
 
+import { QuickTalkButton } from "./QuickTalkButton";
+import { useQuickTalk, QuickTalkTrace } from "./useQuickTalk";
+
 export function PulseCompanionShell() {
     const [frame, setFrame] = React.useState<PulseContextFrame | null>(null);
+    const [trace, setTrace] = React.useState<QuickTalkTrace | null>(null);
+
+    const { state, startRecording, stopRecording, cancelRecording } = useQuickTalk({
+        onTraceUpdate: setTrace
+    });
 
     React.useEffect(() => {
         return subscribePulseContext(setFrame);
@@ -39,9 +47,31 @@ export function PulseCompanionShell() {
                     ) : null}
                 </div>
 
-                <button className="w-full rounded-xl px-4 py-3 border border-white/10 bg-white/10 hover:bg-white/15 text-sm font-medium text-white transition-all active:scale-[0.98]">
-                    🎙️ Hold to talk
-                </button>
+                <QuickTalkButton
+                    state={state}
+                    onStart={startRecording}
+                    onStop={() => stopRecording(frame)}
+                    onCancel={cancelRecording}
+                />
+
+                {/* Live Trace Panel */}
+                {trace && (
+                    <div className="rounded-xl border border-white/5 bg-black/40 p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                            <span className="text-[10px] bg-white/10 px-1.5 py-0.5 rounded text-slate-300 uppercase tracking-wider">{trace.state}</span>
+                            {trace.latencyMs && <span className="text-[10px] text-slate-500">{trace.latencyMs}ms</span>}
+                        </div>
+                        {trace.lastTranscript && (
+                            <div className="text-xs text-white italic">"{trace.lastTranscript}"</div>
+                        )}
+                        {trace.lastIntent && (
+                            <div className="text-[10px] font-mono text-emerald-400/80 break-all">{trace.lastIntent}</div>
+                        )}
+                        {trace.error && (
+                            <div className="text-[10px] font-mono text-red-400 break-all">{trace.error}</div>
+                        )}
+                    </div>
+                )}
 
                 <div className="text-xs opacity-60 text-slate-500 leading-relaxed">
                     Pulse stays present while you navigate pages. Pages publish context frames automatically.
