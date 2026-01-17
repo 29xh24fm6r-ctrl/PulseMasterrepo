@@ -3,20 +3,24 @@
 
 import Stripe from "stripe";
 
-if (!process.env.STRIPE_SECRET_KEY && process.env.NODE_ENV === "production") {
-  console.warn("Missing STRIPE_SECRET_KEY environment variable");
-}
+let _stripe: Stripe | null = null;
 
-export function getStripe() {
+export function getStripe(): Stripe {
+  if (_stripe) return _stripe;
+
   const key = process.env.STRIPE_SECRET_KEY;
+
+  // IMPORTANT: This must only throw when Stripe is invoked at runtime,
+  // not during Next.js build/import evaluation.
   if (!key) {
     throw new Error("Missing STRIPE_SECRET_KEY environment variable");
   }
 
-  return new Stripe(key, {
+  _stripe = new Stripe(key, {
     apiVersion: "2025-11-17.clover" as any, // Cast to any to avoid strict typing issues with specific versions if needed, or keeping explicit
     typescript: true,
   });
+  return _stripe;
 }
 
 // Price IDs - Set these in your environment variables after creating products in Stripe
