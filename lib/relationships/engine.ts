@@ -6,9 +6,9 @@
  */
 
 import { supabaseAdmin } from "@/lib/supabase";
-import OpenAI from "openai";
+import { getOpenAI } from "@/services/ai/openai";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// ... existing code ...
 
 // ============================================
 // TYPES
@@ -387,6 +387,7 @@ ${interactions.map((i) => `- ${i.occurredAt.toLocaleDateString()}: ${i.type} (${
 Provide a 2-3 sentence summary of this relationship and one suggestion for strengthening it.`;
 
   try {
+    const openai = getOpenAI();
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],

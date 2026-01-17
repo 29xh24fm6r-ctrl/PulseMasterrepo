@@ -2,7 +2,7 @@
 // Tracks user energy and matches tasks to current state
 
 import { createClient } from "@supabase/supabase-js";
-import OpenAI from "openai";
+import { getOpenAI } from "@/services/ai/openai";
 import {
   EnergyState,
   EnergyLevel,
@@ -10,7 +10,7 @@ import {
   PrioritizedAction,
 } from "./types";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
 
 function getSupabase() {
   return createClient(
@@ -353,7 +353,18 @@ export async function getEnergyMatchedRecommendations(
   ].slice(0, count);
 
   const profile = ENERGY_PROFILES[energyState.current_level];
+  const openai = getOpenAI();
+
   const explanation = `${profile.description}. Best for: ${profile.optimal_tasks.join(", ")}.`;
+
+  const prompt = `Given the user's current energy state, suggest 3 specific tasks aligned with: ${profile.optimal_tasks.join(", ")}.
+Return JSON: {"tasks":[{"title":"...","duration_minutes":15,"difficulty":"low|med|high"}],"why":"..."}`;
+
+  const completion = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages: [{ role: "user", content: prompt }],
+    response_format: { type: "json_object" },
+  });
 
   return {
     energy_state: energyState,

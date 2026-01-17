@@ -1,11 +1,11 @@
 import { canMakeAICall, trackAIUsage } from "@/services/usage";
 import { NextResponse } from "next/server";
-import OpenAI from "openai";
-
-const openai = new OpenAI();
+import { getOpenAI } from "@/services/ai/openai";
+import { supabaseAdmin } from "@/lib/supabase";
 
 export async function POST(request: Request) {
   try {
+    const openai = getOpenAI();
     const { task } = await request.json();
 
     if (!task || !task.title) {
@@ -31,6 +31,7 @@ Return ONLY a JSON array with this exact format, no other text:
   {"title": "specific action step", "estimatedMinutes": 3},
   {"title": "next specific step", "estimatedMinutes": 5}
 ]`;
+
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",

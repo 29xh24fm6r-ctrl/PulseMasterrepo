@@ -7,9 +7,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import OpenAI from "openai";
+import { getOpenAI } from "@/services/ai/openai";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
 
 export async function GET(
   req: NextRequest,
@@ -86,6 +86,7 @@ ${interactions.map((i) => `- ${i.type} (${i.direction}): ${i.subject || i.summar
 
 Provide a 2-3 sentence summary and 1-2 specific suggestions to strengthen this relationship.`;
 
+      const openai = getOpenAI();
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [{ role: "user", content: prompt }],

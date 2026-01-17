@@ -1,17 +1,18 @@
 import { canMakeAICall, trackAIUsage } from "@/services/usage";
 import { NextRequest, NextResponse } from "next/server";
-import { google } from "googleapis";
-import OpenAI from "openai";
+import { getOpenAI } from "@/services/ai/openai";
+import { supabaseAdmin } from "@/lib/supabase";
 import { refreshAccessToken } from "@/app/lib/gmail-utils";
 import { auth } from '@clerk/nextjs/server';
+
+
 
 // Supabase Data Layers
 import { createTask, getTasks } from '@/lib/data/tasks';
 import { createFollowUp, getFollowUps } from '@/lib/data/followups';
 import { createContact, getContacts } from '@/lib/data/journal';
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+
 
 // ============================================
 // BLOCKED DOMAINS & PATTERNS
@@ -215,6 +216,11 @@ type ContactItem = {
   isRealPerson: boolean;
 };
 
+async function classifyEmails(emails: any[]) {
+  const openai = getOpenAI();
+  const headers = emails.map((e, i) => `Email ${i}: Subject: ${e.subject}, From: ${e.from}`).join('\n');
+}
+
 async function analyzeEmailsWithAI(
   emails: Array<{ id: string; from: string; fromName: string; fromEmail: string; subject: string; body: string; date: string }>
 ): Promise<{ actions: ActionItem[]; contacts: ContactItem[] }> {
@@ -284,6 +290,7 @@ If an email is automated (job listing, property alert, newsletter, training remi
 Respond ONLY with valid JSON.`;
 
     try {
+      const openai = getOpenAI();
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [{ role: "user", content: prompt }],

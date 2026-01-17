@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import OpenAI from "openai";
+import { getOpenAI } from "@/services/ai/openai";
 import { jsonError, rateLimitOrThrow, withTimeout } from "@/lib/api/guards";
 import { withJourney } from "@/services/observability/journey";
 import { withPerf } from "@/services/observability/perf";
@@ -11,7 +11,7 @@ import { supabaseSpan } from "@/services/observability/supabaseSpan";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
+
 const ALGO_VERSION = "v1";
 
 function utcDay(): string {
@@ -161,7 +161,7 @@ async function maybeAiRerank(seeds: Seed[], signals: any): Promise<Seed[]> {
 
         const user = JSON.stringify({ signals, quests: seeds.map((s) => ({ quest_key: s.quest_key, title: s.title })) });
 
-        const resp = await withTimeout(
+        const completion = await withTimeout(
             openai.chat.completions.create({
                 model: "gpt-4o-mini",
                 temperature: 0.2,

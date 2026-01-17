@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { readTraceHeaders, traceFromBody } from "@/lib/executions/traceHeaders";
 import { linkArtifact } from "@/lib/executions/artifactLinks";
-import { Resend } from "resend";
+import { getResend } from "@/services/email/resend";
 import { logActivityEvent } from "@/lib/activity/log";
 import { bumpScore } from "@/lib/work/scoreboard";
 import { logActivity } from "@/lib/activity/logActivity";
@@ -10,15 +10,7 @@ import { logActivity } from "@/lib/activity/logActivity";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Lazy singleton for Resend
-let _resend: Resend | null = null;
-function getResend(): Resend {
-    if (_resend) return _resend;
-    const key = process.env.RESEND_API_KEY;
-    if (!key) throw new Error("Missing RESEND_API_KEY environment variable");
-    _resend = new Resend(key);
-    return _resend;
-}
+// Local helper to match the user's pattern
 
 const FROM_EMAIL = "Pulse OS <onboarding@resend.dev>"; // Fallback default
 

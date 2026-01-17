@@ -1,17 +1,10 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getContact, updateContact } from "@/lib/data/journal";
-import OpenAI from "openai";
+
+import { getOpenAI } from "@/services/ai/openai";
 
 export const maxDuration = 60; // 1 minute timeout
-
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-
-if (!OPENAI_API_KEY) {
-  throw new Error("Missing required environment variables");
-}
-
-const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
 async function searchWeb(query: string): Promise<any> {
   try {
@@ -148,6 +141,7 @@ ${intelligenceSummary}
 
 **CRITICAL:** Keep ALL responses SHORT. Only include info from search results. Respond ONLY with valid JSON.`;
 
+    const openai = getOpenAI();
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [{ role: "user", content: prompt }],

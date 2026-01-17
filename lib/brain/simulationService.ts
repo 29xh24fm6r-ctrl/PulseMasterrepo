@@ -1,15 +1,12 @@
 import { ReasoningResult, SimulationResult, SimulationInput, DecisionIntent } from './types';
 import { SimulationResultSchema } from './schemas';
-import OpenAI from 'openai';
+import { getOpenAI } from "@/services/ai/openai";
 
 export class SimulationService {
-    private openai: OpenAI | null = null;
+    // private openai: OpenAI | null = null; // No longer needed with singleton util
 
     private getClient(): OpenAI {
-        if (!this.openai) {
-            this.openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-        }
-        return this.openai;
+        return getOpenAI();
     }
 
     /**

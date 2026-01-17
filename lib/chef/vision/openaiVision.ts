@@ -1,4 +1,4 @@
-import OpenAI from "openai";
+import { getOpenAI } from "@/services/ai/openai";
 import { ChefVisionResultSchema, type ChefVisionResult } from "./types";
 
 function requireEnv(name: string): string {
@@ -14,7 +14,7 @@ export async function detectIngredientsFromImages(args: {
     const apiKey = requireEnv("OPENAI_API_KEY");
     const model = process.env.OPENAI_VISION_MODEL || "gpt-4.0-mini"; // Using closest available or fallback
 
-    const client = new OpenAI({ apiKey });
+    const client = getOpenAI();
 
     // We ask for STRICT JSON only. We validate with Zod.
     const prompt = `
@@ -54,7 +54,8 @@ Rules:
     ];
 
     // Using standard chat completion with json_object mode for better compliance
-    const resp = await client.chat.completions.create({
+    const openai = getOpenAI();
+    const resp = await openai.chat.completions.create({
         model,
         messages: input as any,
         max_tokens: 1000,

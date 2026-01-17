@@ -1,7 +1,7 @@
 // Third Brain v3: AI Extraction Engine
 // Uses GPT to extract entities, relationships, and fragments from raw events
 
-import OpenAI from "openai";
+
 import {
   FragmentType,
   EntityType,
@@ -17,8 +17,11 @@ import {
   linkEntityToFragment,
   markEventProcessed,
 } from "./index";
+import { getOpenAI } from "@/services/ai/openai";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+// OpenAI client is now instantiated lazily inside 'extractFromEvent'
+
 
 // ============================================
 // EXTRACTION TYPES
@@ -100,7 +103,8 @@ export async function extractFromEvent(
 ): Promise<ExtractionResult> {
   const eventDescription = formatEventForExtraction(source, payload);
 
-  const response = await openai.chat.completions.create({
+  const openai = getOpenAI();
+  const completion = await openai.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [
       { role: "system", content: EXTRACTION_PROMPT },

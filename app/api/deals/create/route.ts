@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from "@clerk/nextjs/server";
-import OpenAI from 'openai';
-import { createDeal } from "@/lib/data/deals";
+import { getOpenAI } from "@/services/ai/openai";
 import { PulseCortex } from "@/lib/cortex";
+import { createDeal } from "@/lib/data/deals";
 
 // Keep OpenAI for enrichment
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
 
 // Define valid stages
 type DealStage = 'Prospecting' | 'Qualification' | 'Proposal' | 'Negotiation' | 'Closed Won' | 'Closed Lost';
@@ -103,6 +103,7 @@ export async function POST(request: NextRequest) {
     
     Return JSON: { industry, companySize, suggestedValue, aiInsights }`;
 
+            const openai = getOpenAI();
             const completion = await openai.chat.completions.create({
               model: 'gpt-4o-mini',
               messages: [{ role: 'user', content: aiPrompt }],

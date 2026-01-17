@@ -1,7 +1,7 @@
 // Executive Function Cortex: Action Generator
 // Analyzes context and generates recommended actions
 
-import OpenAI from "openai";
+
 import { createClient } from "@supabase/supabase-js";
 import { CognitiveMesh } from "../cognitive-mesh";
 import {
@@ -14,7 +14,7 @@ import {
   GenerateActionsInput,
 } from "./types";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
 
 function getSupabase() {
   return createClient(
@@ -76,7 +76,7 @@ async function gatherContext(
   if (input.include_calendar !== false) {
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
     const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).toISOString();
-    
+
     const { data: events } = await supabase
       .from("calendar_events")
       .select("title, start_time, end_time, attendees")
@@ -142,7 +142,7 @@ async function gatherContext(
         entityIds: input.entity_ids,
         includeRecentFragments: true,
       });
-      
+
       if (context.fragments.length > 0) {
         parts.push("\n🧠 Relevant Context:");
         for (const f of context.fragments.slice(0, 5)) {
@@ -208,7 +208,8 @@ export async function generateActions(
   const context = await gatherContext(userId, input);
 
   // Generate actions with GPT
-  const response = await openai.chat.completions.create({
+  const openai = getOpenAI();
+  const completion = await openai.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [
       { role: "system", content: ACTION_GENERATION_PROMPT },
@@ -227,7 +228,7 @@ export async function generateActions(
   try {
     const parsed = JSON.parse(content);
     const actions = parsed.actions || parsed;
-    
+
     // Add IDs and validate
     return (Array.isArray(actions) ? actions : []).map((a: any) => ({
       id: crypto.randomUUID(),

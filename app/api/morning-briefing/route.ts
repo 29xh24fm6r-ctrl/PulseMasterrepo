@@ -2,10 +2,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { canMakeAICall } from "@/services/usage";
-import OpenAI from "openai";
+import { getOpenAI } from "@/services/ai/openai";
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+const openai = getOpenAI();
 
 // ============================================
 // Types
@@ -186,6 +185,7 @@ Write a 3-4 sentence morning brief that:
 Be concise, direct, and helpful. No fluff.`;
 
   try {
+    const openai = getOpenAI();
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],

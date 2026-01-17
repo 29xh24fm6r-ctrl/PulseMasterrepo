@@ -6,17 +6,11 @@
  */
 
 import { supabaseAdmin } from "../supabase";
-import OpenAI from "openai";
 import { Memory, MemoryType, MemoryPattern, MemoryContext, MemoryLayer } from "./types";
 
+import { getOpenAI } from "@/services/ai/openai";
 
-let openaiInstance: OpenAI | null = null;
-function getOpenAI(): OpenAI {
-  if (!openaiInstance) {
-    openaiInstance = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-  }
-  return openaiInstance;
-}
+// removed module scope init
 
 // ============================================
 // CORE FUNCTIONS
@@ -439,11 +433,12 @@ Only extract genuinely important, long-term relevant information. If nothing imp
 
 async function generateEmbedding(text: string): Promise<number[] | null> {
   try {
-    const response = await getOpenAI().embeddings.create({
+    const openai = getOpenAI();
+    const embedding = await openai.embeddings.create({
       model: "text-embedding-3-small",
       input: text,
     });
-    return response.data[0].embedding;
+    return embedding.data[0].embedding;
   } catch {
     return null;
   }

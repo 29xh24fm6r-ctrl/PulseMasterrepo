@@ -6,9 +6,9 @@
  */
 
 import { supabaseAdmin } from "@/lib/supabase";
-import OpenAI from "openai";
+import { getOpenAI } from "@/services/ai/openai";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// remove module scope init
 
 // ============================================
 // TYPES
@@ -380,6 +380,7 @@ Respond in JSON:
 }`;
 
   try {
+    const openai = getOpenAI();
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],

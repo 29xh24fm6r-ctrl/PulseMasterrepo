@@ -1,5 +1,7 @@
 import crypto from "crypto";
-import OpenAI from "openai";
+import { getOpenAI } from "@/services/ai/openai";
+
+
 import type { VoiceProfile } from "./voiceProfiles";
 import type { CrmContactContext } from "./crmEnrich";
 import type { OpenThreadContext } from "./openThreads";
@@ -163,9 +165,8 @@ export async function generateAiFollowupDraft(input: FollowupDraftInput): Promis
 
     const prompt_hash = sha256(prompt);
 
-    const client = new OpenAI({ apiKey });
-
-    const req = client.chat.completions.create({
+    const openai = getOpenAI();
+    const req = openai.chat.completions.create({
         model,
         temperature: 0.35,
         messages: [

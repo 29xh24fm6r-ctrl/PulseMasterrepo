@@ -47,5 +47,5 @@ jobs:
       - name: Prod smoke (DB + HTTP)
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-          PROD_BASE_URL: ${{ secrets.PROD_BASE_URL }}
+          PROD_BASE_URL: ${{ vars.PROD_BASE_URL }}
         run: npm run prod:smoke

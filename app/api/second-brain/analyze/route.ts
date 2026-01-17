@@ -1,15 +1,10 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { updateContact, getContact } from "@/lib/data/journal";
-import OpenAI from "openai";
+import { getOpenAI } from "@/services/ai/openai";
+import { supabaseAdmin } from "@/lib/supabase";
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
-if (!OPENAI_API_KEY) {
-  throw new Error("OPENAI_API_KEY is not set");
-}
-
-const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
 export async function POST(req: Request) {
   try {
@@ -98,6 +93,7 @@ ${rawData.substring(0, 10000)}
 
 **CRITICAL:** Respond ONLY with valid JSON.`;
 
+    const openai = getOpenAI();
     const completion = await openai.chat.completions.create({
       model: "gpt-4o", // using 4o for JSON reliability
       messages: [

@@ -1,15 +1,9 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { getContact } from "@/lib/data/journal";
-import OpenAI from "openai";
+import { getOpenAI } from "@/services/ai/openai";
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
-if (!OPENAI_API_KEY) {
-  throw new Error("Missing API keys");
-}
-
-const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
 export async function POST(req: Request) {
   try {
@@ -90,6 +84,7 @@ Provide IMMEDIATE, TACTICAL coaching that will help them WIN this conversation R
 
 Respond ONLY with valid JSON.`;
 
+    const openai = getOpenAI();
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [{ role: "user", content: prompt }],

@@ -1,10 +1,10 @@
 import { auth } from "@clerk/nextjs/server";
 import { canMakeAICall, trackAIUsage } from "@/services/usage";
 import { NextRequest, NextResponse } from "next/server";
-import OpenAI from "openai";
+import { getOpenAI } from "@/services/ai/openai";
 import { supabaseAdmin } from "@/lib/supabase";
 
-const openai = new OpenAI();
+const openai = getOpenAI();
 
 export async function POST(req: NextRequest) {
   try {
@@ -160,6 +160,7 @@ Return ONLY a JSON array of ${count} strings. No explanation, no markdown.
 Example format: ["suggestion 1", "suggestion 2", "suggestion 3", "suggestion 4"]`;
 
   try {
+    const openai = getOpenAI();
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],

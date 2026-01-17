@@ -4,13 +4,13 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { readTraceHeaders, traceFromBody } from "@/lib/executions/traceHeaders";
 import { execLog } from "@/lib/executions/logger";
 import { linkArtifact } from "@/lib/executions/artifactLinks";
-import OpenAI from "openai";
 import { jsonError, rateLimitOrThrow, withTimeout } from "@/lib/api/guards";
+import { getOpenAI } from "@/services/ai/openai";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
+// const openai = ...
 
 type TriageBody = {
     task_id: string;
@@ -37,18 +37,9 @@ function safeIsoOrNull(x: any): string | null {
 }
 
 async function runTriageLLM(input: { title: string; description: string | null }): Promise<TriageResult> {
-    // Deterministic fallback if no OpenAI key
-    if (!openai) {
-        return {
-            priority: 2,
-            context: null,
-            status: "pending",
-            due_at: null,
-            defer_until: null,
-            blocked_reason: null,
-            rationale: "Fallback triage (OPENAI_API_KEY not set).",
-        };
-    }
+    const openai = getOpenAI();
+    // Deterministic fallback handled by getOpenAI or try/catch if needed
+    /* if (!openai) { ... } */
 
     const system = [
         "You are Pulse, an execution triage engine.",

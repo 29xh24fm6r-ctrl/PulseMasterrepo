@@ -1,7 +1,7 @@
 // Memory Compression Library
 import { createClient } from "@supabase/supabase-js";
 import { llmJson } from "../llm/client";
-import OpenAI from "openai";
+
 
 function getSupabase() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
@@ -50,7 +50,7 @@ export async function getCompressionSettings(userId: string): Promise<Compressio
 }
 
 async function generateEmbedding(text: string): Promise<number[]> {
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const openai = getOpenAI();
   const response = await openai.embeddings.create({ model: "text-embedding-3-small", input: text });
   return response.data[0].embedding;
 }

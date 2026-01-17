@@ -5,7 +5,7 @@
  * Processes voice commands and generates spoken responses
  */
 
-import OpenAI from "openai";
+import { getOpenAI } from "@/services/ai/openai";
 import { supabaseAdmin } from "@/lib/supabase";
 import { callAIJson } from "@/lib/ai/call";
 import { getEmotionalState } from "@/lib/emotional/engine";
@@ -14,7 +14,7 @@ import { getLatestExecutiveSummary } from "@/lib/executive/engine";
 import { getSuggestedActions } from "@/lib/autonomy/engine";
 import { trackTTSUsage } from "@/services/usage";
 
-import { getOpenAI } from "@/services/ai/openai";
+
 
 // ============================================
 // TYPES

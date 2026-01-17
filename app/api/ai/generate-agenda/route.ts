@@ -2,7 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { canMakeAICall, trackAIUsage } from "@/services/usage";
 import { NextResponse } from "next/server";
 import { getContacts, type Contact } from "@/lib/data/journal";
-import OpenAI from "openai";
+import { getOpenAI } from "@/services/ai/openai";
 
 export async function POST(req: Request) {
   try {
@@ -11,9 +11,7 @@ export async function POST(req: Request) {
     const usageCheck = await canMakeAICall(userId, "generate_agenda", 3);
     if (!usageCheck.allowed) return NextResponse.json({ error: usageCheck.reason, requiresUpgrade: usageCheck.requiresUpgrade }, { status: 402 });
 
-    const key = process.env.OPENAI_API_KEY;
-    if (!key) throw new Error("Missing OPENAI_API_KEY");
-    const openai = new OpenAI({ apiKey: key });
+    const openai = getOpenAI();
 
     const body = await req.json();
     const { dealName, dealStage, meetingType, duration } = body;

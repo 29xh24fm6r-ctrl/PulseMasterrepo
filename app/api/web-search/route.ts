@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
 
-const BRAVE_API_KEY = process.env.BRAVE_SEARCH_API_KEY;
-
 // Add delay helper
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export async function POST(req: Request) {
   try {
+    const BRAVE_API_KEY = process.env.BRAVE_SEARCH_API_KEY;
     const body = await req.json();
     const { query } = body;
 
@@ -39,7 +38,7 @@ export async function POST(req: Request) {
     await delay(500);
 
     console.log(`🔍 Brave Search: ${query}`);
-    
+
     const response = await fetch(
       `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=10`,
       {
@@ -93,14 +92,14 @@ export async function POST(req: Request) {
     });
   } catch (err: any) {
     console.error("Web search error:", err?.message ?? err);
-    
+
     // Get query from request body safely
     let queryForFallback = "search";
     try {
       const bodyText = await req.text();
       const parsed = JSON.parse(bodyText);
       queryForFallback = parsed.query || "search";
-    } catch {}
+    } catch { }
 
     const mockResults = [
       {

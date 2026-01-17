@@ -2,12 +2,12 @@ import { canMakeAICall, trackAIUsage } from "@/services/usage";
 import { NextRequest, NextResponse } from "next/server";
 import { google } from "googleapis";
 import { auth } from "@clerk/nextjs/server";
-import OpenAI from "openai";
+import { getOpenAI } from "@/services/ai/openai";
 import { refreshAccessToken } from "@/app/lib/gmail-utils";
+import { supabaseAdmin } from "@/lib/supabase";
 import { getContactByEmail } from "@/lib/data/journal";
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+const openai = getOpenAI();
 
 // ============================================
 // BLOCKED DOMAINS - Skip entirely
@@ -248,6 +248,7 @@ Be STRICT. When in doubt, mark as NOT actionable. We only want REAL person-to-pe
 Respond ONLY with JSON array.`;
 
     try {
+      const openai = getOpenAI();
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [{ role: "user", content: prompt }],
@@ -366,6 +367,7 @@ If an email has NO actionable items or is automated, don't include it.
 Respond ONLY with the JSON array.`;
 
     try {
+      const openai = getOpenAI();
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [{ role: "user", content: prompt }],

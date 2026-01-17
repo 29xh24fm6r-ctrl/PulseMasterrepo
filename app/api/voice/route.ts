@@ -1,71 +1,63 @@
-import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
-import { toFile } from 'openai/uploads';
+import { NextRequest, NextResponse } from "next/server";
+import { getOpenAI } from "@/services/ai/openai";
+import { toFile } from "openai/uploads";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+export const runtime = "nodejs";
 
-// Transcribe audio to text using Whisper
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
-    const action = formData.get('action') as string;
+    const action = String(formData.get("action") ?? "");
 
-    // Speech-to-Text
-    if (action === 'transcribe') {
-      const audioBlob = formData.get('audio') as Blob;
-      
+    const openai = getOpenAI();
+
+    // Speech-to-Text (Whisper)
+    if (action === "transcribe") {
+      const audioBlob = formData.get("audio") as Blob | null;
       if (!audioBlob) {
-        return NextResponse.json({ error: 'No audio provided' }, { status: 400 });
+        return NextResponse.json({ error: "No audio provided" }, { status: 400 });
       }
 
-      // Convert blob to file for OpenAI
       const audioBuffer = Buffer.from(await audioBlob.arrayBuffer());
-      const audioFile = await toFile(audioBuffer, 'audio.webm', { type: 'audio/webm' });
+      const audioFile = await toFile(audioBuffer, "audio.webm", { type: "audio/webm" });
 
       const transcription = await openai.audio.transcriptions.create({
         file: audioFile,
-        model: 'whisper-1',
-        language: 'en',
+        model: "whisper-1",
+        language: "en",
       });
 
-      return NextResponse.json({ 
-        text: transcription.text,
-        success: true 
-      });
+      return NextResponse.json({ success: true, text: transcription.text });
     }
 
     // Text-to-Speech
-    if (action === 'speak') {
-      const text = formData.get('text') as string;
-      
+    if (action === "speak") {
+      const text = String(formData.get("text") ?? "");
       if (!text) {
-        return NextResponse.json({ error: 'No text provided' }, { status: 400 });
+        return NextResponse.json({ error: "No text provided" }, { status: 400 });
       }
 
-      // Generate speech using OpenAI TTS
       const mp3Response = await openai.audio.speech.create({
-        model: 'tts-1',
-        voice: 'nova', // Warm, friendly voice - options: alloy, echo, fable, onyx, nova, shimmer
+        model: "tts-1",
+        voice: "nova",
         input: text,
         speed: 1.0,
       });
 
-      // Convert to buffer and send as audio
       const audioBuffer = Buffer.from(await mp3Response.arrayBuffer());
-      
       return new NextResponse(audioBuffer, {
         headers: {
-          'Content-Type': 'audio/mpeg',
-          'Content-Length': audioBuffer.length.toString(),
+          "Content-Type": "audio/mpeg",
+          "Content-Length": String(audioBuffer.length),
         },
       });
     }
 
-    return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+    return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   } catch (error) {
-    console.error('Voice API error:', error);
+    console.error("Voice API error:", error);
     return NextResponse.json(
-      { error: 'Voice processing failed', details: String(error) },
+      { error: "Voice processing failed", details: String(error) },
       { status: 500 }
     );
   }

@@ -6,15 +6,7 @@
  */
 
 import { supabaseAdmin } from "@/lib/supabase";
-import OpenAI from "openai";
-
-// Lazy singleton for OpenAI
-let _openai: OpenAI | null = null;
-function getOpenAI(): OpenAI {
-  if (_openai) return _openai;
-  _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-  return _openai;
-}
+import { getOpenAI } from "@/services/ai/openai";
 
 // ============================================
 // TYPES

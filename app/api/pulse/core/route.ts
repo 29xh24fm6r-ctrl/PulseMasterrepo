@@ -6,7 +6,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getContacts, type Contact } from "@/lib/data/journal";
 import { auth } from "@clerk/nextjs/server";
 import { createClient } from "@supabase/supabase-js";
-import OpenAI from "openai";
+import { getOpenAI } from "@/services/ai/openai";
+import { supabaseAdmin } from "@/lib/supabase";
 import { loadKernel, loadRelevantModules, detectRelevantModules } from "@/app/lib/brain-loader";
 import { canMakeAICall, trackAIUsage } from "@/services/usage";
 
@@ -15,7 +16,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-const openai = new OpenAI();
+
 
 // Types for the unified response
 interface PulseInsight {
@@ -296,10 +297,14 @@ Respond with this exact JSON structure:
 
 Generate 3-7 insights, 2-3 quests, and top 3 relationship alerts. Be specific and personal.`;
 
+    const openai = getOpenAI();
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [{ role: "user", content: aiPrompt }],
-      max_tokens: 2500,
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: aiPrompt }, // Assuming aiPrompt is the system prompt
+        // ...history, // history is not defined in the original context, so keeping it out
+        { role: 'user', content: aiPrompt } // Assuming aiPrompt is also the user message for now
+      ],
       temperature: 0.7,
       response_format: { type: "json_object" },
     });

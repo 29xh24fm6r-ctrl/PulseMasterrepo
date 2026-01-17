@@ -1,15 +1,6 @@
-// Email Service using Resend
-import { Resend } from "resend";
+import { getResend } from "@/services/email/resend";
 
-// Lazy singleton for Resend
-let _resend: Resend | null = null;
-function getResend(): Resend {
-  if (_resend) return _resend;
-  const key = process.env.RESEND_API_KEY;
-  if (!key) throw new Error("Missing RESEND_API_KEY environment variable");
-  _resend = new Resend(key);
-  return _resend;
-}
+// Lazy singleton logic removed in favor of canonical factory
 
 const FROM_EMAIL = "Pulse OS <onboarding@resend.dev>";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://pulselifeos.com";

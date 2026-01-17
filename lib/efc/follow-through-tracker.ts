@@ -2,7 +2,7 @@
 // Monitors commitments, tracks progress, and nudges completion
 
 import { createClient } from "@supabase/supabase-js";
-import OpenAI from "openai";
+
 import { CognitiveMesh } from "../cognitive-mesh";
 import {
   Commitment,
@@ -11,8 +11,9 @@ import {
   GeneratedAction,
   ActionUrgency,
 } from "./types";
+import { getOpenAI } from "@/services/ai/openai";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
 
 function getSupabase() {
   return createClient(
@@ -337,7 +338,7 @@ export async function generateNudgesForUser(
     const lastCheckIn = commitment.check_ins?.[commitment.check_ins.length - 1];
     if (lastCheckIn) {
       const daysSinceCheckIn = (now.getTime() - new Date(lastCheckIn.timestamp).getTime()) / (1000 * 60 * 60 * 24);
-      
+
       if (daysSinceCheckIn > 7 && commitment.progress < 100) {
         const nudge = await createNudge(userId, {
           commitment_id: commitment.id,
@@ -381,6 +382,7 @@ The nudge should be:
 
 Return just the nudge message.`;
 
+  const openai = getOpenAI();
   const response = await openai.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [{ role: "user", content: prompt }],
@@ -411,6 +413,7 @@ For each commitment found, return JSON with:
 
 Return a JSON array of commitments, or empty array if none found.`;
 
+  const openai = getOpenAI();
   const response = await openai.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [{ role: "user", content: prompt }],
@@ -501,7 +504,7 @@ export const FollowThroughTracker = {
   updateCommitmentProgress,
   markCommitmentBroken,
   extractCommitmentsFromText,
-  
+
   // Nudges
   createNudge,
   getActiveNudges,
@@ -509,7 +512,7 @@ export const FollowThroughTracker = {
   snoozeNudge,
   generateNudgesForUser,
   generateSmartNudge,
-  
+
   // Analytics
   calculateFollowThroughScore,
 };

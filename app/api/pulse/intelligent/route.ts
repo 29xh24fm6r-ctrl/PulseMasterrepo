@@ -4,14 +4,14 @@ import { canMakeAICall, trackAIUsage } from "@/services/usage";
 
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import OpenAI from 'openai';
+import { getOpenAI } from "@/services/ai/openai";
 
 import { createTask, completeTask, getTasks } from '@/lib/data/tasks';
 import { logHabitCompletion, getHabits } from '@/lib/data/habits';
 import { getDeals } from '@/lib/data/deals';
 import { createFollowUp } from '@/lib/data/followups';
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// const openai = ...
 
 // ============================================
 // MAIN API HANDLER
@@ -134,6 +134,7 @@ If just chatting with no action, use CONVERSATION.
 Output ONLY valid JSON:`;
 
   try {
+    const openai = getOpenAI();
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [{ role: 'user', content: prompt }],
@@ -395,6 +396,7 @@ Respond naturally to acknowledge what you did. If you created something, confirm
 Keep it SHORT and CONVERSATIONAL. No bullet points. No formal language.`;
 
   try {
+    const openai = getOpenAI();
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [

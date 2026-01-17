@@ -2,7 +2,7 @@ import { canMakeAICall, trackAIUsage } from "@/services/usage";
 import { auth } from "@clerk/nextjs/server"; // Added auth import
 import { NextResponse } from "next/server";
 import { getContacts, type Contact } from "@/lib/data/journal";
-import OpenAI from "openai";
+import { getOpenAI } from "@/services/ai/openai";
 
 
 export async function POST(req: Request) {
@@ -10,7 +10,7 @@ export async function POST(req: Request) {
     const { userId } = await auth();
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const openai = getOpenAI();
 
     const body = await req.json();
     const { dealName, messageType, purpose } = body;
@@ -77,6 +77,7 @@ Write a LinkedIn message that:
 }
 
 Respond ONLY with valid JSON.`;
+
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",

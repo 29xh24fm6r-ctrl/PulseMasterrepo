@@ -5,7 +5,7 @@ import { canMakeAICall, trackAIUsage } from "@/services/usage";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { createClient } from "@supabase/supabase-js";
-import OpenAI from "openai";
+import { getOpenAI } from "@/services/ai/openai";
 import { ONBOARDING_SYSTEM_PROMPT, FIRST_QUESTION, OnboardingResponse } from "@/lib/onboarding/system";
 
 const supabase = createClient(
@@ -13,9 +13,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-});
+
 
 export async function POST(req: NextRequest) {
   try {
@@ -143,6 +141,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Call OpenAI
+    const openai = getOpenAI();
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: openaiMessages,

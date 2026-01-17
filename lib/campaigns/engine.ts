@@ -6,9 +6,10 @@
  */
 
 import { supabaseAdmin } from "@/lib/supabase";
-import OpenAI from "openai";
+import { getOpenAI } from "@/services/ai/openai";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// lazy singleton removed, use imported one
+
 
 // ============================================
 // TYPES

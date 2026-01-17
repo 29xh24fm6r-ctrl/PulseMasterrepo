@@ -5,10 +5,10 @@
  * Use this for all AI calls to ensure usage is tracked
  */
 
-import OpenAI from "openai";
+import { getOpenAI } from "@/services/ai/openai";
 import { trackAIUsage, canMakeAICall } from "@/services/usage";
 
-const openai = new OpenAI();
+const openai = getOpenAI();
 
 export interface CallAIOptions {
   userId: string;
@@ -63,6 +63,9 @@ export async function callAI(options: CallAIOptions): Promise<CallAIResult> {
       messages.push({ role: "system", content: systemPrompt });
     }
     messages.push({ role: "user", content: userPrompt });
+
+    // Get OpenAI client
+    const openai = getOpenAI();
 
     // Call OpenAI
     const completion = await openai.chat.completions.create({
