@@ -8,7 +8,13 @@
 import { supabaseAdmin } from "@/lib/supabase";
 import OpenAI from "openai";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// Lazy singleton for OpenAI
+let _openai: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (_openai) return _openai;
+  _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  return _openai;
+}
 
 // ============================================
 // TYPES
@@ -232,6 +238,7 @@ Respond in JSON:
 }`;
 
   try {
+    const openai = getOpenAI();
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
@@ -306,6 +313,7 @@ ${goals.map((g: any) => `- [${g.completed ? "✓" : " "}] ${g.title}`).join("\n"
 Write a brief (3-4 sentence) encouraging summary highlighting wins and areas for improvement.`;
 
   try {
+    const openai = getOpenAI();
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],

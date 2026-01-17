@@ -10,8 +10,16 @@ import { logActivity } from "@/lib/activity/logActivity";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Instantiate Resend client
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Lazy singleton for Resend
+let _resend: Resend | null = null;
+function getResend(): Resend {
+    if (_resend) return _resend;
+    const key = process.env.RESEND_API_KEY;
+    if (!key) throw new Error("Missing RESEND_API_KEY environment variable");
+    _resend = new Resend(key);
+    return _resend;
+}
+
 const FROM_EMAIL = "Pulse OS <onboarding@resend.dev>"; // Fallback default
 
 type SendEmailOptions = {
@@ -26,9 +34,7 @@ type SendEmailOptions = {
 
 // Local helper to match the user's pattern
 async function sendEmail({ to, subject, text, html, replyTo, headers }: SendEmailOptions) {
-    if (!process.env.RESEND_API_KEY) {
-        throw new Error("Missing RESEND_API_KEY");
-    }
+    const resend = getResend();
 
     // Construct payload
     const payload: any = {

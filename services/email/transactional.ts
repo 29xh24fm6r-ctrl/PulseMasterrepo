@@ -1,16 +1,22 @@
 // Email Service using Resend
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Lazy singleton for Resend
+let _resend: Resend | null = null;
+function getResend(): Resend {
+  if (_resend) return _resend;
+  const key = process.env.RESEND_API_KEY;
+  if (!key) throw new Error("Missing RESEND_API_KEY environment variable");
+  _resend = new Resend(key);
+  return _resend;
+}
+
 const FROM_EMAIL = "Pulse OS <onboarding@resend.dev>";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://pulselifeos.com";
 
 async function sendEmail(to: string, subject: string, html: string): Promise<boolean> {
   try {
-    if (!process.env.RESEND_API_KEY) {
-      console.log("Email skipped (no API key):", subject);
-      return false;
-    }
+    const resend = getResend();
     await resend.emails.send({ from: FROM_EMAIL, to, subject, html });
     console.log("Email sent:", subject);
     return true;
@@ -27,7 +33,7 @@ export async function sendLowBalanceAlert(email: string, name: string, tokensRem
 }
 
 export async function sendPaymentFailedEmail(email: string, name: string, amount: number): Promise<boolean> {
-  const html = `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px;"><h1 style="color:#a78bfa;">Pulse OS</h1><div style="background:#ef444422;border:1px solid #ef444444;border-radius:12px;padding:20px;margin:20px 0;"><h2 style="color:#ef4444;">Payment Failed</h2><p>We could not process your payment of <strong>$${(amount/100).toFixed(2)}</strong>.</p></div><a href="${APP_URL}/settings/billing" style="background:linear-gradient(135deg,#8b5cf6,#ec4899);color:white;padding:14px 28px;border-radius:8px;text-decoration:none;display:inline-block;">Update Payment Method</a></div>`;
+  const html = `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px;"><h1 style="color:#a78bfa;">Pulse OS</h1><div style="background:#ef444422;border:1px solid #ef444444;border-radius:12px;padding:20px;margin:20px 0;"><h2 style="color:#ef4444;">Payment Failed</h2><p>We could not process your payment of <strong>$${(amount / 100).toFixed(2)}</strong>.</p></div><a href="${APP_URL}/settings/billing" style="background:linear-gradient(135deg,#8b5cf6,#ec4899);color:white;padding:14px 28px;border-radius:8px;text-decoration:none;display:inline-block;">Update Payment Method</a></div>`;
   return sendEmail(email, "Pulse: Payment failed - action required", html);
 }
 
