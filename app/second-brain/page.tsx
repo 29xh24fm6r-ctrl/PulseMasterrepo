@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 
@@ -18,8 +20,8 @@ interface Contact {
 }
 
 const RELATIONSHIP_TYPES = [
-  "Client", "Lead", "Prospect", "Partner", "Vendor", 
-  "Colleague", "Friend", "Family", "Mentor", "Mentee", 
+  "Client", "Lead", "Prospect", "Partner", "Vendor",
+  "Colleague", "Friend", "Family", "Mentor", "Mentee",
   "Investor", "Advisor", "Acquaintance", "Other"
 ];
 
@@ -32,34 +34,34 @@ export default function SecondBrainPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<"basic" | "professional" | "personal" | "relationship">("basic");
-  
+
   // Form state - comprehensive
   const [form, setForm] = useState({
     // Basic
     name: "",
     email: "",
     phone: "",
-    
+
     // Professional
     company: "",
     role: "",
     industry: "",
     linkedIn: "",
     website: "",
-    
+
     // Personal
     birthday: "",
     address: "",
     city: "",
     state: "",
     zip: "",
-    
+
     // Relationship
     relationship: "",
     relationshipStrength: "New",
     howWeMet: "",
     introducedBy: "",
-    
+
     // Context
     interests: "",
     notes: "",
@@ -86,7 +88,7 @@ export default function SecondBrainPage() {
 
   const handleSubmit = async () => {
     if (!form.name.trim()) return;
-    
+
     setSaving(true);
     try {
       const res = await fetch("/api/contacts", {
@@ -97,7 +99,7 @@ export default function SecondBrainPage() {
           tags: form.tags ? form.tags.split(",").map(t => t.trim()).filter(Boolean) : [],
         }),
       });
-      
+
       if (res.ok) {
         setModalOpen(false);
         setForm({
@@ -123,7 +125,7 @@ export default function SecondBrainPage() {
     setForm(f => ({ ...f, [key]: value }));
   };
 
-  const filteredContacts = contacts.filter(c => 
+  const filteredContacts = contacts.filter(c =>
     c.name?.toLowerCase().includes(search.toLowerCase()) ||
     c.email?.toLowerCase().includes(search.toLowerCase()) ||
     c.company?.toLowerCase().includes(search.toLowerCase())
@@ -214,27 +216,26 @@ export default function SecondBrainPage() {
                   </div>
                 </div>
                 {contact.status && (
-                  <span className={`text-xs px-2 py-1 rounded-full ${
-                    contact.status === "Hot" ? "bg-red-500/20 text-red-400" :
+                  <span className={`text-xs px-2 py-1 rounded-full ${contact.status === "Hot" ? "bg-red-500/20 text-red-400" :
                     contact.status === "Warm" ? "bg-orange-500/20 text-orange-400" :
-                    contact.status === "Cold" ? "bg-blue-500/20 text-blue-400" :
-                    "bg-green-500/20 text-green-400"
-                  }`}>
+                      contact.status === "Cold" ? "bg-blue-500/20 text-blue-400" :
+                        "bg-green-500/20 text-green-400"
+                    }`}>
                     {contact.status}
                   </span>
                 )}
               </div>
-              
+
               {contact.email && <p className="text-sm text-zinc-400 mb-1">📧 {contact.email}</p>}
               {contact.phone && <p className="text-sm text-zinc-400 mb-1">📱 {contact.phone}</p>}
               {contact.relationship && <p className="text-sm text-zinc-500">🤝 {contact.relationship}</p>}
-              
+
               {contact.lastContact && (
                 <p className="text-xs text-zinc-600 mt-2">
                   Last contact: {new Date(contact.lastContact).toLocaleDateString()}
                 </p>
               )}
-              
+
               <div className="flex gap-2 mt-3">
                 <Link href={`/calls?phone=${contact.phone}&contactId=${contact.id}`} className="flex-1 py-1.5 text-center text-sm bg-green-600/20 text-green-400 rounded-lg hover:bg-green-600/30">
                   📞 Call
@@ -257,7 +258,7 @@ export default function SecondBrainPage() {
               <h2 className="text-xl font-bold">Add New Contact</h2>
               <button onClick={() => setModalOpen(false)} className="p-2 hover:bg-zinc-800 rounded-lg">✕</button>
             </div>
-            
+
             {/* Tabs */}
             <div className="flex border-b border-zinc-800">
               {[
@@ -269,17 +270,16 @@ export default function SecondBrainPage() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex-1 py-3 text-sm font-medium transition-colors ${
-                    activeTab === tab.id
-                      ? "text-violet-400 border-b-2 border-violet-400"
-                      : "text-zinc-500 hover:text-zinc-300"
-                  }`}
+                  className={`flex-1 py-3 text-sm font-medium transition-colors ${activeTab === tab.id
+                    ? "text-violet-400 border-b-2 border-violet-400"
+                    : "text-zinc-500 hover:text-zinc-300"
+                    }`}
                 >
                   {tab.label}
                 </button>
               ))}
             </div>
-            
+
             {/* Form Content */}
             <div className="p-6 overflow-y-auto max-h-[50vh]">
               {activeTab === "basic" && (
@@ -418,7 +418,7 @@ export default function SecondBrainPage() {
                 </div>
               )}
             </div>
-            
+
             {/* Footer */}
             <div className="flex gap-3 p-6 border-t border-zinc-800">
               <button onClick={() => setModalOpen(false)} className="flex-1 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg">

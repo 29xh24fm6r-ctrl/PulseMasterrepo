@@ -1,5 +1,8 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
+
 import React from 'react';
 import BridgeLayout from '@/components/bridge/BridgeLayout';
 import CenterStage from '@/components/bridge/CenterStage';

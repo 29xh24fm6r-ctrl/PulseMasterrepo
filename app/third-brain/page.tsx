@@ -1,10 +1,11 @@
 'use client';
+export const dynamic = "force-dynamic";
 import { ThirdBrainVoice } from "@/components/PageVoiceComponents";
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { 
-  Brain, 
+import {
+  Brain,
   AlertTriangle,
   Lightbulb,
   Sparkles,
@@ -35,49 +36,49 @@ type StatusFilter = 'open' | 'accepted' | 'done' | 'dismissed' | 'all';
 function getKindConfig(kind: string) {
   switch (kind) {
     case 'risk':
-      return { 
-        icon: AlertTriangle, 
-        color: 'text-red-400', 
+      return {
+        icon: AlertTriangle,
+        color: 'text-red-400',
         bg: 'bg-red-500/10 border-red-500/30',
         badgeBg: 'bg-red-500/20',
         label: 'Risk'
       };
     case 'opportunity':
-      return { 
-        icon: Sparkles, 
-        color: 'text-emerald-400', 
+      return {
+        icon: Sparkles,
+        color: 'text-emerald-400',
         bg: 'bg-emerald-500/10 border-emerald-500/30',
         badgeBg: 'bg-emerald-500/20',
         label: 'Opportunity'
       };
     case 'suggestion':
-      return { 
-        icon: Lightbulb, 
-        color: 'text-amber-400', 
+      return {
+        icon: Lightbulb,
+        color: 'text-amber-400',
         bg: 'bg-amber-500/10 border-amber-500/30',
         badgeBg: 'bg-amber-500/20',
         label: 'Suggestion'
       };
     case 'reflection':
-      return { 
-        icon: MessageSquare, 
-        color: 'text-purple-400', 
+      return {
+        icon: MessageSquare,
+        color: 'text-purple-400',
         bg: 'bg-purple-500/10 border-purple-500/30',
         badgeBg: 'bg-purple-500/20',
         label: 'Reflection'
       };
     case 'nudge':
-      return { 
-        icon: Brain, 
-        color: 'text-cyan-400', 
+      return {
+        icon: Brain,
+        color: 'text-cyan-400',
         bg: 'bg-cyan-500/10 border-cyan-500/30',
         badgeBg: 'bg-cyan-500/20',
         label: 'Nudge'
       };
     default:
-      return { 
-        icon: Brain, 
-        color: 'text-zinc-400', 
+      return {
+        icon: Brain,
+        color: 'text-zinc-400',
         bg: 'bg-zinc-500/10 border-zinc-500/30',
         badgeBg: 'bg-zinc-500/20',
         label: kind
@@ -111,9 +112,9 @@ function formatDate(dateString: string): string {
   }
   if (diffDays === 1) return 'Yesterday';
   if (diffDays < 7) return `${diffDays} days ago`;
-  
-  return date.toLocaleDateString('en-US', { 
-    month: 'short', 
+
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
     day: 'numeric',
     year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
   });
@@ -129,7 +130,7 @@ export default function ThirdBrainPage() {
   const fetchInsights = useCallback(async (showRefresh = false) => {
     if (showRefresh) setRefreshing(true);
     else setLoading(true);
-    
+
     try {
       const statusParam = filter === 'all' ? '' : `status=${filter}&`;
       const res = await fetch(`/api/third-brain/insights?${statusParam}limit=50`);
@@ -157,13 +158,13 @@ export default function ThirdBrainPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
       });
-      
+
       if (res.ok) {
         // Update locally
-        setInsights(prev => prev.map(i => 
+        setInsights(prev => prev.map(i =>
           i.id === id ? { ...i, status, acted_at: new Date().toISOString() } : i
         ));
-        
+
         // If filtering by a specific status, remove from view
         if (filter !== 'all' && filter !== status) {
           setInsights(prev => prev.filter(i => i.id !== id));
@@ -191,8 +192,8 @@ export default function ThirdBrainPage() {
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Link 
-                href="/life" 
+              <Link
+                href="/life"
                 className="p-2 hover:bg-zinc-800 rounded-lg transition-colors"
               >
                 <ArrowLeft className="w-5 h-5" />
@@ -210,7 +211,7 @@ export default function ThirdBrainPage() {
               <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
             </button>
           </div>
-            <ThirdBrainVoice />
+          <ThirdBrainVoice />
         </div>
       </header>
 
@@ -222,11 +223,10 @@ export default function ThirdBrainPage() {
               <button
                 key={tab.key}
                 onClick={() => setFilter(tab.key)}
-                className={`px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
-                  filter === tab.key
-                    ? 'border-cyan-400 text-white'
-                    : 'border-transparent text-zinc-400 hover:text-white'
-                }`}
+                className={`px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${filter === tab.key
+                  ? 'border-cyan-400 text-white'
+                  : 'border-transparent text-zinc-400 hover:text-white'
+                  }`}
               >
                 {tab.label}
               </button>
@@ -247,12 +247,12 @@ export default function ThirdBrainPage() {
               {filter === 'open' ? '👍' : '📭'}
             </div>
             <h2 className="text-xl font-semibold mb-2">
-              {filter === 'open' 
-                ? "No open insights" 
+              {filter === 'open'
+                ? "No open insights"
                 : `No ${filter} insights`}
             </h2>
             <p className="text-zinc-400">
-              {filter === 'open' 
+              {filter === 'open'
                 ? "Pulse didn't spot anything urgent today. Check back later!"
                 : "Nothing to show here yet."}
             </p>
@@ -266,17 +266,16 @@ export default function ThirdBrainPage() {
               const isActed = insight.status !== 'open';
 
               return (
-                <div 
-                  key={insight.id} 
-                  className={`p-5 border rounded-2xl transition-all ${config.bg} ${
-                    isActed ? 'opacity-75' : ''
-                  }`}
+                <div
+                  key={insight.id}
+                  className={`p-5 border rounded-2xl transition-all ${config.bg} ${isActed ? 'opacity-75' : ''
+                    }`}
                 >
                   <div className="flex items-start gap-4">
                     <div className={`p-2 rounded-xl ${config.badgeBg} ${config.color}`}>
                       <Icon className="w-5 h-5" />
                     </div>
-                    
+
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-2">
                         <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${config.badgeBg} ${config.color}`}>
@@ -292,11 +291,11 @@ export default function ThirdBrainPage() {
                           </span>
                         )}
                       </div>
-                      
+
                       <h3 className="font-semibold text-white mb-2">
                         {insight.title}
                       </h3>
-                      
+
                       <p className="text-sm text-zinc-300 leading-relaxed">
                         {insight.description}
                       </p>

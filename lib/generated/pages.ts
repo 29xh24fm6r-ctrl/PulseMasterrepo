@@ -79,6 +79,7 @@ export const GENERATED_PAGES = [
   "/pulse-ai",
   "/pulse-capture",
   "/pulse-demo",
+  "/pulse/companion",
   "/relationships",
   "/relationships/[id]",
   "/roleplay-coach",

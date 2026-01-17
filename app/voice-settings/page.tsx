@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
@@ -96,7 +98,7 @@ export default function VoiceSettingsPage() {
     setSaving(true);
     try {
       localStorage.setItem("pulse-voice-settings", JSON.stringify(settings));
-      
+
       // Also save to server for persistence
       await fetch("/api/user/settings", {
         method: "PATCH",
@@ -208,14 +210,12 @@ export default function VoiceSettingsPage() {
               </div>
               <button
                 onClick={() => updateSetting("voiceEnabled", !settings.voiceEnabled)}
-                className={`w-12 h-6 rounded-full transition-colors ${
-                  settings.voiceEnabled ? "bg-purple-600" : "bg-zinc-700"
-                }`}
+                className={`w-12 h-6 rounded-full transition-colors ${settings.voiceEnabled ? "bg-purple-600" : "bg-zinc-700"
+                  }`}
               >
                 <div
-                  className={`w-5 h-5 bg-white rounded-full transition-transform ${
-                    settings.voiceEnabled ? "translate-x-6" : "translate-x-0.5"
-                  }`}
+                  className={`w-5 h-5 bg-white rounded-full transition-transform ${settings.voiceEnabled ? "translate-x-6" : "translate-x-0.5"
+                    }`}
                 />
               </button>
             </div>
@@ -227,14 +227,12 @@ export default function VoiceSettingsPage() {
               </div>
               <button
                 onClick={() => updateSetting("autoSpeak", !settings.autoSpeak)}
-                className={`w-12 h-6 rounded-full transition-colors ${
-                  settings.autoSpeak ? "bg-purple-600" : "bg-zinc-700"
-                }`}
+                className={`w-12 h-6 rounded-full transition-colors ${settings.autoSpeak ? "bg-purple-600" : "bg-zinc-700"
+                  }`}
               >
                 <div
-                  className={`w-5 h-5 bg-white rounded-full transition-transform ${
-                    settings.autoSpeak ? "translate-x-6" : "translate-x-0.5"
-                  }`}
+                  className={`w-5 h-5 bg-white rounded-full transition-transform ${settings.autoSpeak ? "translate-x-6" : "translate-x-0.5"
+                    }`}
                 />
               </button>
             </div>
@@ -359,14 +357,12 @@ export default function VoiceSettingsPage() {
               </div>
               <button
                 onClick={() => updateSetting("alertsEnabled", !settings.alertsEnabled)}
-                className={`w-12 h-6 rounded-full transition-colors ${
-                  settings.alertsEnabled ? "bg-purple-600" : "bg-zinc-700"
-                }`}
+                className={`w-12 h-6 rounded-full transition-colors ${settings.alertsEnabled ? "bg-purple-600" : "bg-zinc-700"
+                  }`}
               >
                 <div
-                  className={`w-5 h-5 bg-white rounded-full transition-transform ${
-                    settings.alertsEnabled ? "translate-x-6" : "translate-x-0.5"
-                  }`}
+                  className={`w-5 h-5 bg-white rounded-full transition-transform ${settings.alertsEnabled ? "translate-x-6" : "translate-x-0.5"
+                    }`}
                 />
               </button>
             </div>
@@ -386,14 +382,12 @@ export default function VoiceSettingsPage() {
                     </div>
                     <button
                       onClick={() => updateAlertType(key as keyof VoiceSettings["alertTypes"], !settings.alertTypes[key as keyof VoiceSettings["alertTypes"]])}
-                      className={`w-10 h-5 rounded-full transition-colors ${
-                        settings.alertTypes[key as keyof VoiceSettings["alertTypes"]] ? "bg-purple-600" : "bg-zinc-700"
-                      }`}
+                      className={`w-10 h-5 rounded-full transition-colors ${settings.alertTypes[key as keyof VoiceSettings["alertTypes"]] ? "bg-purple-600" : "bg-zinc-700"
+                        }`}
                     >
                       <div
-                        className={`w-4 h-4 bg-white rounded-full transition-transform ${
-                          settings.alertTypes[key as keyof VoiceSettings["alertTypes"]] ? "translate-x-5" : "translate-x-0.5"
-                        }`}
+                        className={`w-4 h-4 bg-white rounded-full transition-transform ${settings.alertTypes[key as keyof VoiceSettings["alertTypes"]] ? "translate-x-5" : "translate-x-0.5"
+                          }`}
                       />
                     </button>
                   </div>

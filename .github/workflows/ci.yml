@@ -21,8 +21,11 @@ jobs:
       - name: Verify SDK isolation
         run: npx tsx scripts/verify-no-sdk-imports.ts
 
-      - name: Verify build shell
+      - name: Verify Build Shell Architecture
         run: npx tsx scripts/verify-build-shell.ts
+
+      - name: Verify protected pages are runtime-only
+        run: npx tsx scripts/verify-force-dynamic-pages.ts
 
       - name: Build
         run: npm run build

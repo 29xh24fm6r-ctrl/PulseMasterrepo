@@ -1,5 +1,8 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { Brain, Heart, Target, Sparkles, TrendingUp, BookOpen, Zap, Shield, ChevronRight, Loader2, Play, Calendar, BarChart3 } from "lucide-react";

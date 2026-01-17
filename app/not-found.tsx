@@ -1,5 +1,4 @@
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
 
 // IMPORTANT:
 // Next.js may prerender /_not-found outside the normal layout/provider tree.

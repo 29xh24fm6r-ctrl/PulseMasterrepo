@@ -1,4 +1,5 @@
 'use client';
+export const dynamic = "force-dynamic";
 
 import { useState, useRef, useEffect } from 'react';
 import { Send, Loader2, Zap, ArrowLeft, Sparkles } from 'lucide-react';
@@ -54,7 +55,7 @@ export default function PulseChat() {
 
     // Remove options from previous assistant messages
     setMessages(prev => prev.map(m => ({ ...m, options: null })));
-    
+
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
@@ -129,14 +130,14 @@ export default function PulseChat() {
   const getButtonStyle = (option: Option, index: number) => {
     const isPositive = option.id === 'yes' || option.label.toLowerCase().includes('yes');
     const isNegative = option.id === 'no' || option.label.toLowerCase().includes('no');
-    
+
     if (isPositive) {
       return 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-500 hover:to-emerald-500 shadow-lg shadow-green-500/20';
     }
     if (isNegative) {
       return 'bg-gray-700 text-gray-300 hover:bg-gray-600';
     }
-    
+
     // Rotating colors for multiple options
     const colors = [
       'bg-gradient-to-r from-cyan-600 to-blue-600 text-white hover:from-cyan-500 hover:to-blue-500 shadow-lg shadow-cyan-500/20',
@@ -144,7 +145,7 @@ export default function PulseChat() {
       'bg-gradient-to-r from-amber-600 to-orange-600 text-white hover:from-amber-500 hover:to-orange-500 shadow-lg shadow-amber-500/20',
       'bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:from-emerald-500 hover:to-teal-500 shadow-lg shadow-emerald-500/20',
     ];
-    
+
     return colors[index % colors.length];
   };
 
@@ -153,14 +154,14 @@ export default function PulseChat() {
       {/* Header */}
       <header className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Link 
-            href="/" 
+          <Link
+            href="/"
             className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             <span className="text-sm">Dashboard</span>
           </Link>
-          
+
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
               <Zap className="w-5 h-5 text-white" />
@@ -170,7 +171,7 @@ export default function PulseChat() {
               <p className="text-xs text-gray-500">Your AI Partner</p>
             </div>
           </div>
-          
+
           <div className="w-20" /> {/* Spacer for centering */}
         </div>
       </header>
@@ -178,7 +179,7 @@ export default function PulseChat() {
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-4xl mx-auto px-4 py-6">
-          
+
           {/* Welcome State */}
           {showWelcome && messages.length === 0 && (
             <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
@@ -187,10 +188,10 @@ export default function PulseChat() {
               </div>
               <h2 className="text-2xl font-bold text-white mb-2">Hey, I'm Pulse</h2>
               <p className="text-gray-400 max-w-md mb-8">
-                Your teacher, coach, and strategic partner. I know your tasks, deals, and contacts. 
+                Your teacher, coach, and strategic partner. I know your tasks, deals, and contacts.
                 Just tell me what's on your mind.
               </p>
-              
+
               <div className="grid grid-cols-2 gap-3 w-full max-w-md">
                 {quickPrompts.map((prompt, index) => (
                   <button
@@ -216,11 +217,10 @@ export default function PulseChat() {
                   className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`max-w-[80%] ${
-                      message.role === 'user'
+                    className={`max-w-[80%] ${message.role === 'user'
                         ? 'bg-gradient-to-br from-cyan-600 to-blue-700 text-white rounded-2xl rounded-br-sm'
                         : 'bg-gray-800/70 text-gray-100 rounded-2xl rounded-bl-sm'
-                    } px-4 py-3`}
+                      } px-4 py-3`}
                   >
                     {message.role === 'assistant' && (
                       <div className="flex items-center gap-2 mb-2 pb-2 border-b border-gray-700/50">
@@ -238,7 +238,7 @@ export default function PulseChat() {
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Dynamic Option Buttons */}
                 {message.role === 'assistant' && message.options && message.options.length > 0 && !isLoading && (
                   <div className="flex flex-wrap justify-start mt-3 ml-4 gap-2">
@@ -255,7 +255,7 @@ export default function PulseChat() {
                 )}
               </div>
             ))}
-            
+
             {/* Loading indicator */}
             {isLoading && (
               <div className="flex justify-start">
@@ -273,7 +273,7 @@ export default function PulseChat() {
                 </div>
               </div>
             )}
-            
+
             <div ref={messagesEndRef} />
           </div>
         </div>
@@ -298,11 +298,10 @@ export default function PulseChat() {
             <button
               onClick={() => sendMessage()}
               disabled={!input.trim() || isLoading}
-              className={`p-3 rounded-xl transition-all ${
-                input.trim() && !isLoading
+              className={`p-3 rounded-xl transition-all ${input.trim() && !isLoading
                   ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:from-cyan-400 hover:to-blue-500 shadow-lg shadow-cyan-500/20'
                   : 'bg-gray-800 text-gray-500 cursor-not-allowed'
-              }`}
+                }`}
             >
               {isLoading ? (
                 <Loader2 className="w-5 h-5 animate-spin" />

@@ -1,4 +1,7 @@
 "use client";
+
+export const dynamic = "force-dynamic";
+
 import { useState, useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
 import { JobSelector } from "@/components/JobSelector";
@@ -72,27 +75,24 @@ export default function SettingsPage() {
           <div className="w-48 space-y-1">
             <button
               onClick={() => setActiveTab("job")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors ${
-                activeTab === "job" ? "bg-violet-600 text-white" : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
-              }`}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors ${activeTab === "job" ? "bg-violet-600 text-white" : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
+                }`}
             >
               <Briefcase className="w-4 h-4" />
               <span>Job Title</span>
             </button>
             <button
               onClick={() => setActiveTab("profile")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors ${
-                activeTab === "profile" ? "bg-violet-600 text-white" : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
-              }`}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors ${activeTab === "profile" ? "bg-violet-600 text-white" : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
+                }`}
             >
               <User className="w-4 h-4" />
               <span>Profile</span>
             </button>
             <button
               onClick={() => setActiveTab("preferences")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors ${
-                activeTab === "preferences" ? "bg-violet-600 text-white" : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
-              }`}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors ${activeTab === "preferences" ? "bg-violet-600 text-white" : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
+                }`}
             >
               <Palette className="w-4 h-4" />
               <span>Preferences</span>

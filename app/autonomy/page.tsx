@@ -1,7 +1,6 @@
 'use client';
 
 export const dynamic = "force-dynamic";
-
 // IMPORTANT:
 // This page can touch auth/user state and must not be statically prerendered in CI.
 import { AutonomyVoice } from "@/components/PageVoiceComponents";

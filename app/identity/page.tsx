@@ -1,5 +1,8 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
+
 import { useState } from "react";
 import { Target, Zap, Brain, Sparkles, Star, TrendingUp, Plus, ChevronRight } from "lucide-react";
 
@@ -19,7 +22,7 @@ interface Strength {
 
 export default function IdentityPage() {
   const [activeTab, setActiveTab] = useState<"values" | "strengths" | "beliefs" | "aspirations">("values");
-  
+
   // Mock data - in production, fetch from API
   const [values] = useState<Value[]>([
     { id: "1", value_name: "Growth", importance_rank: 1, confidence: 0.9 },
@@ -56,11 +59,10 @@ export default function IdentityPage() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as typeof activeTab)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
-                activeTab === tab.id
-                  ? "bg-gradient-to-r from-cyan-500 to-blue-500 text-white"
-                  : "text-slate-400 hover:text-white"
-              }`}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${activeTab === tab.id
+                ? "bg-gradient-to-r from-cyan-500 to-blue-500 text-white"
+                : "text-slate-400 hover:text-white"
+                }`}
             >
               <tab.icon className="w-4 h-4" />
               {tab.label}

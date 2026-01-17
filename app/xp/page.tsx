@@ -1,10 +1,12 @@
-'use client';
+"use client";
+
+export const dynamic = "force-dynamic";
 
 // Pulse OS - XP Ascension Page
 // app/xp/page.tsx
 
 import React, { useState, useEffect } from 'react';
-import { 
+import {
   ArrowLeft, Flame, Zap, Crown, Brain, Trophy, TrendingUp,
   Lock, Unlock, ChevronRight, Sparkles, Shield, Target, Star,
   Swords, Award, RefreshCw
@@ -152,14 +154,14 @@ export default function XPPage() {
       <div className="bg-gradient-to-r from-purple-900/50 via-indigo-900/50 to-purple-900/50 border-b border-gray-800">
         <div className="max-w-6xl mx-auto px-6 py-6">
           <div className="flex items-center justify-between mb-6">
-            <button 
-              onClick={() => router.push('/')} 
+            <button
+              onClick={() => router.push('/')}
               className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />
               Dashboard
             </button>
-            <button 
+            <button
               onClick={fetchXP}
               className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 rounded-lg text-gray-400 hover:text-white transition-colors"
             >
@@ -178,7 +180,7 @@ export default function XPPage() {
                 <Star className="w-5 h-5 text-yellow-400" />
               </div>
             </div>
-            
+
             <div className="flex-1">
               <p className="text-purple-300 text-sm uppercase tracking-wider mb-1">Ascension Level</p>
               <h1 className="text-3xl font-bold text-white mb-2">{getAscensionTitle(state.ascensionLevel)}</h1>
@@ -217,11 +219,10 @@ export default function XPPage() {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 -mb-px ${
-                  activeTab === tab
-                    ? 'text-purple-400 border-purple-500'
-                    : 'text-gray-400 border-transparent hover:text-gray-300'
-                }`}
+                className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 -mb-px ${activeTab === tab
+                  ? 'text-purple-400 border-purple-500'
+                  : 'text-gray-400 border-transparent hover:text-gray-300'
+                  }`}
               >
                 {tab.charAt(0).toUpperCase() + tab.slice(1)}
               </button>
@@ -236,8 +237,8 @@ export default function XPPage() {
           <OverviewTab state={state} stats={stats} />
         )}
         {activeTab === 'skills' && (
-          <SkillsTab 
-            state={state} 
+          <SkillsTab
+            state={state}
             selectedCategory={selectedCategory}
             onSelectCategory={setSelectedCategory}
           />
@@ -261,7 +262,7 @@ function OverviewTab({ state, stats }: { state: any; stats: any }) {
           {stats.categoryProgress.map((cat: any) => {
             const info = XP_CATEGORY_INFO[cat.category as XPCategory];
             return (
-              <div 
+              <div
                 key={cat.category}
                 className={`p-4 rounded-xl border ${info.borderClass} ${info.bgClass}`}
               >
@@ -272,25 +273,24 @@ function OverviewTab({ state, stats }: { state: any; stats: any }) {
                     <p className={`text-lg font-bold ${info.textClass}`}>Level {cat.level}</p>
                   </div>
                 </div>
-                
+
                 <div className="h-2 bg-gray-700 rounded-full overflow-hidden mb-2">
-                  <div 
-                    className={`h-full bg-gradient-to-r ${
-                      cat.category === 'DXP' ? 'from-amber-500 to-orange-500' :
+                  <div
+                    className={`h-full bg-gradient-to-r ${cat.category === 'DXP' ? 'from-amber-500 to-orange-500' :
                       cat.category === 'PXP' ? 'from-red-500 to-rose-500' :
-                      cat.category === 'IXP' ? 'from-violet-500 to-purple-500' :
-                      cat.category === 'AXP' ? 'from-emerald-500 to-green-500' :
-                      'from-cyan-500 to-blue-500'
-                    }`}
+                        cat.category === 'IXP' ? 'from-violet-500 to-purple-500' :
+                          cat.category === 'AXP' ? 'from-emerald-500 to-green-500' :
+                            'from-cyan-500 to-blue-500'
+                      }`}
                     style={{ width: `${cat.progress * 100}%` }}
                   />
                 </div>
-                
+
                 <div className="flex justify-between text-xs">
                   <span className="text-gray-500">{cat.xp.toLocaleString()} XP</span>
                   <span className="text-gray-500">{cat.toNextLevel.toLocaleString()} to next</span>
                 </div>
-                
+
                 {state.todayXP[cat.category] > 0 && (
                   <p className={`text-xs mt-2 ${info.textClass}`}>
                     +{state.todayXP[cat.category]} today
@@ -311,7 +311,7 @@ function OverviewTab({ state, stats }: { state: any; stats: any }) {
           </div>
           <p className="text-2xl font-bold text-white">{state.currentStreak} days</p>
         </div>
-        
+
         <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
           <div className="flex items-center gap-2 mb-2">
             <Trophy className="w-5 h-5 text-yellow-400" />
@@ -319,7 +319,7 @@ function OverviewTab({ state, stats }: { state: any; stats: any }) {
           </div>
           <p className="text-2xl font-bold text-white">{state.longestStreak} days</p>
         </div>
-        
+
         <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
           <div className="flex items-center gap-2 mb-2">
             <Unlock className="w-5 h-5 text-green-400" />
@@ -327,7 +327,7 @@ function OverviewTab({ state, stats }: { state: any; stats: any }) {
           </div>
           <p className="text-2xl font-bold text-white">{state.unlockedSkills?.length || 0}</p>
         </div>
-        
+
         <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
           <div className="flex items-center gap-2 mb-2">
             <TrendingUp className="w-5 h-5 text-purple-400" />
@@ -404,19 +404,19 @@ function OverviewTab({ state, stats }: { state: any; stats: any }) {
 }
 
 // Skills Tab
-function SkillsTab({ 
-  state, 
-  selectedCategory, 
-  onSelectCategory 
-}: { 
-  state: any; 
+function SkillsTab({
+  state,
+  selectedCategory,
+  onSelectCategory
+}: {
+  state: any;
   selectedCategory: XPCategory;
   onSelectCategory: (cat: XPCategory) => void;
 }) {
   const skills = SKILL_TREES[selectedCategory];
   const currentLevel = state.levels[selectedCategory];
   const unlockedSkills = state.unlockedSkills || [];
-  
+
   return (
     <div className="space-y-6">
       {/* Category Selector */}
@@ -428,11 +428,10 @@ function SkillsTab({
             <button
               key={cat}
               onClick={() => onSelectCategory(cat)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition-all ${
-                isSelected
-                  ? `${info.bgClass} border ${info.borderClass}`
-                  : 'bg-gray-800 border border-gray-700 hover:border-gray-600'
-              }`}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition-all ${isSelected
+                ? `${info.bgClass} border ${info.borderClass}`
+                : 'bg-gray-800 border border-gray-700 hover:border-gray-600'
+                }`}
             >
               <span>{info.icon}</span>
               <span className={isSelected ? info.textClass : 'text-gray-400'}>
@@ -451,49 +450,45 @@ function SkillsTab({
         <h3 className="text-lg font-bold text-white mb-6">
           {XP_CATEGORY_INFO[selectedCategory].icon} {XP_CATEGORY_INFO[selectedCategory].fullName} Skill Tree
         </h3>
-        
+
         <div className="space-y-4">
           {skills.map((skill, index) => {
             const isUnlocked = unlockedSkills.includes(skill.id);
             const canUnlock = currentLevel >= skill.levelRequired;
-            
+
             return (
               <div key={skill.id} className="relative">
                 {/* Connection line */}
                 {index < skills.length - 1 && (
-                  <div className={`absolute left-6 top-14 w-0.5 h-8 ${
-                    isUnlocked ? 'bg-green-500' : 'bg-gray-700'
-                  }`} />
+                  <div className={`absolute left-6 top-14 w-0.5 h-8 ${isUnlocked ? 'bg-green-500' : 'bg-gray-700'
+                    }`} />
                 )}
-                
-                <div className={`flex items-start gap-4 p-4 rounded-xl border transition-all ${
-                  isUnlocked
-                    ? 'bg-green-500/10 border-green-500/50'
-                    : canUnlock
+
+                <div className={`flex items-start gap-4 p-4 rounded-xl border transition-all ${isUnlocked
+                  ? 'bg-green-500/10 border-green-500/50'
+                  : canUnlock
                     ? `${XP_CATEGORY_INFO[selectedCategory].bgClass} ${XP_CATEGORY_INFO[selectedCategory].borderClass}`
                     : 'bg-gray-800/50 border-gray-700 opacity-50'
-                }`}>
+                  }`}>
                   {/* Icon */}
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${
-                    isUnlocked
-                      ? 'bg-green-500/20'
-                      : canUnlock
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${isUnlocked
+                    ? 'bg-green-500/20'
+                    : canUnlock
                       ? XP_CATEGORY_INFO[selectedCategory].bgClass
                       : 'bg-gray-700'
-                  }`}>
+                    }`}>
                     {isUnlocked ? '✓' : skill.icon}
                   </div>
-                  
+
                   {/* Content */}
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <h4 className={`font-bold ${
-                        isUnlocked
-                          ? 'text-green-400'
-                          : canUnlock
+                      <h4 className={`font-bold ${isUnlocked
+                        ? 'text-green-400'
+                        : canUnlock
                           ? 'text-white'
                           : 'text-gray-500'
-                      }`}>
+                        }`}>
                         {skill.name}
                       </h4>
                       {isUnlocked ? (
@@ -506,13 +501,12 @@ function SkillsTab({
                         </span>
                       )}
                     </div>
-                    <p className={`text-sm ${
-                      isUnlocked || canUnlock ? 'text-gray-400' : 'text-gray-600'
-                    }`}>
+                    <p className={`text-sm ${isUnlocked || canUnlock ? 'text-gray-400' : 'text-gray-600'
+                      }`}>
                       {skill.description}
                     </p>
                   </div>
-                  
+
                   {/* Status */}
                   <div className="flex-shrink-0">
                     {isUnlocked ? (
@@ -541,7 +535,7 @@ function SkillsTab({
 function IdentityTab({ state }: { state: any }) {
   const resonance = state.identityResonance || {};
   const maxResonance = Math.max(...Object.values(resonance as Record<string, number>), 1);
-  
+
   return (
     <div className="space-y-6">
       {/* Active Identity */}
@@ -566,25 +560,24 @@ function IdentityTab({ state }: { state: any }) {
       <div>
         <h2 className="text-xl font-bold text-white mb-4">Identity Resonance</h2>
         <p className="text-gray-400 text-sm mb-6">
-          As you take actions aligned with different identities, you build resonance. 
+          As you take actions aligned with different identities, you build resonance.
           When an identity reaches 500 resonance, it becomes available to activate.
         </p>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {(Object.entries(IDENTITY_INFO) as [IdentityType, typeof IDENTITY_INFO[IdentityType]][]).map(([id, info]) => {
             const value = resonance[id] || 0;
             const progress = Math.min(value / 500, 1);
             const isActive = state.activeIdentity === id;
             const isUnlocked = value >= 500;
-            
+
             return (
-              <div 
+              <div
                 key={id}
-                className={`p-4 rounded-xl border transition-all ${
-                  isActive
-                    ? `${info.bgClass} border-2 ${info.color.replace('text-', 'border-')}`
-                    : 'bg-gray-800/50 border-gray-700'
-                }`}
+                className={`p-4 rounded-xl border transition-all ${isActive
+                  ? `${info.bgClass} border-2 ${info.color.replace('text-', 'border-')}`
+                  : 'bg-gray-800/50 border-gray-700'
+                  }`}
               >
                 <div className="flex items-center gap-3 mb-3">
                   <span className="text-2xl">{info.icon}</span>
@@ -613,15 +606,14 @@ function IdentityTab({ state }: { state: any }) {
                     <p className="text-xs text-gray-500">/ 500</p>
                   </div>
                 </div>
-                
+
                 {/* Progress bar */}
                 <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
-                  <div 
-                    className={`h-full transition-all duration-500 ${
-                      isUnlocked
-                        ? `bg-gradient-to-r ${info.bgClass.replace('bg-', 'from-').replace('/20', '')} to-white/50`
-                        : 'bg-gray-600'
-                    }`}
+                  <div
+                    className={`h-full transition-all duration-500 ${isUnlocked
+                      ? `bg-gradient-to-r ${info.bgClass.replace('bg-', 'from-').replace('/20', '')} to-white/50`
+                      : 'bg-gray-600'
+                      }`}
                     style={{ width: `${progress * 100}%` }}
                   />
                 </div>
@@ -636,16 +628,16 @@ function IdentityTab({ state }: { state: any }) {
         <h3 className="text-lg font-bold text-white mb-4">About Identities</h3>
         <div className="text-sm text-gray-400 space-y-3">
           <p>
-            <strong className="text-white">Identity Resonance</strong> tracks which version of yourself 
+            <strong className="text-white">Identity Resonance</strong> tracks which version of yourself
             you're expressing through your actions. Every XP-earning activity adds resonance to one or more identities.
           </p>
           <p>
-            <strong className="text-white">Activating an Identity</strong> once it reaches 500 resonance 
-            gives you XP bonuses for actions aligned with that identity. A Stoic earns more IXP, 
+            <strong className="text-white">Activating an Identity</strong> once it reaches 500 resonance
+            gives you XP bonuses for actions aligned with that identity. A Stoic earns more IXP,
             a Builder earns more AXP, etc.
           </p>
           <p>
-            <strong className="text-white">Special Abilities</strong> unlock with each identity, 
+            <strong className="text-white">Special Abilities</strong> unlock with each identity,
             like crit windows during conflict (Stoic) or streak protection (Warrior).
           </p>
         </div>

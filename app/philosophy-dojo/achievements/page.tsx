@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft, Trophy, Lock, Loader2, Sparkles } from "lucide-react";
@@ -40,22 +42,20 @@ const RARITY_ORDER = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
 
 function AchievementCard({ achievement }: { achievement: Achievement }) {
   const isLocked = !achievement.unlocked;
-  
+
   return (
     <div
-      className={`relative p-4 rounded-xl border-2 transition-all ${
-        isLocked 
-          ? 'bg-zinc-900/50 border-zinc-800 opacity-60' 
-          : `${achievement.colors.bg} ${achievement.colors.border}`
-      }`}
+      className={`relative p-4 rounded-xl border-2 transition-all ${isLocked
+        ? 'bg-zinc-900/50 border-zinc-800 opacity-60'
+        : `${achievement.colors.bg} ${achievement.colors.border}`
+        }`}
     >
       {/* Rarity indicator */}
-      <div className={`absolute top-2 right-2 text-xs px-2 py-0.5 rounded-full ${
-        isLocked ? 'bg-zinc-800 text-zinc-500' : `${achievement.colors.bg} ${achievement.colors.text}`
-      }`}>
+      <div className={`absolute top-2 right-2 text-xs px-2 py-0.5 rounded-full ${isLocked ? 'bg-zinc-800 text-zinc-500' : `${achievement.colors.bg} ${achievement.colors.text}`
+        }`}>
         {achievement.rarity}
       </div>
-      
+
       {/* Content */}
       <div className="flex items-start gap-3">
         <div className={`text-3xl ${isLocked ? 'grayscale opacity-50' : ''}`}>
@@ -75,7 +75,7 @@ function AchievementCard({ achievement }: { achievement: Achievement }) {
           </div>
         </div>
       </div>
-      
+
       {/* Unlocked indicator */}
       {!isLocked && (
         <div className="absolute -top-2 -left-2 w-6 h-6 rounded-full bg-green-500 flex items-center justify-center">
@@ -106,12 +106,12 @@ export default function AchievementsPage() {
 
   // Group achievements by category
   const categories = [...new Set(achievements.map(a => a.category))];
-  
+
   // Filter by selected category
   const filteredAchievements = selectedCategory
     ? achievements.filter(a => a.category === selectedCategory)
     : achievements;
-  
+
   // Sort: unlocked first, then by rarity
   const sortedAchievements = [...filteredAchievements].sort((a, b) => {
     if (a.unlocked !== b.unlocked) return a.unlocked ? -1 : 1;
@@ -136,7 +136,7 @@ export default function AchievementsPage() {
                 <p className="text-white/60">Your journey of philosophical mastery</p>
               </div>
             </div>
-            
+
             {stats && (
               <div className="flex items-center gap-6">
                 <div className="text-center">
@@ -156,13 +156,13 @@ export default function AchievementsPage() {
           </div>
         </div>
       </div>
-      
+
       {/* Progress Bar */}
       {stats && (
         <div className="max-w-6xl mx-auto px-6 py-4">
           <div className="flex items-center gap-3">
             <div className="flex-1 h-3 bg-white/10 rounded-full overflow-hidden">
-              <div 
+              <div
                 className="h-full bg-gradient-to-r from-yellow-500 to-yellow-400 transition-all duration-500"
                 style={{ width: `${(stats.unlocked / stats.total) * 100}%` }}
               />
@@ -173,17 +173,16 @@ export default function AchievementsPage() {
           </div>
         </div>
       )}
-      
+
       {/* Category Filter */}
       <div className="max-w-6xl mx-auto px-6 py-4">
         <div className="flex gap-2 overflow-x-auto pb-2">
           <button
             onClick={() => setSelectedCategory(null)}
-            className={`px-4 py-2 rounded-lg whitespace-nowrap transition ${
-              selectedCategory === null
-                ? 'bg-white/20 border border-white/30'
-                : 'bg-white/5 border border-white/10 hover:bg-white/10'
-            }`}
+            className={`px-4 py-2 rounded-lg whitespace-nowrap transition ${selectedCategory === null
+              ? 'bg-white/20 border border-white/30'
+              : 'bg-white/5 border border-white/10 hover:bg-white/10'
+              }`}
           >
             All
           </button>
@@ -191,16 +190,15 @@ export default function AchievementsPage() {
             const info = CATEGORY_LABELS[cat] || { name: cat, icon: '📌' };
             const count = achievements.filter(a => a.category === cat && a.unlocked).length;
             const total = achievements.filter(a => a.category === cat).length;
-            
+
             return (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-4 py-2 rounded-lg whitespace-nowrap transition flex items-center gap-2 ${
-                  selectedCategory === cat
-                    ? 'bg-white/20 border border-white/30'
-                    : 'bg-white/5 border border-white/10 hover:bg-white/10'
-                }`}
+                className={`px-4 py-2 rounded-lg whitespace-nowrap transition flex items-center gap-2 ${selectedCategory === cat
+                  ? 'bg-white/20 border border-white/30'
+                  : 'bg-white/5 border border-white/10 hover:bg-white/10'
+                  }`}
               >
                 <span>{info.icon}</span>
                 <span>{info.name}</span>
@@ -210,7 +208,7 @@ export default function AchievementsPage() {
           })}
         </div>
       </div>
-      
+
       {/* Achievements Grid */}
       <div className="max-w-6xl mx-auto px-6 py-4">
         {loading ? (
@@ -224,14 +222,14 @@ export default function AchievementsPage() {
             ))}
           </div>
         )}
-        
+
         {!loading && sortedAchievements.length === 0 && (
           <div className="text-center py-20 text-white/50">
             No achievements in this category yet
           </div>
         )}
       </div>
-      
+
       {/* Legend */}
       <div className="max-w-6xl mx-auto px-6 py-8">
         <h3 className="text-sm font-semibold text-white/50 mb-3">Rarity</h3>

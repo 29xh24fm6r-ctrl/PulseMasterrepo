@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useState } from "react";
 import { Shield, Plus, Eye, EyeOff, Trash2, Lock, Key, FileText, CreditCard } from "lucide-react";
 
