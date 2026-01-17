@@ -1,8 +1,7 @@
-import OpenAI from "openai";
 import { getContacts } from "@/lib/data/journal";
+import { getOpenAI } from "@/lib/llm/client";
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+// Removed global openai init
 
 export interface GenerateEmailInput {
     dealName: string;
@@ -102,6 +101,7 @@ Write an email that:
 
 Respond ONLY with valid JSON.`;
 
+    const openai = getOpenAI();
     const completion = await openai.chat.completions.create({
         model: "gpt-4o",
         messages: [

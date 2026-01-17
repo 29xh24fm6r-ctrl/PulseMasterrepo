@@ -6,9 +6,10 @@
  */
 
 import { supabaseAdmin } from "@/lib/supabase";
-import OpenAI from "openai";
+import { supabaseAdmin } from "@/lib/supabase";
+import { getOpenAI } from "@/lib/llm/client";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// Removed global openai init
 
 // ============================================
 // TYPES
@@ -471,6 +472,7 @@ export async function generateCampaignContent(
        Be specific and actionable.`;
 
   try {
+    const openai = getOpenAI();
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],

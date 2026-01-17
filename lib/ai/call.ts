@@ -5,10 +5,10 @@
  * Use this for all AI calls to ensure usage is tracked
  */
 
-import OpenAI from "openai";
-import { trackAIUsage, canMakeAICall } from "@/services/usage";
+// Lazy init via helper
+import { getOpenAI } from "@/lib/llm/client";
 
-const openai = new OpenAI();
+// Removed top-level openai init
 
 export interface CallAIOptions {
   userId: string;
@@ -65,6 +65,7 @@ export async function callAI(options: CallAIOptions): Promise<CallAIResult> {
     messages.push({ role: "user", content: userPrompt });
 
     // Call OpenAI
+    const openai = getOpenAI();
     const completion = await openai.chat.completions.create({
       model,
       messages,

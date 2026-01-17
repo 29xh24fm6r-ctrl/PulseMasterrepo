@@ -1,15 +1,9 @@
-import { createClient } from "@supabase/supabase-js";
+// Lazy init to prevent build crashes
+import { createAdminClient } from "@/lib/supabase/server";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-/**
- * Server-side only. Uses service role to guarantee writes
- * (so logging never fails due to RLS edge cases).
- */
-const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-    auth: { persistSession: false },
-});
+function getAdminClient() {
+    return createAdminClient();
+}
 
 export type ActivityLogParams = {
     userId: string;
@@ -23,7 +17,8 @@ export type ActivityLogParams = {
 
 export async function logActivity(p: ActivityLogParams): Promise<string | null> {
     try {
-        const { data, error } = await supabaseAdmin.rpc("log_activity", {
+        const supabase = getAdminClient();
+        const { data, error } = await supabase.rpc("log_activity", {
             p_user_id: p.userId,
             p_event_name: p.eventName,
             p_event_ts: p.eventTs ?? new Date().toISOString(),

@@ -1,9 +1,9 @@
 import { ActionData } from "@/lib/types/actions";
-import OpenAI from "openai";
 import { supabaseAdmin } from "@/lib/supabase";
 import { DetectedAction, ScannedEmail } from "./email-intelligence";
+import { getOpenAI } from "@/lib/llm/client";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// Removed global openai init
 
 /**
  * Generate a smart email reply draft for an actionable email.
@@ -42,6 +42,7 @@ export async function generateAutoDraft(
         
         Return ONLY the body of the email.`;
 
+        const openai = getOpenAI();
         const completion = await openai.chat.completions.create({
             model: "gpt-4o",
             messages: [{ role: "user", content: prompt }],
