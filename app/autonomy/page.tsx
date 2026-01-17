@@ -1,10 +1,15 @@
 'use client';
+
+export const dynamic = "force-dynamic";
+
+// IMPORTANT:
+// This page can touch auth/user state and must not be statically prerendered in CI.
 import { AutonomyVoice } from "@/components/PageVoiceComponents";
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { 
-  Zap, 
+import {
+  Zap,
   CheckSquare,
   Clock,
   Heart,
@@ -35,49 +40,49 @@ type StatusFilter = 'suggested' | 'scheduled' | 'completed' | 'ignored';
 function getTypeConfig(type: string) {
   switch (type) {
     case 'task':
-      return { 
-        icon: CheckSquare, 
-        color: 'text-blue-400', 
+      return {
+        icon: CheckSquare,
+        color: 'text-blue-400',
         bg: 'bg-blue-500/10 border-blue-500/30',
         badgeBg: 'bg-blue-500/20',
         label: 'Task'
       };
     case 'follow_up':
-      return { 
-        icon: Clock, 
-        color: 'text-amber-400', 
+      return {
+        icon: Clock,
+        color: 'text-amber-400',
         bg: 'bg-amber-500/10 border-amber-500/30',
         badgeBg: 'bg-amber-500/20',
         label: 'Follow Up'
       };
     case 'habit_nudge':
-      return { 
-        icon: Heart, 
-        color: 'text-pink-400', 
+      return {
+        icon: Heart,
+        color: 'text-pink-400',
         bg: 'bg-pink-500/10 border-pink-500/30',
         badgeBg: 'bg-pink-500/20',
         label: 'Habit Nudge'
       };
     case 'reflection':
-      return { 
-        icon: BookOpen, 
-        color: 'text-purple-400', 
+      return {
+        icon: BookOpen,
+        color: 'text-purple-400',
         bg: 'bg-purple-500/10 border-purple-500/30',
         badgeBg: 'bg-purple-500/20',
         label: 'Reflection'
       };
     case 'briefing':
-      return { 
-        icon: FileText, 
-        color: 'text-cyan-400', 
+      return {
+        icon: FileText,
+        color: 'text-cyan-400',
         bg: 'bg-cyan-500/10 border-cyan-500/30',
         badgeBg: 'bg-cyan-500/20',
         label: 'Briefing'
       };
     default:
-      return { 
-        icon: Zap, 
-        color: 'text-zinc-400', 
+      return {
+        icon: Zap,
+        color: 'text-zinc-400',
         bg: 'bg-zinc-500/10 border-zinc-500/30',
         badgeBg: 'bg-zinc-500/20',
         label: type
@@ -101,9 +106,9 @@ function formatDate(dateString: string): string {
   }
   if (diffDays === 1) return 'Yesterday';
   if (diffDays < 7) return `${diffDays} days ago`;
-  
-  return date.toLocaleDateString('en-US', { 
-    month: 'short', 
+
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
     day: 'numeric',
   });
 }
@@ -118,7 +123,7 @@ export default function AutonomyPage() {
   const fetchActions = useCallback(async (showRefresh = false) => {
     if (showRefresh) setRefreshing(true);
     else setLoading(true);
-    
+
     try {
       const res = await fetch(`/api/autonomy/actions?status=${filter}&limit=50`);
       const data = await res.json();
@@ -145,13 +150,13 @@ export default function AutonomyPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
       });
-      
+
       if (res.ok) {
         // Update locally
-        setActions(prev => prev.map(a => 
+        setActions(prev => prev.map(a =>
           a.id === id ? { ...a, status, updatedAt: new Date().toISOString() } : a
         ));
-        
+
         // If filtering by a specific status, remove from view
         if (filter !== status) {
           setActions(prev => prev.filter(a => a.id !== id));
@@ -178,8 +183,8 @@ export default function AutonomyPage() {
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Link 
-                href="/life" 
+              <Link
+                href="/life"
                 className="p-2 hover:bg-zinc-800 rounded-lg transition-colors"
               >
                 <ArrowLeft className="w-5 h-5" />
@@ -197,7 +202,7 @@ export default function AutonomyPage() {
               <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
             </button>
           </div>
-            <AutonomyVoice />
+          <AutonomyVoice />
         </div>
       </header>
 
@@ -209,11 +214,10 @@ export default function AutonomyPage() {
               <button
                 key={tab.key}
                 onClick={() => setFilter(tab.key)}
-                className={`px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors flex items-center gap-2 ${
-                  filter === tab.key
-                    ? 'border-yellow-400 text-white'
-                    : 'border-transparent text-zinc-400 hover:text-white'
-                }`}
+                className={`px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors flex items-center gap-2 ${filter === tab.key
+                  ? 'border-yellow-400 text-white'
+                  : 'border-transparent text-zinc-400 hover:text-white'
+                  }`}
               >
                 <span>{tab.emoji}</span>
                 {tab.label}
@@ -235,12 +239,12 @@ export default function AutonomyPage() {
               {filter === 'suggested' ? '✨' : filter === 'completed' ? '🎉' : '📭'}
             </div>
             <h2 className="text-xl font-semibold mb-2">
-              {filter === 'suggested' 
-                ? "No suggestions right now" 
+              {filter === 'suggested'
+                ? "No suggestions right now"
                 : `No ${filter} actions`}
             </h2>
             <p className="text-zinc-400">
-              {filter === 'suggested' 
+              {filter === 'suggested'
                 ? "Pulse will suggest actions based on your Third Brain insights."
                 : "Nothing to show here yet."}
             </p>
@@ -254,17 +258,16 @@ export default function AutonomyPage() {
               const isActed = action.status !== 'suggested';
 
               return (
-                <div 
-                  key={action.id} 
-                  className={`p-5 border rounded-2xl transition-all ${config.bg} ${
-                    isActed ? 'opacity-75' : ''
-                  }`}
+                <div
+                  key={action.id}
+                  className={`p-5 border rounded-2xl transition-all ${config.bg} ${isActed ? 'opacity-75' : ''
+                    }`}
                 >
                   <div className="flex items-start gap-4">
                     <div className={`p-2 rounded-xl ${config.badgeBg} ${config.color}`}>
                       <Icon className="w-5 h-5" />
                     </div>
-                    
+
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-2">
                         <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${config.badgeBg} ${config.color}`}>
@@ -279,11 +282,11 @@ export default function AutonomyPage() {
                           </span>
                         )}
                       </div>
-                      
+
                       <h3 className="font-semibold text-white mb-2">
                         {action.title}
                       </h3>
-                      
+
                       {action.description && (
                         <p className="text-sm text-zinc-300 leading-relaxed">
                           {action.description}
