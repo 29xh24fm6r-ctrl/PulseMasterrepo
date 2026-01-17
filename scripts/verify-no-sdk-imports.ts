@@ -14,7 +14,8 @@ const FORBIDDEN_PACKAGES = [
     "@supabase/supabase-js",
     "stripe",
     "resend",
-    "openai"
+    "openai",
+    "google-auth-library"
 ];
 
 const FORBIDDEN_PATTERNS = [

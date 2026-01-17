@@ -1,15 +1,18 @@
 import { NextResponse } from "next/server";
 import { google } from "googleapis";
+import { isBuildPhase } from "@/lib/env/guard";
 
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-
-if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
-  throw new Error("Missing Google OAuth credentials");
-}
+export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
+  // 🛡️ Build-time safety
+  if (isBuildPhase()) {
+    return NextResponse.json({ ok: true, buildPhase: true }, { status: 200 });
+  }
+
   try {
+    const { createGoogleOAuthClient } = await import("@/lib/runtime/google.runtime");
+
     const body = await req.json();
     const { to, subject, message, accessToken } = body;
 
@@ -27,10 +30,8 @@ export async function POST(req: Request) {
       );
     }
 
-    const oauth2Client = new google.auth.OAuth2(
-      GOOGLE_CLIENT_ID,
-      GOOGLE_CLIENT_SECRET
-    );
+    // Use FACTORY method to get a fresh client instance since we set credentials
+    const oauth2Client = createGoogleOAuthClient();
 
     oauth2Client.setCredentials({
       access_token: accessToken,

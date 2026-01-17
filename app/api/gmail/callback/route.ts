@@ -1,20 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import { google } from "googleapis";
+import { isBuildPhase } from "@/lib/env/guard";
 
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI;
+export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
+  // 🛡️ Build-time safety
+  if (isBuildPhase()) {
+    return NextResponse.json({ ok: true, buildPhase: true }, { status: 200 });
+  }
+
   console.log("🎯 CALLBACK HIT!");
-  
+
   try {
-    if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !GOOGLE_REDIRECT_URI) {
-      console.error("❌ Missing OAuth credentials");
-      return NextResponse.redirect(
-        new URL("/follow-ups?error=missing_config", req.url)
-      );
-    }
+    const { getGoogleOAuthClient } = await import("@/lib/runtime/google.runtime");
+    // Use singleton for code exchange (stateless op on client)
+    const oauth2Client = getGoogleOAuthClient();
 
     const searchParams = req.nextUrl.searchParams;
     const code = searchParams.get("code");
@@ -36,12 +36,6 @@ export async function GET(req: NextRequest) {
         new URL("/follow-ups?error=no_code", req.url)
       );
     }
-
-    const oauth2Client = new google.auth.OAuth2(
-      GOOGLE_CLIENT_ID,
-      GOOGLE_CLIENT_SECRET,
-      GOOGLE_REDIRECT_URI
-    );
 
     console.log("🔑 Exchanging code for tokens...");
     const { tokens } = await oauth2Client.getToken(code);
@@ -145,7 +139,7 @@ export async function GET(req: NextRequest) {
   } catch (err: any) {
     console.error("❌ Callback error:", err);
     console.error("Error message:", err.message);
-    
+
     return NextResponse.redirect(
       new URL(`/follow-ups?error=auth_failed&details=${encodeURIComponent(err.message)}`, req.url)
     );
