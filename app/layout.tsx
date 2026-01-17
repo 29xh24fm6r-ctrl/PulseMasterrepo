@@ -1,7 +1,8 @@
 import type { Metadata, Viewport } from "next";
-import { assertServerEnv } from "@/lib/env/guard";
+import { isBuildPhase, assertServerEnv } from "@/lib/env/guard";
 
-assertServerEnv();
+// ❌ REMOVE this if it exists at module scope:
+// assertServerEnv();
 
 import { ClerkProvider } from "@clerk/nextjs";
 
@@ -39,6 +40,11 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  // ✅ Optional: runtime-only assertion (safe)
+  if (!isBuildPhase()) {
+    assertServerEnv();
+  }
+
   return (
     <ClerkProvider>
       <html lang="en">

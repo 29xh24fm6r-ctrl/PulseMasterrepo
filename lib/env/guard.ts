@@ -1,25 +1,39 @@
-/**
- * Server Env Guard
- * Fail fast in production if required env vars are missing.
- */
+// lib/env/guard.ts
 
-const REQUIRED = [
-    "NEXT_PUBLIC_SUPABASE_URL",
-    "NEXT_PUBLIC_SUPABASE_URL",
-    // "SUPABASE_SERVICE_ROLE_KEY", // Validation handled lazily in admin.ts to support build-time static generation
-    // add these only if those subsystems are enabled in prod:
-    // "OPENAI_API_KEY",
-    // "RESEND_API_KEY",
-    // "CLERK_SECRET_KEY",
-    // "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
-    // "STRIPE_SECRET_KEY",
-];
+export function isBuildPhase(): boolean {
+    // Next.js sets NEXT_PHASE during build
+    if (process.env.NEXT_PHASE === "phase-production-build") return true;
 
-export function assertServerEnv() {
-    if (process.env.NODE_ENV !== "production") return;
+    // CI environments
+    if (process.env.CI === "true" || process.env.GITHUB_ACTIONS === "true") {
+        const argv = process.argv.join(" ");
+        if (argv.includes("next") && argv.includes("build")) return true;
+    }
 
-    const missing = REQUIRED.filter((k) => !process.env[k] || !String(process.env[k]).trim());
-    if (missing.length) {
+    // Vercel build environments
+    if (process.env.VERCEL === "1") {
+        const argv = process.argv.join(" ");
+        if (argv.includes("next") && argv.includes("build")) return true;
+    }
+
+    return false;
+}
+
+export function assertServerEnv(): void {
+    // 🚫 Never assert required secrets during build-time module evaluation
+    if (isBuildPhase()) return;
+
+    const missing: string[] = [];
+
+    // Public Supabase vars required at runtime server usage
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) missing.push("NEXT_PUBLIC_SUPABASE_URL");
+    if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) missing.push("NEXT_PUBLIC_SUPABASE_ANON_KEY"); // ✅ typo fixed
+
+    // Add any other REQUIRED runtime vars here (server-only secrets, etc.)
+    // Example:
+    // if (!process.env.STRIPE_SECRET_KEY) missing.push("STRIPE_SECRET_KEY");
+
+    if (missing.length > 0) {
         throw new Error(
             `Missing required env vars in production: ${missing.join(", ")}`
         );
