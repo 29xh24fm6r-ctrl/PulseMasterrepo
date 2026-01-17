@@ -25,17 +25,15 @@ export function assertServerEnv(): void {
 
     const missing: string[] = [];
 
-    // Public Supabase vars required at runtime server usage
+    // ✅ Correct pair (fixes previous duplicate typo)
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL) missing.push("NEXT_PUBLIC_SUPABASE_URL");
-    if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) missing.push("NEXT_PUBLIC_SUPABASE_ANON_KEY"); // ✅ typo fixed
+    if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) missing.push("NEXT_PUBLIC_SUPABASE_ANON_KEY");
 
-    // Add any other REQUIRED runtime vars here (server-only secrets, etc.)
+    // Add other REQUIRED runtime vars here if they must fail-closed at runtime.
     // Example:
     // if (!process.env.STRIPE_SECRET_KEY) missing.push("STRIPE_SECRET_KEY");
 
     if (missing.length > 0) {
-        throw new Error(
-            `Missing required env vars in production: ${missing.join(", ")}`
-        );
+        throw new Error(`Missing required env vars in production: ${missing.join(", ")}`);
     }
 }
