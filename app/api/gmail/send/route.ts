@@ -1,14 +1,21 @@
 import { NextResponse } from "next/server";
 import { google } from "googleapis";
 
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+// Constants moved to handler
 
-if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
-  throw new Error("Missing Google OAuth credentials");
-}
+// Checks moved to handler
 
 export async function POST(req: Request) {
+  const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+  const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+
+  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+    return NextResponse.json(
+      { ok: false, error: "Missing Google OAuth credentials" },
+      { status: 500 }
+    );
+  }
+
   try {
     const body = await req.json();
     const { to, subject, message, accessToken } = body;
