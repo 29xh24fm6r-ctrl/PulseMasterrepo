@@ -70,6 +70,7 @@ export const GENERATED_APIS = [
   "/api/comm/caller-id",
   "/api/comm/contact-lookup",
   "/api/comm/sms/inbound",
+  "/api/commerce/execute",
   "/api/consent/set",
   "/api/contacts",
   "/api/contacts/[id]",

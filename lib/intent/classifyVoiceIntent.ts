@@ -7,6 +7,15 @@ export function classifyVoiceIntent(args: {
 }): PulseIntent {
     const t = (args.transcript || "").trim().toLowerCase();
 
+    // Commerce Mappings
+    if (t.includes("paella") || t.includes("order food")) {
+        return {
+            type: "COMMERCE_REQUEST",
+            confidence: 0.95,
+            request_text: args.transcript
+        }
+    }
+
     // Purchase Mappings
     if (t.includes("order subway")) {
         return {

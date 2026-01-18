@@ -16,4 +16,5 @@ export type PulseIntent =
     | { type: "NAVIGATE"; confidence: number; path: string }
     | { type: "CREATE_REMINDER"; confidence: number; content: string; when?: string }
     | { type: "PURCHASE_PREPARE"; confidence: number; merchant_key: string; category: string; amount_cents?: number }
+    | { type: "COMMERCE_REQUEST"; confidence: number; request_text: string; }
     | { type: "UNKNOWN"; confidence: number; reason?: string };

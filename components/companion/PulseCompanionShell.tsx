@@ -16,6 +16,7 @@ type PulseIntent =
     | { type: "NAVIGATE"; confidence: number; path: string }
     | { type: "CREATE_REMINDER"; confidence: number; content: string; when?: string }
     | { type: "PURCHASE_PREPARE"; confidence: number; merchant_key: string; category: string; amount_cents?: number }
+    | { type: "COMMERCE_REQUEST"; confidence: number; request_text: string; }
     | { type: "UNKNOWN"; confidence: number; reason?: string };
 
 type SimpleInsight = { summary: string; confidence: number };
@@ -136,6 +137,31 @@ export function PulseCompanionShell(props: { ownerUserId: string }) {
         setLatestIntent(null); // Clear proposal since we are now running
     }
 
+    // Commerce Auto-Execution
+    useEffect(() => {
+        if (latestIntent?.type === "COMMERCE_REQUEST") {
+            // Auto-fire! "Just do it"
+            executeCommerce(latestIntent.request_text);
+            setLatestIntent(null); // Clear intent
+        }
+    }, [latestIntent]);
+
+    async function executeCommerce(request_text: string) {
+        try {
+            const res = await fetch("/api/commerce/execute", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "x-owner-user-id": props.ownerUserId,
+                },
+                body: JSON.stringify({ request_text }) // location optional for now
+            });
+            if (!res.ok) return;
+            const json = await res.json();
+            if (json.run_id) setActiveRunId(json.run_id);
+        } catch { }
+    }
+
 
     function navigateTo(path: string) {
         window.location.href = path;
@@ -220,6 +246,10 @@ export function PulseCompanionShell(props: { ownerUserId: string }) {
                         onPay={executePurchase}
                         onDismiss={onDismissProposal}
                     />
+                ) : latestIntent?.type === "COMMERCE_REQUEST" ? (
+                    <div className="rounded-xl border border-white/10 bg-white/5 p-3 animate-pulse">
+                        <div className="text-xs opacity-70">Executing...</div>
+                    </div>
                 ) : (
                     <IntentProposalCard
                         intent={latestIntent}
@@ -233,7 +263,7 @@ export function PulseCompanionShell(props: { ownerUserId: string }) {
                 <PatternsPanel ownerUserId={props.ownerUserId} context={context} />
 
                 <div className="text-[11px] opacity-70 text-slate-500">
-                    Pulse 8: Limited Financial Autonomy (Bounded Wallet)
+                    Pulse 9: Universal Commerce Executor
                 </div>
             </div>
         </div>
