@@ -8,10 +8,20 @@ on:
 jobs:
   runtime-verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      NODE_ENV: test
+      SUPABASE_CLI_DISABLE_UPDATE_CHECK: "1"
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Docker diagnostics
+        run: |
+          docker --version
+          docker info
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -22,36 +32,65 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Supabase CLI (used to start local stack inside CI)
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
           version: latest
 
-      # Starts local Supabase via docker inside the GitHub runner
+      - name: Supabase version
+        run: supabase --version
+
       - name: Start Supabase
         run: supabase start
 
-      # Optional but strongly recommended for determinism:
+      - name: Supabase status (json)
+        run: supabase status -o json
+
+      # Reset applies migrations cleanly. If seeds are flaky, use --no-seed.
       - name: Reset DB (apply migrations clean)
-        run: supabase db reset
+        run: supabase db reset --no-seed
 
       - name: Export Supabase env for tests
         shell: bash
         run: |
-          echo "SUPABASE_URL=http://127.0.0.1:54321" >> $GITHUB_ENV
-          echo "SUPABASE_ANON_KEY=$(supabase status -o json | node -e \"const fs=require('fs'); const s=JSON.parse(fs.readFileSync(0,'utf8')); console.log(s.api.anon_key)\")" >> $GITHUB_ENV
-          echo "SUPABASE_SERVICE_ROLE_KEY=$(supabase status -o json | node -e \"const fs=require('fs'); const s=JSON.parse(fs.readFileSync(0,'utf8')); console.log(s.api.service_role_key)\")" >> $GITHUB_ENV
+          STATUS_JSON="$(supabase status -o json)"
+
+          echo "SUPABASE_URL=http://127.0.0.1:54321" >> "$GITHUB_ENV"
+          echo "SUPABASE_ANON_KEY=$(echo "$STATUS_JSON" | jq -r '.api.anon_key')" >> "$GITHUB_ENV"
+          echo "SUPABASE_SERVICE_ROLE_KEY=$(echo "$STATUS_JSON" | jq -r '.api.service_role_key')" >> "$GITHUB_ENV"
+
+          echo "Exported SUPABASE_URL=$SUPABASE_URL"
+          echo "Anon key present? $(echo "$STATUS_JSON" | jq -r '.api.anon_key | length > 0')"
+          echo "Service key present? $(echo "$STATUS_JSON" | jq -r '.api.service_role_key | length > 0')"
 
       - name: Run Phase 14 runtime verification
         env:
-          NODE_ENV: test
-          # Bypass assertRuntimeOnly check in lib/env/runtime-phase.ts
-          CI: false 
-          # Environment variables required by getSupabaseAdminRuntimeClient
-          NEXT_PUBLIC_SUPABASE_URL: ${{ env.SUPABASE_URL }}
+          SUPABASE_URL: ${{ env.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ env.SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
         run: npm run verify:phase14:runtime
+
+      # If anything fails, dump status/logs for instant diagnosis
+      - name: Dump Supabase status (on failure)
+        if: failure()
+        run: supabase status
+
+      - name: Supabase logs (on failure)
+        if: failure()
+        run: |
+          supabase logs --project-ref local || true
+          docker ps -a || true
+          docker logs supabase_db_phase14 2>/dev/null || true
+          docker logs supabase_kong_phase14 2>/dev/null || true
+          docker logs supabase_auth_phase14 2>/dev/null || true
+
+      - name: Upload Supabase folder (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-local-state
+          path: .supabase
+          if-no-files-found: ignore
 
       - name: Stop Supabase
         if: always()

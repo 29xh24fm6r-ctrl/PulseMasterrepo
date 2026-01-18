@@ -21,9 +21,15 @@ function requireEnv(name: string): string {
 
 // Verify minimal env presence (wrapper will also check, but failing fast is good)
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL && !process.env.SUPABASE_URL) {
-    if (process.env.NODE_ENV !== 'test') { // Don't choke strict CI checks if wrapper handles it, but good practice
+    if (process.env.NODE_ENV !== 'test') {
         console.warn("⚠️  Env vars missing, wrapper might fail.");
     }
+}
+
+// Ensure these are present for CI
+if (process.env.CI === 'true' || process.env.NODE_ENV === 'test') {
+    requireEnv("SUPABASE_URL");
+    requireEnv("SUPABASE_SERVICE_ROLE_KEY");
 }
 
 // Service Role Client (simulates Server Action privileges for generation/writing)
