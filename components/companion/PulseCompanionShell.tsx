@@ -9,11 +9,13 @@ import { PatternsPanel } from "@/components/companion/PatternsPanel";
 import { subscribeToContextBus } from "@/lib/companion/contextBus";
 import { InsightCard } from "@/components/companion/InsightCard";
 import { ConsentCard } from "@/components/companion/ConsentCard";
+import { PurchaseProposalCard } from "@/components/companion/PurchaseProposalCard";
 
 type PulseIntent =
     | { type: "RUN_ORACLE"; confidence: number; oracle_id: string; args?: Record<string, any> }
     | { type: "NAVIGATE"; confidence: number; path: string }
     | { type: "CREATE_REMINDER"; confidence: number; content: string; when?: string }
+    | { type: "PURCHASE_PREPARE"; confidence: number; merchant_key: string; category: string; amount_cents?: number }
     | { type: "UNKNOWN"; confidence: number; reason?: string };
 
 type SimpleInsight = { summary: string; confidence: number };
@@ -31,7 +33,6 @@ export function PulseCompanionShell(props: { ownerUserId: string }) {
         return () => unsub();
     }, []);
 
-    // Trigger insights on mount
     useEffect(() => {
         generateInsights();
     }, []);
@@ -94,7 +95,6 @@ export function PulseCompanionShell(props: { ownerUserId: string }) {
     }
 
     async function runOracle(oracleId: string, args?: Record<string, any>) {
-        // Start oracle run through the execution plane
         const res = await fetch(`/api/oracles/${oracleId}/start`, {
             method: "POST",
             headers: {
@@ -111,8 +111,33 @@ export function PulseCompanionShell(props: { ownerUserId: string }) {
         }
     }
 
+    // Purchase execution
+    async function executePurchase() {
+        if (!latestIntent || latestIntent.type !== "PURCHASE_PREPARE") return;
+
+        // Start the execution run
+        const res = await fetch("/api/purchases/execute", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "x-owner-user-id": props.ownerUserId,
+            },
+            body: JSON.stringify({
+                merchant_key: latestIntent.merchant_key,
+                category: latestIntent.category,
+                amount_cents: latestIntent.amount_cents ?? 0,
+                context
+            })
+        });
+
+        if (!res.ok) return;
+        const json = await res.json();
+        if (json.run_id) setActiveRunId(json.run_id);
+        setLatestIntent(null); // Clear proposal since we are now running
+    }
+
+
     function navigateTo(path: string) {
-        // Canon: navigation is still user-controlled; we can later integrate router push.
         window.location.href = path;
     }
 
@@ -154,7 +179,6 @@ export function PulseCompanionShell(props: { ownerUserId: string }) {
                     }}
                 />
 
-                {/* Live Trace (voice or oracle) */}
                 <RunEventFeed
                     runId={activeRunId}
                     ownerUserId={props.ownerUserId}
@@ -162,7 +186,6 @@ export function PulseCompanionShell(props: { ownerUserId: string }) {
                     onRunDoneExtractInsights={(newInsights) => {
                         if (newInsights && newInsights.length > 0) {
                             setInsights(newInsights);
-                            // Auto-trigger consent proposal check for demo purposes on first insight
                             if (!activeProposal) {
                                 triggerConsentProposal(newInsights[0]);
                             }
@@ -187,18 +210,30 @@ export function PulseCompanionShell(props: { ownerUserId: string }) {
                     />
                 ))}
 
-                <IntentProposalCard
-                    intent={latestIntent}
-                    pageActions={pageActions}
-                    onRunOracle={runOracle}
-                    onNavigate={navigateTo}
-                    onDismiss={onDismissProposal}
-                />
+                {latestIntent?.type === "PURCHASE_PREPARE" ? (
+                    <PurchaseProposalCard
+                        proposal={{
+                            merchant_key: latestIntent.merchant_key,
+                            category: latestIntent.category,
+                            amount_cents: latestIntent.amount_cents
+                        }}
+                        onPay={executePurchase}
+                        onDismiss={onDismissProposal}
+                    />
+                ) : (
+                    <IntentProposalCard
+                        intent={latestIntent}
+                        pageActions={pageActions}
+                        onRunOracle={runOracle}
+                        onNavigate={navigateTo}
+                        onDismiss={onDismissProposal}
+                    />
+                )}
 
                 <PatternsPanel ownerUserId={props.ownerUserId} context={context} />
 
                 <div className="text-[11px] opacity-70 text-slate-500">
-                    Pulse 7: Anticipation Active (Ask First)
+                    Pulse 8: Limited Financial Autonomy (Bounded Wallet)
                 </div>
             </div>
         </div>

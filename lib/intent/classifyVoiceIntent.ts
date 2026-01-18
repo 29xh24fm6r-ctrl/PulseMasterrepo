@@ -7,7 +7,28 @@ export function classifyVoiceIntent(args: {
 }): PulseIntent {
     const t = (args.transcript || "").trim().toLowerCase();
 
-    // Simple v1 deterministic mapping (no LLM yet)
+    // Purchase Mappings
+    if (t.includes("order subway")) {
+        return {
+            type: "PURCHASE_PREPARE",
+            confidence: 1.0,
+            merchant_key: "subway",
+            category: "food",
+            amount_cents: 1500 // $15 estimate
+        };
+    }
+
+    if (t.includes("flowers") && t.includes("sebrina")) {
+        return {
+            type: "PURCHASE_PREPARE",
+            confidence: 1.0,
+            merchant_key: "1800flowers",
+            category: "gifts",
+            amount_cents: 5500
+        }
+    }
+
+    // Existing Mappings
     if (t.includes("contact oracle") || t.includes("run contact")) {
         return { type: "RUN_ORACLE", oracle_id: "contact_oracle_v1", confidence: 0.9 };
     }
