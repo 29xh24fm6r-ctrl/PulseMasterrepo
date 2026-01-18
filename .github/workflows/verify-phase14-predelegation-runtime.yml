@@ -32,29 +32,47 @@ jobs:
         with:
           version: latest
 
+      - name: CI Debug Snapshot (pre-start)
+        shell: bash
+        run: |
+          set -euxo pipefail
+          echo "PWD=$(pwd)"
+          ls -la
+          echo "== versions =="
+          node -v
+          npm -v
+          supabase --version
+          docker --version
+          echo "== docker info =="
+          docker info || true
+          echo "== disk =="
+          df -h
+          echo "== memory =="
+          free -h || true
+
       # IMPORTANT: force a clean supabase local state so status/start are consistent
       - name: Clean Supabase local state
         run: rm -rf .supabase
 
-      - name: Start Supabase (CI hardened)
+      - name: Start Supabase (max debug)
         shell: bash
         run: |
-          set -euo pipefail
-          echo "== docker info =="
-          docker info || true
-      
-          echo "== supabase start (debug, ignore health check) =="
-          # This flag is supported (per CLI help) and prevents CI from failing due to slow/unhealthy non-core services.
-          supabase start --ignore-health-check --debug
-
-      - name: Assert Supabase DB container exists
-        shell: bash
-        run: |
-          set -euo pipefail
+          set -euxo pipefail
+          # Use --debug to see why it fails. Use || true to ensure we run diagnostics below.
+          supabase start --debug || true
+          
+          echo "== docker ps -a after start attempt =="
           docker ps -a || true
+          echo "== docker networks =="
+          docker network ls || true
+          echo "== docker volumes =="
+          docker volume ls || true
+          echo "== supabase status =="
+          supabase status || true
       
+          # Hard-fail if db container not created
           if ! docker ps -a --format '{{.Names}}' | grep -q '^supabase_db_'; then
-            echo "FATAL: Supabase DB container was not created."
+            echo "FATAL: supabase_db_* container not created."
             exit 1
           fi
 
@@ -83,20 +101,16 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
         run: npm run verify:phase14:runtime
 
-      - name: Dump Supabase debug logs (on failure)
+      - name: Dump supabase container logs (on failure)
         if: failure()
         shell: bash
         run: |
-          echo "== supabase status =="
-          supabase status || true
-      
           echo "== docker ps -a =="
           docker ps -a || true
-      
-          echo "== docker logs (supabase*) =="
+          echo "== docker logs for supabase containers =="
           for c in $(docker ps -a --format '{{.Names}}' | grep '^supabase_' || true); do
-            echo "---- logs for $c ----"
-            docker logs --tail 200 "$c" || true
+            echo "------ $c (tail 300) ------"
+            docker logs --tail 300 "$c" || true
           done
 
       - name: Upload .supabase (on failure)
