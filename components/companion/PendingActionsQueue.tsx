@@ -1,9 +1,9 @@
 "use client";
 
-import { usePulseContext } from "@/lib/companion/usePulseContext";
-
+// components/companion/PendingActionsQueue.tsx
 export function PendingActionsQueue() {
     // Placeholder: This would consume from the 'Pulse Context' or a specific 'Pending' endpoint
+
     // to show items waiting for approval (L0 proposals).
 
     return (

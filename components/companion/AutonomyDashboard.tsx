@@ -1,6 +1,6 @@
 "use client";
 
-import { usePulseContext } from "@/lib/companion/usePulseContext";
+// components/companion/AutonomyDashboard.tsx
 import { useState, useEffect } from "react";
 
 type Policy = {
@@ -9,8 +9,8 @@ type Policy = {
     confidence_score: number;
 };
 
-export function AutonomyDashboard() {
-    const { ownerUserId } = usePulseContext();
+export function AutonomyDashboard(props: { ownerUserId: string }) {
+    const { ownerUserId } = props;
     // Stub data for visualization until we hook up the GET endpoint
     const [policies, setPolicies] = useState<Policy[]>([
         { intent_type: "commerce.order", autonomy_level: "l0", confidence_score: 0.82 },
@@ -43,10 +43,10 @@ export function AutonomyDashboard() {
                         <button
                             onClick={() => toggleLevel(p)}
                             className={`px-2 py-1 rounded text-[10px] uppercase font-bold transition-all ${p.autonomy_level === 'l1'
-                                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                                    : p.autonomy_level === 'l0'
-                                        ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
-                                        : 'bg-white/5 text-white/30 border border-white/10'
+                                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                                : p.autonomy_level === 'l0'
+                                    ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                                    : 'bg-white/5 text-white/30 border border-white/10'
                                 }`}
                         >
                             {p.autonomy_level === 'none' ? 'MANUAL' : p.autonomy_level}

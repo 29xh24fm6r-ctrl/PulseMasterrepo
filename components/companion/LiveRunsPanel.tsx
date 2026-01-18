@@ -1,6 +1,6 @@
 "use client";
 
-import { usePulseContext } from "@/lib/companion/usePulseContext";
+// components/companion/LiveRunsPanel.tsx
 import { useState, useEffect } from "react";
 
 // Mock types for now - would share with DB types
@@ -11,8 +11,8 @@ type ExecRun = {
     updated_at: string;
 };
 
-export function LiveRunsPanel() {
-    const { ownerUserId } = usePulseContext();
+export function LiveRunsPanel(props: { ownerUserId: string }) {
+    const { ownerUserId } = props;
     const [runs, setRuns] = useState<ExecRun[]>([]);
     const [loading, setLoading] = useState(false);
 
