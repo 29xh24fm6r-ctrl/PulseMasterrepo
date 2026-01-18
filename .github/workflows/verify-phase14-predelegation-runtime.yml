@@ -43,6 +43,7 @@ jobs:
           
           echo "== supabase start (minimized) =="
           # Exclude studio, imgproxy, etc to save resources and avoid timeouts in CI
+          # Core services only: postgres, kong, auth, rest
           supabase start --debug -x studio,imgproxy,realtime,logflare,vector,storage-api || true
           
           echo "== docker ps -a after start attempt =="
@@ -79,7 +80,7 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
         run: npm run verify:phase14:runtime
 
-      - name: Dump supabase container logs (on failure)
+      - name: Dump critical container logs (on failure)
         if: failure()
         shell: bash
         run: |
@@ -88,11 +89,12 @@ jobs:
 
           echo "== docker ps -a =="
           docker ps -a || true
-          echo "== docker logs for supabase containers =="
-          for c in $(docker ps -a --format '{{.Names}}' | grep '^supabase_' || true); do
-            echo "------ $c (tail 300) ------"
-            docker logs --tail 300 "$c" || true
-          done
+          
+          echo "== db logs =="
+          docker logs --tail 200 $(docker ps -a -q -f "name=supabase_db_") || true
+          
+          echo "== kong logs =="
+          docker logs --tail 200 $(docker ps -a -q -f "name=supabase_kong_") || true
 
       - name: Upload .supabase (on failure)
         if: failure()
