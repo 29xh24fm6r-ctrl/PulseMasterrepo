@@ -15,6 +15,7 @@ export function RunEventFeed(props: {
     ownerUserId: string | null;
     onRunDoneExtractIntent?: (intent: PulseIntent | null) => void;
     onRunDoneExtractInsights?: (insights: any[]) => void;
+    onRunDoneExtractProposal?: (proposal: any) => void;
 }) {
     const { events, status } = useRunStream({ runId: props.runId, ownerUserId: props.ownerUserId });
 
@@ -31,18 +32,22 @@ export function RunEventFeed(props: {
 
         // Voice Intent extraction
         if (props.onRunDoneExtractIntent) {
-            // payload could be { output: { intent: ... } } or just { intent: ... } depending on run type
             const intent = payload?.output?.intent ?? payload?.intent ?? null;
             if (intent) props.onRunDoneExtractIntent(intent);
         }
 
         // System Insights extraction
         if (props.onRunDoneExtractInsights) {
-            // payload could be { output: { insights: ... } } or just { insights: ... }
             const insights = payload?.output?.insights ?? payload?.insights ?? null;
             if (Array.isArray(insights) && insights.length > 0) {
                 props.onRunDoneExtractInsights(insights);
             }
+        }
+
+        // Consent Proposal extraction
+        if (props.onRunDoneExtractProposal) {
+            const proposal = payload?.output?.proposal ?? payload?.proposal ?? null;
+            if (proposal) props.onRunDoneExtractProposal(proposal);
         }
     }, [lastRunDone]);
 

@@ -8,6 +8,7 @@ import { IntentProposalCard } from "@/components/companion/IntentProposalCard";
 import { PatternsPanel } from "@/components/companion/PatternsPanel";
 import { subscribeToContextBus } from "@/lib/companion/contextBus";
 import { InsightCard } from "@/components/companion/InsightCard";
+import { ConsentCard } from "@/components/companion/ConsentCard";
 
 type PulseIntent =
     | { type: "RUN_ORACLE"; confidence: number; oracle_id: string; args?: Record<string, any> }
@@ -16,12 +17,14 @@ type PulseIntent =
     | { type: "UNKNOWN"; confidence: number; reason?: string };
 
 type SimpleInsight = { summary: string; confidence: number };
+type ConsentProposal = { consent_type: string; summary: string; scope: any };
 
 export function PulseCompanionShell(props: { ownerUserId: string }) {
     const [context, setContext] = useState<any>({});
     const [activeRunId, setActiveRunId] = useState<string | null>(null);
     const [latestIntent, setLatestIntent] = useState<PulseIntent | null>(null);
     const [insights, setInsights] = useState<SimpleInsight[]>([]);
+    const [activeProposal, setActiveProposal] = useState<ConsentProposal | null>(null);
 
     useEffect(() => {
         const unsub = subscribeToContextBus((frame) => setContext(frame));
@@ -41,13 +44,47 @@ export function PulseCompanionShell(props: { ownerUserId: string }) {
             });
             if (!res.ok) return;
             const json = await res.json();
-            // If a run is started, we can optionally track it. 
-            // For now, allow it to run in background or foreground if we want to see it.
-            // To keep it observational, let's not force-switch the view unless user has no active run.
             if (json.run_id && !activeRunId) {
                 setActiveRunId(json.run_id);
             }
         } catch { }
+    }
+
+    async function triggerConsentProposal(insight: any) {
+        try {
+            const res = await fetch("/api/anticipation/propose", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "x-owner-user-id": props.ownerUserId
+                },
+                body: JSON.stringify({ insight }),
+            });
+            if (!res.ok) return;
+            const json = await res.json();
+            if (json.run_id) {
+                setActiveRunId(json.run_id);
+            }
+        } catch { }
+    }
+
+    async function handleConsent(granted: boolean) {
+        if (!activeProposal) return;
+        try {
+            await fetch("/api/consent/set", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "x-owner-user-id": props.ownerUserId
+                },
+                body: JSON.stringify({
+                    consent_type: activeProposal.consent_type,
+                    scope: activeProposal.scope,
+                    granted
+                })
+            });
+        } catch { }
+        setActiveProposal(null);
     }
 
     const pageActions = useMemo(() => (Array.isArray(context?.actions) ? context.actions : []), [context]);
@@ -111,8 +148,9 @@ export function PulseCompanionShell(props: { ownerUserId: string }) {
                     context={context}
                     onRunId={(id) => {
                         setActiveRunId(id);
-                        setLatestIntent(null); // reset proposal until we parse new intent
-                        setInsights([]); // clear old insights
+                        setLatestIntent(null);
+                        setInsights([]);
+                        setActiveProposal(null);
                     }}
                 />
 
@@ -124,9 +162,22 @@ export function PulseCompanionShell(props: { ownerUserId: string }) {
                     onRunDoneExtractInsights={(newInsights) => {
                         if (newInsights && newInsights.length > 0) {
                             setInsights(newInsights);
+                            // Auto-trigger consent proposal check for demo purposes on first insight
+                            if (!activeProposal) {
+                                triggerConsentProposal(newInsights[0]);
+                            }
                         }
                     }}
+                    onRunDoneExtractProposal={(prop) => setActiveProposal(prop)}
                 />
+
+                {activeProposal ? (
+                    <ConsentCard
+                        proposal={activeProposal}
+                        onGrant={() => handleConsent(true)}
+                        onDecline={() => handleConsent(false)}
+                    />
+                ) : null}
 
                 {insights.map((insight, i) => (
                     <InsightCard
@@ -147,7 +198,7 @@ export function PulseCompanionShell(props: { ownerUserId: string }) {
                 <PatternsPanel ownerUserId={props.ownerUserId} context={context} />
 
                 <div className="text-[11px] opacity-70 text-slate-500">
-                    Pulse 6.5: Passive Insight Generation Active
+                    Pulse 7: Anticipation Active (Ask First)
                 </div>
             </div>
         </div>
