@@ -188,6 +188,7 @@ export const GENERATED_APIS = [
   "/api/inbox/rules",
   "/api/inbox/triage",
   "/api/inbox/triage/suggest",
+  "/api/insights/generate",
   "/api/intelligence",
   "/api/intelligence/gather",
   "/api/jarvis/command",

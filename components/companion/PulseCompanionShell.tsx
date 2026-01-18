@@ -7,6 +7,7 @@ import { RunEventFeed } from "@/components/companion/RunEventFeed";
 import { IntentProposalCard } from "@/components/companion/IntentProposalCard";
 import { PatternsPanel } from "@/components/companion/PatternsPanel";
 import { subscribeToContextBus } from "@/lib/companion/contextBus";
+import { InsightCard } from "@/components/companion/InsightCard";
 
 type PulseIntent =
     | { type: "RUN_ORACLE"; confidence: number; oracle_id: string; args?: Record<string, any> }
@@ -14,15 +15,40 @@ type PulseIntent =
     | { type: "CREATE_REMINDER"; confidence: number; content: string; when?: string }
     | { type: "UNKNOWN"; confidence: number; reason?: string };
 
+type SimpleInsight = { summary: string; confidence: number };
+
 export function PulseCompanionShell(props: { ownerUserId: string }) {
     const [context, setContext] = useState<any>({});
     const [activeRunId, setActiveRunId] = useState<string | null>(null);
     const [latestIntent, setLatestIntent] = useState<PulseIntent | null>(null);
+    const [insights, setInsights] = useState<SimpleInsight[]>([]);
 
     useEffect(() => {
         const unsub = subscribeToContextBus((frame) => setContext(frame));
         return () => unsub();
     }, []);
+
+    // Trigger insights on mount
+    useEffect(() => {
+        generateInsights();
+    }, []);
+
+    async function generateInsights() {
+        try {
+            const res = await fetch("/api/insights/generate", {
+                method: "POST",
+                headers: { "x-owner-user-id": props.ownerUserId },
+            });
+            if (!res.ok) return;
+            const json = await res.json();
+            // If a run is started, we can optionally track it. 
+            // For now, allow it to run in background or foreground if we want to see it.
+            // To keep it observational, let's not force-switch the view unless user has no active run.
+            if (json.run_id && !activeRunId) {
+                setActiveRunId(json.run_id);
+            }
+        } catch { }
+    }
 
     const pageActions = useMemo(() => (Array.isArray(context?.actions) ? context.actions : []), [context]);
 
@@ -86,6 +112,7 @@ export function PulseCompanionShell(props: { ownerUserId: string }) {
                     onRunId={(id) => {
                         setActiveRunId(id);
                         setLatestIntent(null); // reset proposal until we parse new intent
+                        setInsights([]); // clear old insights
                     }}
                 />
 
@@ -94,7 +121,20 @@ export function PulseCompanionShell(props: { ownerUserId: string }) {
                     runId={activeRunId}
                     ownerUserId={props.ownerUserId}
                     onRunDoneExtractIntent={(intent) => setLatestIntent(intent)}
+                    onRunDoneExtractInsights={(newInsights) => {
+                        if (newInsights && newInsights.length > 0) {
+                            setInsights(newInsights);
+                        }
+                    }}
                 />
+
+                {insights.map((insight, i) => (
+                    <InsightCard
+                        key={i}
+                        insight={insight}
+                        onDismiss={() => setInsights(prev => prev.filter((_, idx) => idx !== i))}
+                    />
+                ))}
 
                 <IntentProposalCard
                     intent={latestIntent}
@@ -107,7 +147,7 @@ export function PulseCompanionShell(props: { ownerUserId: string }) {
                 <PatternsPanel ownerUserId={props.ownerUserId} context={context} />
 
                 <div className="text-[11px] opacity-70 text-slate-500">
-                    Canon: Voice proposes. You click to execute. Everything streams.
+                    Pulse 6.5: Passive Insight Generation Active
                 </div>
             </div>
         </div>

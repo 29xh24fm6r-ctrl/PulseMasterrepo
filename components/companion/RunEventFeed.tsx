@@ -14,6 +14,7 @@ export function RunEventFeed(props: {
     runId: string | null;
     ownerUserId: string | null;
     onRunDoneExtractIntent?: (intent: PulseIntent | null) => void;
+    onRunDoneExtractInsights?: (insights: any[]) => void;
 }) {
     const { events, status } = useRunStream({ runId: props.runId, ownerUserId: props.ownerUserId });
 
@@ -25,13 +26,24 @@ export function RunEventFeed(props: {
     }, [events]);
 
     useEffect(() => {
-        if (!props.onRunDoneExtractIntent) return;
         if (!lastRunDone) return;
-
-        // Voice RUN_DONE payload format: { output: { transcript, intent, confidence, ... } }
         const payload = lastRunDone.data?.payload ?? lastRunDone.data;
-        const intent = payload?.output?.intent ?? null;
-        if (intent) props.onRunDoneExtractIntent(intent);
+
+        // Voice Intent extraction
+        if (props.onRunDoneExtractIntent) {
+            // payload could be { output: { intent: ... } } or just { intent: ... } depending on run type
+            const intent = payload?.output?.intent ?? payload?.intent ?? null;
+            if (intent) props.onRunDoneExtractIntent(intent);
+        }
+
+        // System Insights extraction
+        if (props.onRunDoneExtractInsights) {
+            // payload could be { output: { insights: ... } } or just { insights: ... }
+            const insights = payload?.output?.insights ?? payload?.insights ?? null;
+            if (Array.isArray(insights) && insights.length > 0) {
+                props.onRunDoneExtractInsights(insights);
+            }
+        }
     }, [lastRunDone]);
 
     if (!props.runId) return <div className="text-xs opacity-60">No active run.</div>;
