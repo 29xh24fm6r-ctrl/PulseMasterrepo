@@ -13,6 +13,7 @@ jobs:
     env:
       NODE_ENV: test
       SUPABASE_CLI_DISABLE_UPDATE_CHECK: "1"
+      SUPABASE_PROJECT_ID: pulse-ci
 
     steps:
       - name: Checkout
@@ -33,18 +34,18 @@ jobs:
           version: latest
 
       - name: Start Supabase
-        run: supabase start
+        run: supabase start --project-id $SUPABASE_PROJECT_ID
 
       - name: Supabase status (json)
-        run: supabase status -o json
+        run: supabase status -o json --project-id $SUPABASE_PROJECT_ID
 
       - name: Reset DB (apply migrations clean)
-        run: supabase db reset --no-seed
+        run: supabase db reset --no-seed --project-id $SUPABASE_PROJECT_ID
 
       - name: Export Supabase env for tests
         shell: bash
         run: |
-          STATUS_JSON="$(supabase status -o json)"
+          STATUS_JSON="$(supabase status -o json --project-id $SUPABASE_PROJECT_ID)"
           echo "SUPABASE_URL=http://127.0.0.1:54321" >> "$GITHUB_ENV"
           echo "SUPABASE_ANON_KEY=$(echo "$STATUS_JSON" | jq -r '.api.anon_key')" >> "$GITHUB_ENV"
           echo "SUPABASE_SERVICE_ROLE_KEY=$(echo "$STATUS_JSON" | jq -r '.api.service_role_key')" >> "$GITHUB_ENV"
@@ -62,7 +63,7 @@ jobs:
 
       - name: Dump Supabase status (on failure)
         if: failure()
-        run: supabase status
+        run: supabase status --project-id $SUPABASE_PROJECT_ID
 
       - name: Dump Docker containers (on failure)
         if: failure()
@@ -79,4 +80,4 @@ jobs:
 
       - name: Stop Supabase
         if: always()
-        run: supabase stop
+        run: supabase stop --project-id $SUPABASE_PROJECT_ID
