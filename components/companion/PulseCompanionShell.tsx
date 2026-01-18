@@ -693,15 +693,11 @@ export function PulseCompanionShell(props: { ownerUserId: string }) {
 
                 <PatternsPanel ownerUserId={props.ownerUserId} context={context} />
             </div>
-        </div>
-    );
-}
 
-<div className="text-[11px] opacity-70 text-slate-500">
-    Pulse 9: Universal Commerce Executor
-</div>
-            </div >
-        </div >
+            <div className="text-[11px] opacity-70 text-slate-500 mt-2 text-center flex justify-center pb-2">
+                Pulse 9: Universal Commerce Executor
+            </div>
+        </div>
     );
 }
 // Maintain default export for compatibility
