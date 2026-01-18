@@ -21,6 +21,7 @@ export const GENERATED_APIS = [
   "/api/autonomy/actions",
   "/api/autonomy/actions/[id]/status",
   "/api/autonomy/check",
+  "/api/autonomy/policy",
   "/api/belts",
   "/api/calendar/events",
   "/api/calendar/google/callback",
