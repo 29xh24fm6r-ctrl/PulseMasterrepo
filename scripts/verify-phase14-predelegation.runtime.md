@@ -1,21 +1,16 @@
 # Phase 14.1 Runtime Verification Status
 
-> [!WARNING]
-> **Runtime Verification BLOCKED**
->
-> Runtime verification (`scripts/verify-phase14-predelegation.runtime.ts`) requires a local Supabase instance running via Docker Desktop.
->
-> **Current Status:**
-> - Static Analysis: PASSED
-> - Unit Tests: N/A (Logic covered in runtime script)
-> - Runtime Verification: **BLOCKED** (Docker Desktop unavailable locally)
+> [!IMPORTANT]
+> **Runtime Verification Strategy**
+> Since Docker is unavailable locally, we use GitHub Actions for runtime verification.
 >
 > **Gate for Merge:**
-> Before merging to `main`, the following **MUST** be performed:
-> 1. Start Docker Desktop.
-> 2. Run `npx supabase start`.
-> 3. Apply migrations: `npx supabase migration up`.
-> 4. Verify tables exist: `npx supabase db query --sql "select to_regclass('public.delegation_readiness_cache')"`
-> 5. Run Script: `npx tsx scripts/verify-phase14-predelegation.runtime.ts`
+> 1. Push to `feat/phase14-predelegation-hardening`.
+> 2. Wait for CI check: `Verify Phase 14 Pre-Delegation (Runtime)`.
+> 3. If CI passes, merge to `main`.
 >
-> **Do NOT merge until the above script passes.**
+> **Local Run (Optional)**:
+> If Docker becomes available locally:
+> `npx supabase start`
+> `npm run verify:phase14:runtime`
+
