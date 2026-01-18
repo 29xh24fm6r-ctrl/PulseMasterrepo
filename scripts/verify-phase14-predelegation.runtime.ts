@@ -1,28 +1,34 @@
 
 // Phase 14.1 Runtime Verification (Standalone)
 // Proves E2E flow via Database RLS and Triggers.
-// Bypasses Next.js specific imports by using direct Supabase Client.
+// Bypasses Next.js specific imports by using direct Supabase Client via Runtime Enclave.
 
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseAdminRuntimeClient } from '@/lib/runtime/supabase.runtime';
 import dotenv from 'dotenv';
 import path from 'path';
 import { toDenialSignal } from '@/lib/delegation/denialSignals';
 import { getLikelyScopeForPath } from '@/lib/delegation/scopeMap';
 
-// Load environment variables
+// Load environment variables (Optional for CI, but good for local dev if Docker was present)
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+function requireEnv(name: string): string {
+    const v = process.env[name];
+    if (!v) throw new Error(`[phase14-runtime] Missing required env: ${name}`);
+    return v;
+}
 
-if (!SUPABASE_URL || !SUPABASE_KEY) {
-    console.error('Missing Supabase credentials in environment.');
-    process.exit(1);
+// Verify minimal env presence (wrapper will also check, but failing fast is good)
+if (!process.env.NEXT_PUBLIC_SUPABASE_URL && !process.env.SUPABASE_URL) {
+    if (process.env.NODE_ENV !== 'test') { // Don't choke strict CI checks if wrapper handles it, but good practice
+        console.warn("⚠️  Env vars missing, wrapper might fail.");
+    }
 }
 
 // Service Role Client (simulates Server Action privileges for generation/writing)
-const adminSupabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+// Uses the Canon-safe runtime wrapper
+const adminSupabase = getSupabaseAdminRuntimeClient();
 
 async function runRuntimeVerification() {
     console.log("🟣 Phase 14.1 Runtime Verification: Data Layer & Signals");
