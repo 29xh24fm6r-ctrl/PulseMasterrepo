@@ -18,19 +18,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Normalize repo directory name
-        shell: bash
-        run: |
-          cd "$GITHUB_WORKSPACE"
-          if [ "$(basename "$PWD")" != "PulseMasterrepo" ]; then
-            cd ..
-            rm -rf PulseMasterrepo
-            mv "$(basename "$GITHUB_WORKSPACE")" PulseMasterrepo
-            echo "PULSE_REPO_DIR=$(pwd)/PulseMasterrepo" >> "$GITHUB_ENV"
-          else
-            echo "PULSE_REPO_DIR=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
-          fi
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -38,7 +25,6 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        working-directory: ${{ env.PULSE_REPO_DIR }}
         run: npm ci
 
       - name: Setup Supabase CLI
@@ -46,22 +32,20 @@ jobs:
         with:
           version: latest
 
+      # IMPORTANT: force a clean supabase local state so status/start are consistent
+      - name: Clean Supabase local state
+        run: rm -rf .supabase
+
       - name: Start Supabase
-        working-directory: ${{ env.PULSE_REPO_DIR }}
-        run: |
-          rm -rf .supabase
-          supabase start
+        run: supabase start
 
       - name: Supabase status (json)
-        working-directory: ${{ env.PULSE_REPO_DIR }}
         run: supabase status -o json
 
       - name: Reset DB (apply migrations clean)
-        working-directory: ${{ env.PULSE_REPO_DIR }}
         run: supabase db reset --no-seed
 
       - name: Export Supabase env for tests
-        working-directory: ${{ env.PULSE_REPO_DIR }}
         shell: bash
         run: |
           STATUS_JSON="$(supabase status -o json)"
@@ -74,7 +58,6 @@ jobs:
           echo "Service key len: $(echo "$STATUS_JSON" | jq -r '.api.service_role_key | length')"
 
       - name: Run Phase 14 runtime verification
-        working-directory: ${{ env.PULSE_REPO_DIR }}
         env:
           SUPABASE_URL: ${{ env.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ env.SUPABASE_ANON_KEY }}
@@ -83,23 +66,20 @@ jobs:
 
       - name: Dump Supabase status (on failure)
         if: failure()
-        working-directory: ${{ env.PULSE_REPO_DIR }}
         run: supabase status
 
       - name: Dump Docker containers (on failure)
         if: failure()
-        run: |
-          docker ps -a || true
+        run: docker ps -a || true
 
       - name: Upload .supabase (on failure)
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: supabase-local-state
-          path: ${{ env.PULSE_REPO_DIR }}/.supabase
+          path: .supabase
           if-no-files-found: ignore
 
       - name: Stop Supabase
         if: always()
-        working-directory: ${{ env.PULSE_REPO_DIR }}
         run: supabase stop
