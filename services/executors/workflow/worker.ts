@@ -1,13 +1,13 @@
-
-import { createClient } from "@supabase/supabase-js";
 import { WorkflowPlan } from "@/lib/workflow/types";
 import { v4 as uuidv4 } from "uuid";
-
-// Service Role Client (for Worker)
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import {
+    lockNextRunnableWorkflow,
+    updateWorkflowRun,
+    findExecRun,
+    createExecRun,
+    emitWorkflowEvent,
+    unlockWorkflowRun
+} from "@/lib/runtime/workflow.runtime";
 
 /**
  * Executes a single tick of the workflow worker.
@@ -18,35 +18,10 @@ const supabase = createClient(
  */
 export async function tickWorkflowWorker() {
     // 1. Find and Lock ONE workflow run
-    // Status: queued, running, waiting
-    // Not locked recently (stale lock > 1 min)
-    const now = new Date();
-    const staleTime = new Date(now.getTime() - 60000); // 1 minute ago
+    const run = await lockNextRunnableWorkflow();
 
-    const { data: run, error: fetchError } = await supabase
-        .from("workflow_runs")
-        .select("*")
-        .in("status", ["queued", "running", "waiting"])
-        .or(`locked_at.is.null,locked_at.lt.${staleTime.toISOString()}`)
-        .limit(1)
-        .single();
-
-    if (fetchError || !run) {
-        return { worked: false, reason: "No runnable workflows" };
-    }
-
-    // Lock it
-    const { error: lockError } = await supabase
-        .from("workflow_runs")
-        .update({
-            locked_at: new Date().toISOString(),
-            locked_by: "worker_v1",
-            status: "running" // Ensure it's marked running if it was queued
-        })
-        .eq("id", run.id);
-
-    if (lockError) {
-        return { worked: false, reason: "Failed to lock" };
+    if (!run) {
+        return { worked: false, reason: "No runnable workflows or lock failed" };
     }
 
     // 2. Load Plan
@@ -55,10 +30,7 @@ export async function tickWorkflowWorker() {
 
     // Check completion
     if (currentIndex >= plan.steps.length) {
-        await supabase
-            .from("workflow_runs")
-            .update({ status: "succeeded", locked_at: null })
-            .eq("id", run.id);
+        await updateWorkflowRun(run.id, { status: "succeeded", locked_at: null });
         return { worked: true, action: "completed_workflow", runId: run.id };
     }
 
@@ -68,16 +40,11 @@ export async function tickWorkflowWorker() {
     // We use idempotency key = `wf_{run_id}_step_{index}`
     const stepIdempotencyKey = `wf_${run.id}_step_${currentIndex}`;
 
-    const { data: existingExec, error: execError } = await supabase
-        .from("exec_runs")
-        .select("status, result_json, error_json")
-        .eq("owner_user_id", run.owner_user_id)
-        .eq("idempotency_key", stepIdempotencyKey)
-        .single();
-
-    if (execError && execError.code !== 'PGRST116') {
-        // Real error
-        await unlock(run.id, "running"); // Keep running, retry next tick
+    let existingExec;
+    try {
+        existingExec = await findExecRun(run.owner_user_id, stepIdempotencyKey);
+    } catch (e) {
+        await unlockWorkflowRun(run.id, "running");
         return { worked: false, reason: "DB error checking child exec" };
     }
 
@@ -89,16 +56,13 @@ export async function tickWorkflowWorker() {
 
     if (!mobileCheck.allowed) {
         if (mobileCheck.action === 'suspend') {
-            await supabase
-                .from("workflow_runs")
-                .update({
-                    status: "paused",
-                    locked_at: null,
-                    error_json: { message: mobileCheck.reason, code: "MOBILE_SUSPENDED" }
-                })
-                .eq("id", run.id);
+            await updateWorkflowRun(run.id, {
+                status: "paused",
+                locked_at: null,
+                error_json: { message: mobileCheck.reason, code: "MOBILE_SUSPENDED" }
+            });
 
-            await emitEvent(run.parent_run_id!, run.owner_user_id, "WORKFLOW_PAUSED_MOBILE", {
+            await emitWorkflowEvent(run.parent_run_id!, run.owner_user_id, "WORKFLOW_PAUSED_MOBILE", {
                 step_index: currentIndex,
                 reason: mobileCheck.reason
             });
@@ -110,9 +74,8 @@ export async function tickWorkflowWorker() {
 
     if (!existingExec) {
         // Create the execution run
-        const { error: insertError } = await supabase
-            .from("exec_runs")
-            .insert({
+        try {
+            await createExecRun({
                 owner_user_id: run.owner_user_id,
                 parent_run_id: run.parent_run_id, // Link to global Pulse Run
                 run_kind: currentStep.executor_kind,
@@ -124,22 +87,18 @@ export async function tickWorkflowWorker() {
                 },
                 idempotency_key: stepIdempotencyKey
             });
-
-        if (insertError) {
-            console.error("Failed to spawn exec_run", insertError);
-            // If we can't spawn, we fail the workflow? Or retry?
-            // Retry for now.
-            await unlock(run.id, "running");
+        } catch (e) {
+            await unlockWorkflowRun(run.id, "running");
             return { worked: false, reason: "Failed to spawn step" };
         }
 
         // Emit event
-        await emitEvent(run.parent_run_id!, run.owner_user_id, "WORKFLOW_STEP_STARTED", {
+        await emitWorkflowEvent(run.parent_run_id!, run.owner_user_id, "WORKFLOW_STEP_STARTED", {
             step_index: currentIndex,
             step_id: currentStep.step_id
         });
 
-        await unlock(run.id, "running"); // Unlock so next tick can check status
+        await unlockWorkflowRun(run.id, "running"); // Unlock so next tick can check status
         return { worked: true, action: "started_step", step: currentStep.step_id };
     }
 
@@ -150,17 +109,14 @@ export async function tickWorkflowWorker() {
         // Step Done -> Advance
         const nextIndex = currentIndex + 1;
 
-        await supabase
-            .from("workflow_runs")
-            .update({
-                current_step_index: nextIndex,
-                // Optionally merge result into context?
-                locked_at: null,
-                status: nextIndex >= plan.steps.length ? "succeeded" : "running"
-            })
-            .eq("id", run.id);
+        await updateWorkflowRun(run.id, {
+            current_step_index: nextIndex,
+            // Optionally merge result into context?
+            locked_at: null,
+            status: nextIndex >= plan.steps.length ? "succeeded" : "running"
+        });
 
-        await emitEvent(run.parent_run_id!, run.owner_user_id, "WORKFLOW_STEP_COMPLETED", {
+        await emitWorkflowEvent(run.parent_run_id!, run.owner_user_id, "WORKFLOW_STEP_COMPLETED", {
             step_index: currentIndex,
             step_id: currentStep.step_id,
             result: existingExec.result_json
@@ -170,16 +126,13 @@ export async function tickWorkflowWorker() {
 
     } else if (status === 'failed' || status === 'canceled') {
         // Step Failed -> Fail Workflow
-        await supabase
-            .from("workflow_runs")
-            .update({
-                status: "failed",
-                error_json: existingExec.error_json || { message: "Step failed" },
-                locked_at: null
-            })
-            .eq("id", run.id);
+        await updateWorkflowRun(run.id, {
+            status: "failed",
+            error_json: existingExec.error_json || { message: "Step failed" },
+            locked_at: null
+        });
 
-        await emitEvent(run.parent_run_id!, run.owner_user_id, "WORKFLOW_FAILED", {
+        await emitWorkflowEvent(run.parent_run_id!, run.owner_user_id, "WORKFLOW_FAILED", {
             step_index: currentIndex,
             step_id: currentStep.step_id,
             reason: "Step execution failed"
@@ -189,21 +142,7 @@ export async function tickWorkflowWorker() {
     } else {
         // Still running/queued
         // Just unlock and wait
-        await unlock(run.id, "waiting");
+        await unlockWorkflowRun(run.id, "waiting");
         return { worked: true, action: "waiting_for_step", status };
     }
-}
-
-async function unlock(runId: string, status: string) {
-    await supabase.from("workflow_runs").update({ locked_at: null, status }).eq("id", runId);
-}
-
-async function emitEvent(runId: string, ownerId: string, type: string, payload: any) {
-    if (!runId) return;
-    await supabase.from("pulse_run_events").insert({
-        run_id: runId,
-        owner_user_id: ownerId,
-        event_type: type,
-        payload
-    });
 }
