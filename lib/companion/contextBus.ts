@@ -1,45 +1,46 @@
+// lib/companion/contextBus.ts
+"use client";
+
 export type PulseContextFrame = {
-    ts: number;
-    route: string;
+    route?: string;
     title?: string;
-    entities?: Array<{ type: string; id: string; label?: string }>;
-    focus?: { type: string; id: string; label?: string };
     hints?: string[];
+    focus?: any;
+    actions?: Array<{ id: string; label: string }>;
 };
 
 const CHANNEL = "pulse_context_bus_v1";
 
-let bc: BroadcastChannel | null = null;
-
-function getBC(): BroadcastChannel | null {
-    if (typeof window === "undefined") return null;
-    if (bc) return bc;
-    bc = new BroadcastChannel(CHANNEL);
-    return bc;
-}
-
-type Listener = (frame: PulseContextFrame) => void;
-const listeners = new Set<Listener>();
-
-export function publishPulseContext(partial: Omit<PulseContextFrame, "ts">) {
-    const frame: PulseContextFrame = { ts: Date.now(), ...partial };
-    // local listeners
-    for (const l of listeners) l(frame);
-    // cross-window
-    const ch = getBC();
-    ch?.postMessage(frame);
-}
-
-export function subscribePulseContext(listener: Listener) {
-    listeners.add(listener);
-    const ch = getBC();
-    if (ch) {
-        const handler = (ev: MessageEvent) => listener(ev.data as PulseContextFrame);
-        ch.addEventListener("message", handler);
-        return () => {
-            listeners.delete(listener);
-            ch.removeEventListener("message", handler);
-        };
+export function publishPulseContext(frame: PulseContextFrame) {
+    try {
+        const bc = new BroadcastChannel(CHANNEL);
+        bc.postMessage(frame);
+        bc.close();
+    } catch {
+        // no-op (Safari/private contexts)
     }
-    return () => listeners.delete(listener);
 }
+
+export function subscribeToContextBus(cb: (frame: PulseContextFrame) => void) {
+    let bc: BroadcastChannel | null = null;
+
+    try {
+        bc = new BroadcastChannel(CHANNEL);
+        bc.onmessage = (ev) => cb(ev.data as PulseContextFrame);
+    } catch {
+        // no-op
+    }
+
+    return () => {
+        try {
+            bc?.close();
+        } catch {
+            // no-op
+        }
+    };
+}
+
+// Added alias to maintain compatibility if other files import this
+export const subscribePulseContext = subscribeToContextBus;
+export const publishContextFrame = publishPulseContext;
+
