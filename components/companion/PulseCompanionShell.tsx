@@ -10,6 +10,9 @@ import { subscribeToContextBus } from "@/lib/companion/contextBus";
 import { InsightCard } from "@/components/companion/InsightCard";
 import { ConsentCard } from "@/components/companion/ConsentCard";
 import { PurchaseProposalCard } from "@/components/companion/PurchaseProposalCard";
+import { LiveRunsPanel } from "@/components/companion/LiveRunsPanel";
+import { PendingActionsQueue } from "@/components/companion/PendingActionsQueue";
+import { AutonomyDashboard } from "@/components/companion/AutonomyDashboard";
 
 type PulseIntent =
     | { type: "RUN_ORACLE"; confidence: number; oracle_id: string; args?: Record<string, any> }
@@ -259,6 +262,12 @@ export function PulseCompanionShell(props: { ownerUserId: string }) {
                         onDismiss={onDismissProposal}
                     />
                 )}
+
+                <div className="flex flex-col gap-1 border-t border-white/10 pt-2">
+                    <LiveRunsPanel />
+                    <PendingActionsQueue />
+                    <AutonomyDashboard />
+                </div>
 
                 <PatternsPanel ownerUserId={props.ownerUserId} context={context} />
 
