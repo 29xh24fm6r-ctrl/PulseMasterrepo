@@ -36,8 +36,27 @@ jobs:
       - name: Clean Supabase local state
         run: rm -rf .supabase
 
-      - name: Start Supabase
-        run: supabase start
+      - name: Start Supabase (CI hardened)
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "== docker info =="
+          docker info || true
+      
+          echo "== supabase start (debug, ignore health check) =="
+          # This flag is supported (per CLI help) and prevents CI from failing due to slow/unhealthy non-core services.
+          supabase start --ignore-health-check --debug
+
+      - name: Assert Supabase DB container exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker ps -a || true
+      
+          if ! docker ps -a --format '{{.Names}}' | grep -q '^supabase_db_'; then
+            echo "FATAL: Supabase DB container was not created."
+            exit 1
+          fi
 
       - name: Supabase status (json)
         run: supabase status -o json
@@ -64,13 +83,21 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
         run: npm run verify:phase14:runtime
 
-      - name: Dump Supabase status (on failure)
+      - name: Dump Supabase debug logs (on failure)
         if: failure()
-        run: supabase status
-
-      - name: Dump Docker containers (on failure)
-        if: failure()
-        run: docker ps -a || true
+        shell: bash
+        run: |
+          echo "== supabase status =="
+          supabase status || true
+      
+          echo "== docker ps -a =="
+          docker ps -a || true
+      
+          echo "== docker logs (supabase*) =="
+          for c in $(docker ps -a --format '{{.Names}}' | grep '^supabase_' || true); do
+            echo "---- logs for $c ----"
+            docker logs --tail 200 "$c" || true
+          done
 
       - name: Upload .supabase (on failure)
         if: failure()
