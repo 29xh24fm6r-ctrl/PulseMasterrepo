@@ -32,43 +32,21 @@ jobs:
         with:
           version: latest
 
-      - name: CI Debug Snapshot (pre-start)
-        shell: bash
-        run: |
-          set -euxo pipefail
-          echo "PWD=$(pwd)"
-          ls -la
-          echo "== versions =="
-          node -v
-          npm -v
-          supabase --version
-          docker --version
-          echo "== docker info =="
-          docker info || true
-          echo "== disk =="
-          df -h
-          echo "== memory =="
-          free -h || true
-
       # IMPORTANT: force a clean supabase local state so status/start are consistent
       - name: Clean Supabase local state
         run: rm -rf .supabase
 
-      - name: Start Supabase (max debug)
+      - name: Start Supabase (Branch A: Exclude non-core services)
         shell: bash
         run: |
           set -euxo pipefail
-          # Use --debug to see why it fails. Use || true to ensure we run diagnostics below.
-          supabase start --debug || true
+          
+          echo "== supabase start (minimized) =="
+          # Exclude studio, imgproxy, etc to save resources and avoid timeouts in CI
+          supabase start --debug -x studio,imgproxy,realtime,logflare,vector,storage-api || true
           
           echo "== docker ps -a after start attempt =="
           docker ps -a || true
-          echo "== docker networks =="
-          docker network ls || true
-          echo "== docker volumes =="
-          docker volume ls || true
-          echo "== supabase status =="
-          supabase status || true
       
           # Hard-fail if db container not created
           if ! docker ps -a --format '{{.Names}}' | grep -q '^supabase_db_'; then
@@ -105,6 +83,9 @@ jobs:
         if: failure()
         shell: bash
         run: |
+          echo "== supabase status =="
+          supabase status || true
+
           echo "== docker ps -a =="
           docker ps -a || true
           echo "== docker logs for supabase containers =="
