@@ -30,6 +30,9 @@ if (!process.env.NEXT_PUBLIC_SUPABASE_URL && !process.env.SUPABASE_URL) {
 if (process.env.CI === 'true' || process.env.NODE_ENV === 'test') {
     requireEnv("SUPABASE_URL");
     requireEnv("SUPABASE_SERVICE_ROLE_KEY");
+
+    console.log("[phase14-runtime] Using SUPABASE_URL:", process.env.SUPABASE_URL);
+    console.log("[phase14-runtime] Service role key present:", (process.env.SUPABASE_SERVICE_ROLE_KEY || '').length > 0);
 }
 
 // Service Role Client (simulates Server Action privileges for generation/writing)

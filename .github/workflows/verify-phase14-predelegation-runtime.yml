@@ -18,11 +18,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Docker diagnostics
-        run: |
-          docker --version
-          docker info
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -37,16 +32,12 @@ jobs:
         with:
           version: latest
 
-      - name: Supabase version
-        run: supabase --version
-
       - name: Start Supabase
         run: supabase start
 
       - name: Supabase status (json)
         run: supabase status -o json
 
-      # Reset applies migrations cleanly. If seeds are flaky, use --no-seed.
       - name: Reset DB (apply migrations clean)
         run: supabase db reset --no-seed
 
@@ -54,14 +45,13 @@ jobs:
         shell: bash
         run: |
           STATUS_JSON="$(supabase status -o json)"
-
           echo "SUPABASE_URL=http://127.0.0.1:54321" >> "$GITHUB_ENV"
           echo "SUPABASE_ANON_KEY=$(echo "$STATUS_JSON" | jq -r '.api.anon_key')" >> "$GITHUB_ENV"
           echo "SUPABASE_SERVICE_ROLE_KEY=$(echo "$STATUS_JSON" | jq -r '.api.service_role_key')" >> "$GITHUB_ENV"
 
-          echo "Exported SUPABASE_URL=$SUPABASE_URL"
-          echo "Anon key present? $(echo "$STATUS_JSON" | jq -r '.api.anon_key | length > 0')"
-          echo "Service key present? $(echo "$STATUS_JSON" | jq -r '.api.service_role_key | length > 0')"
+          echo "SUPABASE_URL set."
+          echo "Anon key len: $(echo "$STATUS_JSON" | jq -r '.api.anon_key | length')"
+          echo "Service key len: $(echo "$STATUS_JSON" | jq -r '.api.service_role_key | length')"
 
       - name: Run Phase 14 runtime verification
         env:
@@ -70,21 +60,16 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
         run: npm run verify:phase14:runtime
 
-      # If anything fails, dump status/logs for instant diagnosis
       - name: Dump Supabase status (on failure)
         if: failure()
         run: supabase status
 
-      - name: Supabase logs (on failure)
+      - name: Dump Docker containers (on failure)
         if: failure()
         run: |
-          supabase logs --project-ref local || true
           docker ps -a || true
-          docker logs supabase_db_phase14 2>/dev/null || true
-          docker logs supabase_kong_phase14 2>/dev/null || true
-          docker logs supabase_auth_phase14 2>/dev/null || true
 
-      - name: Upload Supabase folder (on failure)
+      - name: Upload .supabase (on failure)
         if: failure()
         uses: actions/upload-artifact@v4
         with:
