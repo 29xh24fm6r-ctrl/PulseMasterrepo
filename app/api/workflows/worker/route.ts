@@ -1,22 +1,15 @@
 
 import { NextRequest, NextResponse } from "next/server";
-import { isBuildPhase } from "@/lib/env/isBuildPhase";
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
-    // 1. Build Phase Guard
-    if (isBuildPhase()) {
-        return new Response(
-            JSON.stringify({ ok: true, skipped: "build-phase" }),
-            { status: 200 }
-        );
-    }
-
-    // 2. Dynamic Import to prevent top-level side effects from lib/runtime/workflow.runtime.ts
+    // 1. Dynamic Import to prevent top-level side effects
+    // Next.js evaluates modules at build time, so we must not import runtime logic at the top level.
     const { tickWorkflowWorker } = await import("@/services/executors/workflow/worker");
 
-    // 3. Security Check
+    // 2. Security Check
     const secret = req.headers.get("x-pulse-executor-secret");
     if (secret !== process.env.PULSE_EXECUTOR_SECRET && secret !== "dev-secret") {
         // Basic dev bypass for verification script convenience if needed, but safer to enforce
