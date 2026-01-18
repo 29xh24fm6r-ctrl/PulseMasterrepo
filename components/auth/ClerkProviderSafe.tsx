@@ -58,7 +58,28 @@ function ClerkProviderRuntime({ children }: Props) {
         };
     }, []);
 
-    if (!Provider) return <>{children}</>;
+    // Dev-only timeout warning
+    React.useEffect(() => {
+        if (process.env.NODE_ENV !== "development") return;
+        const t = setTimeout(() => {
+            if (!Provider) console.warn("[ClerkProviderSafe] Clerk Provider still not loaded after 10s");
+        }, 10000);
+        return () => clearTimeout(t);
+    }, [Provider]);
+
+    // Prevent children from rendering (and firing useUser) until the Provider is ready.
+    if (!Provider) {
+        // Since we wrap <html>, we must provide a valid document structure
+        return (
+            <html lang="en">
+                <body className="bg-zinc-950 overflow-hidden">
+                    <div className="min-h-screen flex items-center justify-center text-zinc-400">
+                        <div className="opacity-70 text-sm animate-pulse">Loading Pulse OS...</div>
+                    </div>
+                </body>
+            </html>
+        );
+    }
 
     // At runtime, ClerkProvider will read NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
     return <Provider>{children}</Provider>;
