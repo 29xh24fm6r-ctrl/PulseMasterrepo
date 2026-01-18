@@ -39,7 +39,7 @@ jobs:
           supabase start --project-id $SUPABASE_PROJECT_ID
 
       - name: Supabase status (json)
-        run: supabase status -o json --project-id $SUPABASE_PROJECT_ID
+        run: supabase status -o json
 
       - name: Reset DB (apply migrations clean)
         run: supabase db reset --no-seed --project-id $SUPABASE_PROJECT_ID
@@ -47,7 +47,7 @@ jobs:
       - name: Export Supabase env for tests
         shell: bash
         run: |
-          STATUS_JSON="$(supabase status -o json --project-id $SUPABASE_PROJECT_ID)"
+          STATUS_JSON="$(supabase status -o json)"
           echo "SUPABASE_URL=http://127.0.0.1:54321" >> "$GITHUB_ENV"
           echo "SUPABASE_ANON_KEY=$(echo "$STATUS_JSON" | jq -r '.api.anon_key')" >> "$GITHUB_ENV"
           echo "SUPABASE_SERVICE_ROLE_KEY=$(echo "$STATUS_JSON" | jq -r '.api.service_role_key')" >> "$GITHUB_ENV"
@@ -65,7 +65,7 @@ jobs:
 
       - name: Dump Supabase status (on failure)
         if: failure()
-        run: supabase status --project-id $SUPABASE_PROJECT_ID
+        run: supabase status
 
       - name: Dump Docker containers (on failure)
         if: failure()
