@@ -7,7 +7,8 @@ export type ObserverEventType =
     | "error"
     | "unhandledrejection"
     | "perf"
-    | "note";
+    | "note"
+    | "inability";
 
 export type ObserverEvent = {
     id: string;
@@ -15,6 +16,9 @@ export type ObserverEvent = {
     type: ObserverEventType;
     route?: string;
     message?: string;
+    reason?: string;
+    confidence?: string;
+    resolved?: boolean;
     meta?: Record<string, any>;
 };
 
