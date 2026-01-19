@@ -16,6 +16,9 @@ jobs:
       # Required for ClerkProviderSafe runtime check (using test key for CI smoke)
       NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_test_cmVsYXhlZC1jaG93LTgzLmNsZXJrLmFjY291bnRzLmRldiQ"
       CLERK_SECRET_KEY: "sk_test_HzpM6P5TDQdHD5YrRrMLBoVNX69Theo0X4eCvnbrMB"
+      # Required for Supabase Client runtime check
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
 
     steps:
       - uses: actions/checkout@v4
