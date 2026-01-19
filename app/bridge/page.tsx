@@ -12,9 +12,54 @@ import { useGlobalKeybindings } from '@/lib/hooks/useGlobalKeybindings';
 import { RecommendedAction } from '@/lib/now-engine/types';
 import { logNowEvent } from '@/lib/now-engine/telemetry';
 import { DevSmokePanel } from '@/components/bridge/DevSmokePanel';
+import { resolveInabilityToProceed } from '@/lib/brain/inability/resolve';
+import InabilityToProceedCard from '@/components/system/InabilityToProceedCard';
+import { handleInabilityAction } from '@/lib/brain/inability/actions';
+import { pushEvent } from '@/lib/observer/store';
+import { useEffect, useState } from 'react';
+import { speak } from '@/lib/voice/speechAuthority';
 
 export default function BridgePage() {
+    // Phase 17.3: Inability-to-Proceed Protocol (IPP)
+    // We must resolve this deterministically before rendering ANY content.
+    // Note: We use state/effect to ensure we access localStorage on client only.
+    const [inability, setInability] = useState<any>(null);
+
+    useEffect(() => {
+        const check = resolveInabilityToProceed({
+            hasOwnerId: typeof window !== 'undefined' && Boolean(localStorage.getItem('pulse_owner_user_id')),
+            networkOk: typeof navigator !== 'undefined' ? navigator.onLine : true,
+            permissionOk: true // Future: check caps
+        });
+        setInability(check);
+
+        if (check) {
+            pushEvent({
+                type: 'inability',
+                route: '/bridge',
+                reason: check.reason,
+                message: check.explanation,
+                confidence: check.confidence,
+                resolved: false
+            });
+
+            // Voice Enforcement
+            if (check.confidence === 'high') {
+                speak(check.explanation);
+            }
+        }
+    }, []);
+
     const result = useNowEngine();
+
+    if (inability) {
+        return (
+            <InabilityToProceedCard
+                inability={inability}
+                onAction={handleInabilityAction}
+            />
+        );
+    }
 
     // Handlers
     const executeAction = async (action: RecommendedAction) => {
