@@ -11,7 +11,9 @@ import {
 // Mock DB for Phase 19 verification
 const MOCK_CLASSES: Record<string, AutonomyClass> = {};
 
-export function decideAutonomyLevel(effect: PulseEffect): AutonomyDecision {
+import { DailyRunOptions } from '../dailyRun';
+
+export function decideAutonomyLevel(effect: PulseEffect, options: DailyRunOptions = {}): AutonomyDecision {
     const { classKey } = classifyEffect(effect);
 
     // 1. Fetch Class State
@@ -40,6 +42,13 @@ export function decideAutonomyLevel(effect: PulseEffect): AutonomyDecision {
         if (autonomyClass.stats.successes >= MIN_SUCCESSES_FOR_ELIGIBLE) {
             autonomyClass.status = 'eligible';
         }
+    }
+
+    // Absence Dampening (Phase 21)
+    if (options.isAbsent) {
+        // If absent, we DO NOT upgrade 'eligible' classes to 'auto'.
+        // We fundamentally downgrade potential L1 upgrades to L0 confirmations.
+        return { autonomyLevel: 'L0', decisionReason: 'ABSENCE_DAMPENING', classKey };
     }
 
     if (autonomyClass.status === 'paused') {

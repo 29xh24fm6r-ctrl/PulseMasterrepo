@@ -17,7 +17,9 @@ import { applyLifeStateEffect } from '@/lib/domains/life_state/applyEffect';
 import { decideAutonomyLevel } from '../autonomy/decideAutonomyLevel';
 import { recordOutcome } from '../autonomy/recordOutcome';
 
-export async function executePulseEffect(effect: PulseEffect, ownerId: string) {
+import { DailyRunOptions } from '../dailyRun';
+
+export async function executePulseEffect(effect: PulseEffect, ownerId: string, options: DailyRunOptions = {}) {
     // 1. IPP Check
     const inability = resolveInabilityToProceed({
         hasOwnerId: Boolean(ownerId),
@@ -47,7 +49,7 @@ export async function executePulseEffect(effect: PulseEffect, ownerId: string) {
     // Hook: Ask L1 Decision Engine
     // Only if not already auto (no need to upgrade if already high confidence)
     if (writeMode !== 'auto') {
-        const decision = decideAutonomyLevel(effect);
+        const decision = decideAutonomyLevel(effect, options);
         autonomyLevel = decision.autonomyLevel;
         classKey = decision.classKey;
 
