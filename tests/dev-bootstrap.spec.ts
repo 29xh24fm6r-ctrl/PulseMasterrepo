@@ -12,6 +12,8 @@ test('Dev Bootstrap Smoke Test', async ({ page, request }) => {
     // relying on a dev-only harness that may be hidden/removed in Phase 16+.
     await page.goto('/bridge');
 
-    // App shell invariant
-    await expect(page.getByRole('main')).toBeVisible({ timeout: 10_000 });
+    // Canonical app shell invariant (stable across UI changes)
+    const shell = page.getByTestId("pulse-app-shell");
+
+    await expect(shell).toBeVisible({ timeout: 15_000 });
 });

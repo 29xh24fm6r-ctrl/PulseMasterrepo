@@ -62,7 +62,7 @@ export default function RootLayout({
                 <div className="flex h-screen w-full bg-zinc-50 dark:bg-black">
                   <PrimaryNav />
                   <div className="flex-1 flex h-full overflow-hidden">
-                    <main className="flex-1 h-full overflow-y-auto relative scrollbar-hide min-w-0">
+                    <main id="pulse-main" data-testid="pulse-app-shell" className="flex-1 h-full overflow-y-auto relative scrollbar-hide min-w-0">
                       {children}
                       <WhisperFeed />
                       <PulseContextTracker />
