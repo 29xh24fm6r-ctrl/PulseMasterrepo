@@ -21,8 +21,7 @@
         "prebuild": "npm run routes:gen",
         "prepare": "husky",
         "test": "echo \"no tests\"",
-        "verify:phase14:runtime": "node --loader tsx scripts/verify-phase14-predelegation.runtime.ts",
-        "dev:smoke": "tsx scripts/dev_smoke.ts"
+        "verify:phase14:runtime": "node --loader tsx scripts/verify-phase14-predelegation.runtime.ts"
     },
     "dependencies": {
         "@clerk/nextjs": "^6.35.6",

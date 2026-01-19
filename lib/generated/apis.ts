@@ -177,6 +177,7 @@ export const GENERATED_APIS = [
   "/api/habits/pull",
   "/api/health",
   "/api/health/summary",
+  "/api/healthz",
   "/api/identity",
   "/api/identity/activate",
   "/api/identity/alignment",
