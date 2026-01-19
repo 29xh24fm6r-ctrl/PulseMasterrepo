@@ -18,10 +18,11 @@ export default defineConfig({
         },
     ],
     webServer: {
-        command: 'npm run start',
-        url: 'http://localhost:3000',
+        command: 'npm run start -- -p 3000 -H 0.0.0.0',
+        url: 'http://127.0.0.1:3000/healthz',
         reuseExistingServer: !process.env.CI,
         stdout: 'ignore',
         stderr: 'pipe',
+        timeout: 120_000,
     },
 });
