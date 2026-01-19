@@ -1,6 +1,9 @@
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
 import { withCompatTelemetry } from "@/lib/compat/withCompatTelemetry";
 import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
+import { ExecutionGate } from "@/lib/execution/ExecutionGate";
+import { ExecutionIntentType } from "@/lib/execution/ExecutionIntent";
+import { createClient } from "@/lib/supabase/server";
 
 export async function POST(req: Request) {
   const gate = await requireOpsAuth(req as any);
@@ -12,6 +15,34 @@ export async function POST(req: Request) {
     clerkUserId: gate.canon.clerkUserId,
     eventName: "api.tasks.create.post",
     handler: async () => {
+      // HUMAN AGENCY LOCK
+      // 1. Persist Confirmation (implicitly assuming UI source for this API call)
+      const supabase = createClient();
+      const intent = ExecutionIntentType.CREATE_TASK;
+
+      const { error: confirmError } = await supabase
+        .from("execution_confirmations")
+        .insert({
+          user_id: gate.canon.userIdUuid,
+          intent_type: intent,
+          confirmed_at: new Date().toISOString(),
+          source: "ui",
+          trust_level: "HIGH"
+        });
+
+      if (confirmError) {
+        console.error("Confirmation persistence failed", confirmError);
+        throw new Error("Failed to persist execution confirmation");
+      }
+
+      // 2. Request Token
+      // This will THROW if blocked
+      await ExecutionGate.request(gate.canon.userIdUuid, intent, {
+        confidenceScore: 1.0,
+        recentRejections: 0,
+        mode: "NORMAL"
+      });
+
       const body = (await req.json().catch(() => ({}))) as {
         title?: string;
         status?: string;

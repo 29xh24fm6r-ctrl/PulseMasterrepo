@@ -21,11 +21,11 @@ export async function bootstrapDevUserIdFromServer(): Promise<string> {
         !data ||
         typeof data !== "object" ||
         (data as any).ok !== true ||
-        typeof (data as any).userId !== "string" ||
-        (data as any).userId.length === 0
+        typeof (data as any).pulse_owner_user_id !== "string" ||
+        (data as any).pulse_owner_user_id.length === 0
     ) {
         throw new Error("Bootstrap returned unexpected shape");
     }
 
-    return (data as any).userId as string;
+    return (data as any).pulse_owner_user_id as string;
 }

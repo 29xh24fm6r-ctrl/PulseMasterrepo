@@ -1,0 +1,40 @@
+name: Dev Bootstrap Smoke
+
+on:
+  push:
+    branches: [main, feat/*]
+  pull_request:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_ENV: preview
+      NEXT_PUBLIC_DEV_PULSE_OWNER_USER_ID: "00000000-0000-0000-0000-000000000001"
+      PULSE_DEV_OWNER_ID: "00000000-0000-0000-0000-000000000001"
+      PULSE_ENABLE_DEV_BYPASS: "true"
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      
+      - run: npm run build
+      
+      # We use 'next start' via Playwright webServer, but we can verify it here too or let PW handle it.
+      # The config uses 'npm run start'.
+      
+      - name: Run Playwright tests
+        run: npx playwright test
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30

@@ -11,6 +11,7 @@ import { useNowEngine } from '@/lib/hooks/useNowEngine';
 import { useGlobalKeybindings } from '@/lib/hooks/useGlobalKeybindings';
 import { RecommendedAction } from '@/lib/now-engine/types';
 import { logNowEvent } from '@/lib/now-engine/telemetry';
+import { DevSmokePanel } from '@/components/bridge/DevSmokePanel';
 
 export default function BridgePage() {
     const result = useNowEngine();
@@ -109,6 +110,8 @@ export default function BridgePage() {
                     <button className="mx-2 hover:text-white" onClick={() => (result as any)._debugForceState('deferred')}>Deferred</button>
                 </div>
             </div>
+
+            <DevSmokePanel />
         </BridgeLayout>
     );
 }

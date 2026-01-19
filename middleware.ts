@@ -53,6 +53,11 @@ export function middleware(req: NextRequest, evt: NextFetchEvent) {
     return stamp(NextResponse.next(), "allow_public_asset");
   }
 
+  // CANON BYPASS: dev bootstrap endpoints must never be auth-blocked
+  if (pathname.startsWith("/api/dev")) {
+    return NextResponse.next();
+  }
+
   // 2) Bridge route: in CI or Verification Mode, bypass auth to ensure stability check passes.
   //    In normal Dev, we let it fall through to Clerk middleware so the page actually works.
   if (pathname === "/bridge") {
