@@ -4,6 +4,9 @@ import twilio from "twilio";
 // Initialize Twilio client
 const accountSid = process.env.TWILIO_ACCOUNT_SID!;
 const authToken = process.env.TWILIO_AUTH_TOKEN!;
+import { ExecutionGate, ExecutionToken } from "@/lib/execution/ExecutionGate";
+import { ExecutionIntentType } from "@/lib/execution/ExecutionIntent";
+
 export const twilioClient = twilio(accountSid, authToken);
 
 export const TWILIO_VOICE_NUMBER = process.env.TWILIO_VOICE_NUMBER || "+17629944252";
@@ -23,11 +26,16 @@ export const VoiceResponse = twilio.twiml.VoiceResponse;
 export const MessagingResponse = twilio.twiml.MessagingResponse;
 
 // Helper functions (migrated from lib/comm/twilio.ts)
-export async function startOutboundCall(params: {
+export async function startOutboundCall(token: ExecutionToken, params: {
   toNumber: string;
   callbackUrl: string;
   statusCallbackUrl?: string;
 }) {
+  // HUMAN AGENCY LOCK
+  if (!ExecutionGate.verify(token, ExecutionIntentType.SEND_MESSAGE)) {
+    throw new Error("[AGENCY VIOLATION] Execution Blocked: Invalid or mismatched token for Outbound Call.");
+  }
+
   const fromNumber = TWILIO_VOICE_NUMBER;
   if (!fromNumber) throw new Error("TWILIO_VOICE_NUMBER missing");
 
@@ -41,10 +49,15 @@ export async function startOutboundCall(params: {
   });
 }
 
-export async function sendSMS(params: {
+export async function sendSMS(token: ExecutionToken, params: {
   toNumber: string;
   body: string;
 }) {
+  // HUMAN AGENCY LOCK
+  if (!ExecutionGate.verify(token, ExecutionIntentType.SEND_MESSAGE)) {
+    throw new Error("[AGENCY VIOLATION] Execution Blocked: Invalid or mismatched token for SMS.");
+  }
+
   const fromNumber = TWILIO_VOICE_NUMBER;
   if (!fromNumber) throw new Error("TWILIO_VOICE_NUMBER missing");
 

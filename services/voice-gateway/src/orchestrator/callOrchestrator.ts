@@ -341,319 +341,370 @@ export class CallOrchestrator {
         }
     }
 
+import { TraceStore } from "../../../../../lib/trace/TraceStore.js";
+import type { DecisionTrace } from "../../../../../lib/trace/DecisionTrace.js";
+import { validateNonDirective } from "../../../../../lib/voice/validateNonDirective.js";
+import { v4 as uuidv4 } from "uuid";
+
+// ... existing imports ...
+
     private async runConversationTurn(text: string) {
-        if (this.isThinking) return;
-        this.isThinking = true;
+    if (this.isThinking) return;
+    this.isThinking = true;
 
-        const llmStart = Date.now();
-        let speakText = "";
-        let intentToExecute = null;
-        let context = contextStore.get(this.callSessionId);
+    const llmStart = Date.now();
+    let speakText = "";
+    let intentToExecute = null;
+    let context = contextStore.get(this.callSessionId);
 
-        // 1. Detect Mode
-        const modeUpdate = modeDetector.detect(this.callSessionId, text);
-        contextStore.update(this.callSessionId, { mode: modeUpdate });
-        if (modeUpdate.current !== UserMode.CALM) {
-            console.log(`[CallOrchestrator] Mode: ${modeUpdate.current} (Reason: ${modeUpdate.reasons.join(', ')})`);
-        }
+    // TRACE INIT
+    const currentTrace: DecisionTrace = {
+        trace_id: uuidv4(),
+        user_id: this.ownerUserId || "00000000-0000-0000-0000-000000000000", // Fallback if no owner yet
+        created_at: new Date().toISOString(),
+        detected_intent: null,
+        confidence_score: 0,
+        trust_level: "HIGH", // Default, should pull from Trust Engine
+        user_mode: context.mode.current,
+        gates: { trust_gate: "pass", agency_gate: "pass", safety_gate: "pass" },
+        outcome: "silent",
+        explanation_summary: ""
+    };
 
-        // 2. Resolve References
-        // e.g. "Add that to my tasks" -> "Add [milk] to my tasks"
-        const resolved = referenceResolver.resolve(this.callSessionId, text);
-        const processingText = resolved.resolvedText;
-        if (resolved.entitiesFound.length > 0) {
-            console.log(`[CallOrchestrator] Resolved References: "${text}" -> "${processingText}"`);
-        }
+    // 1. Detect Mode
+    const modeUpdate = modeDetector.detect(this.callSessionId, text);
+    contextStore.update(this.callSessionId, { mode: modeUpdate });
+    currentTrace.user_mode = modeUpdate.current; // Update trace
 
-        // >>> PHASE 7: INTENT & CONTINUITY <<<
-        // 1. Extract Intents (Background Memory)
-        const extraction = await intentExtractor.extract(processingText, context);
-        if (extraction.intents.length > 0) {
-            console.log(`[CallOrchestrator] Captured Intents: ${extraction.intents.length}`);
-        }
+    if (modeUpdate.current !== UserMode.CALM) {
+        console.log(`[CallOrchestrator] Mode: ${modeUpdate.current} (Reason: ${modeUpdate.reasons.join(', ')})`);
+    }
 
-        // 2. Thread Management (Active Thread)
-        const activeThread = threadManager.ensureActiveThread();
+    // 2. Resolve References
+    // e.g. "Add that to my tasks" -> "Add [milk] to my tasks"
+    const resolved = referenceResolver.resolve(this.callSessionId, text);
+    const processingText = resolved.resolvedText;
+    if (resolved.entitiesFound.length > 0) {
+        console.log(`[CallOrchestrator] Resolved References: "${text}" -> "${processingText}"`);
+    }
 
-        // 3. Interruption Check (Simple Heuristic for now)
-        // If UserMode is URGENT, pause all non-urgent intents
-        if (context.mode.current === UserMode.URGENT) {
-            threadManager.handleInterruption();
-        }
+    // >>> PHASE 7: INTENT & CONTINUITY <<<
+    // 1. Extract Intents (Background Memory)
+    const extraction = await intentExtractor.extract(processingText, context);
+    if (extraction.intents.length > 0) {
+        console.log(`[CallOrchestrator] Captured Intents: ${extraction.intents.length}`);
+    }
 
-        // 3. Resolve Confirmation State (using ContextStore)
-        if (context.pendingConfirmation) {
-            // Check expiry
-            // (Store doesn't auto-expire pending item, need check)
-            if (Date.now() - context.pendingConfirmation.timestamp > 20000) {
+    // 2. Thread Management (Active Thread)
+    const activeThread = threadManager.ensureActiveThread();
+
+    // 3. Interruption Check (Simple Heuristic for now)
+    // If UserMode is URGENT, pause all non-urgent intents
+    if (context.mode.current === UserMode.URGENT) {
+        threadManager.handleInterruption();
+    }
+
+    // 3. Resolve Confirmation State (using ContextStore)
+    if (context.pendingConfirmation) {
+        // Check expiry
+        // (Store doesn't auto-expire pending item, need check)
+        if (Date.now() - context.pendingConfirmation.timestamp > 20000) {
+            contextStore.update(this.callSessionId, { pendingConfirmation: undefined });
+        } else {
+            // Check Confirm/Cancel
+            // Naive classifier for confirm/cancel to save LLM round trip or just context check strings
+            const lower = processingText.toLowerCase();
+            if (['yes', 'sure', 'do it', 'confirm', 'okay'].some(w => lower.includes(w))) {
+                intentToExecute = { ...context.pendingConfirmation, type: context.pendingConfirmation.intent };
                 contextStore.update(this.callSessionId, { pendingConfirmation: undefined });
+                console.log("[CallOrchestrator] Pending Action Confirmed");
+            } else if (['no', 'cancel', 'stop', 'wait'].some(w => lower.includes(w))) {
+                contextStore.update(this.callSessionId, { pendingConfirmation: undefined });
+                speakText = "Okay, cancelled.";
             } else {
-                // Check Confirm/Cancel
-                // Naive classifier for confirm/cancel to save LLM round trip or just context check strings
-                const lower = processingText.toLowerCase();
-                if (['yes', 'sure', 'do it', 'confirm', 'okay'].some(w => lower.includes(w))) {
-                    intentToExecute = { ...context.pendingConfirmation, type: context.pendingConfirmation.intent };
-                    contextStore.update(this.callSessionId, { pendingConfirmation: undefined });
-                    console.log("[CallOrchestrator] Pending Action Confirmed");
-                } else if (['no', 'cancel', 'stop', 'wait'].some(w => lower.includes(w))) {
-                    contextStore.update(this.callSessionId, { pendingConfirmation: undefined });
-                    speakText = "Okay, cancelled.";
-                } else {
-                    // Implicit cancel via new command?
-                    // We'll let Router decide below. If it returns a new intent, we drop the old one.
-                    contextStore.update(this.callSessionId, { pendingConfirmation: undefined });
-                }
+                // Implicit cancel via new command?
+                // We'll let Router decide below. If it returns a new intent, we drop the old one.
+                contextStore.update(this.callSessionId, { pendingConfirmation: undefined });
             }
         }
+    }
 
-        // 4. Classify (if not already confirmed)
-        if (!speakText && !intentToExecute) {
-            const contextSummary = buildContextSummary(contextStore.get(this.callSessionId));
-            const classification = await this.router.classify(processingText, contextSummary);
+    // 4. Classify (if not already confirmed)
+    if (!speakText && !intentToExecute) {
+        const contextSummary = buildContextSummary(contextStore.get(this.callSessionId));
+        const classification = await this.router.classify(processingText, contextSummary);
 
-            if (classification.type === "UNKNOWN") {
+        // TRACE UPDATE
+        currentTrace.detected_intent = classification.type;
+        currentTrace.confidence_score = classification.confidence;
 
-                // >>> PHASE 7: MEMORY SURFACING <<<
-                let surfacedIntent = null;
-                const activeThread = threadManager.getActiveThread();
-                if (activeThread) {
-                    for (const id of activeThread.active_intents) {
-                        const intent = intentRegistry.getIntent(id);
-                        if (intent && intent.status === 'paused') {
-                            if (intentSurfaceGate.canSurface(intent, context.mode.current)) {
-                                surfacedIntent = intent;
-                                break;
-                            }
+        if (classification.type === "UNKNOWN") {
+
+            // >>> PHASE 7: MEMORY SURFACING <<<
+            let surfacedIntent = null;
+            const activeThread = threadManager.getActiveThread();
+            if (activeThread) {
+                for (const id of activeThread.active_intents) {
+                    const intent = intentRegistry.getIntent(id);
+                    if (intent && intent.status === 'paused') {
+                        if (intentSurfaceGate.canSurface(intent, context.mode.current)) {
+                            surfacedIntent = intent;
+                            break;
                         }
                     }
                 }
+            }
 
-                if (surfacedIntent) {
-                    console.log(`[CallOrchestrator] Resurfacing Intent: ${surfacedIntent.inferred_goal}`);
-                    // Construct a gentle continuity prompt (Speech Authority Approved)
-                    speakText = `Earlier you mentioned you wanted to ${surfacedIntent.inferred_goal}. Should we get back to that?`;
-                } else {
-                    // Try Suggestion Engine
-                    const suggestion = suggestionEngine.propose(context, processingText, classification);
-                    if (suggestion) {
-                        console.log(`[CallOrchestrator] Suggestion Triggered: ${suggestion.type}`);
-                        contextStore.update(this.callSessionId, {
-                            pendingConfirmation: {
-                                intent: suggestion.type,
-                                params: suggestion.params,
-                                timestamp: Date.now()
-                            }
-                        });
-                        // Prompt for confirmation
-                        speakText = speakResponse(SpeechSignal.SUGGESTION_PROMPT, { mode: context.mode.current });
-                        if (speakText === "I am unsure.") {
-                            // Fallback manual prompt if no phrase map
-                            speakText = "Should I handle that for you?";
-                        }
-                    } else {
-                        // Fallback to chat / clarification
-                        // Or if mode is STRESSED, be gentle
-                        if (context.mode.current === UserMode.STRESSED) {
-                            speakText = speakResponse(SpeechSignal.CLARIFY_AMBIGUOUS, { mode: UserMode.STRESSED });
-                        } else {
-                            // Standard fallback (IVR or generic)
-                            speakText = speakResponse(SpeechSignal.CLARIFY_AMBIGUOUS, { mode: context.mode.current });
-                        }
-                    }
-                }
-            } else if (classification.type === "CONFIRM" || classification.type === "CANCEL") {
-                // Should have been handled above, but if Router catches it late:
-                speakText = "Okay.";
+            if (surfacedIntent) {
+                console.log(`[CallOrchestrator] Resurfacing Intent: ${surfacedIntent.inferred_goal}`);
+                // Construct a gentle continuity prompt (Speech Authority Approved)
+                speakText = `Earlier you mentioned you wanted to ${surfacedIntent.inferred_goal}. Should we get back to that?`;
             } else {
-                // Agency Logic
-                if (classification.suggested || classification.requires_confirmation) {
+                // Try Suggestion Engine
+                const suggestion = suggestionEngine.propose(context, processingText, classification);
+                if (suggestion) {
+                    console.log(`[CallOrchestrator] Suggestion Triggered: ${suggestion.type}`);
                     contextStore.update(this.callSessionId, {
                         pendingConfirmation: {
-                            intent: classification.type,
-                            params: classification.params,
+                            intent: suggestion.type,
+                            params: suggestion.params,
                             timestamp: Date.now()
                         }
                     });
-                    speakText = speakResponse(SpeechSignal.CONFIRM_INFERRED, { mode: context.mode.current });
+                    // Prompt for confirmation
+                    speakText = speakResponse(SpeechSignal.SUGGESTION_PROMPT, { mode: context.mode.current });
+                    if (speakText === "I am unsure.") {
+                        // Fallback manual prompt if no phrase map
+                        speakText = "Should I handle that for you?";
+                    }
                 } else {
-                    intentToExecute = classification;
-                }
-            }
-
-            // Store Intent History
-            contextStore.appendIntent(this.callSessionId, {
-                intent: classification.type,
-                params: classification.params || {},
-                confidence: classification.confidence,
-                suggested: classification.suggested || false,
-                confirmed: false,
-                timestamp: Date.now()
-            });
-        }
-
-        // 5. Execute Tool
-        if (intentToExecute) {
-            const idempotencyKey = `${this.callSessionId}:${this.turnIndex}:${intentToExecute.type}`;
-
-            if (this.executedKeys.has(idempotencyKey)) {
-                console.warn("[CallOrchestrator] Duplicate execution prevented:", idempotencyKey);
-                speakText = "I believe I've already done that.";
-            } else {
-                console.log(`[CallOrchestrator] Executing Action: ${intentToExecute.type}`);
-                this.executedKeys.add(idempotencyKey);
-
-                if (!this.ownerUserId) {
-                    speakText = "I'm sorry, I can't access your account details right now.";
-                } else {
-                    try {
-                        let toolResult;
-                        switch (intentToExecute.type) {
-                            case "READ_TASKS":
-                                toolResult = await tools.readTasks(this.ownerUserId, idempotencyKey);
-                                break;
-                            case "ADD_TASK":
-                                toolResult = await tools.addTask(this.ownerUserId, intentToExecute.params.description, intentToExecute.params.priority, idempotencyKey);
-                                break;
-                            case "NEXT_MEETING":
-                                toolResult = await tools.nextMeeting(this.ownerUserId, idempotencyKey);
-                                break;
-                            case "CAPTURE_NOTE":
-                                toolResult = await tools.captureNote(this.ownerUserId, intentToExecute.params.content, idempotencyKey);
-                                break;
-                        }
-
-                        // Store Result
-                        if (toolResult) {
-                            contextStore.appendToolResult(this.callSessionId, {
-                                toolName: intentToExecute.type,
-                                status: toolResult.success ? 'success' : 'error',
-                                data: toolResult.data,
-                                timestamp: Date.now()
-                            });
-
-                            if (toolResult.success) {
-                                if (intentToExecute.type === "READ_TASKS") {
-                                    const tasks = toolResult.data || [];
-                                    const count = tasks.length;
-                                    if (count === 0) {
-                                        speakText = speakResponse(SpeechSignal.NO_TASKS, { mode: context.mode.current });
-                                    } else {
-                                        speakText = speakResponse(SpeechSignal.HAS_TASKS, { mode: context.mode.current, count });
-                                    }
-                                } else if (intentToExecute.type === "NEXT_MEETING") {
-                                    speakText = speakResponse(SpeechSignal.CALENDAR_STUB, { mode: context.mode.current });
-                                } else {
-                                    speakText = speakResponse(SpeechSignal.EXECUTION_SUCCESS, { mode: context.mode.current });
-                                }
-                            } else {
-                                speakText = speakResponse(SpeechSignal.EXECUTION_ERROR, { mode: context.mode.current });
-                            }
-                        }
-                    } catch (err) {
-                        console.error("[CallOrchestrator] Tool Execution Failed:", err);
-                        speakText = "I encountered an error trying to do that.";
-                        this.executedKeys.delete(idempotencyKey);
+                    // Fallback to chat / clarification
+                    // Or if mode is STRESSED, be gentle
+                    if (context.mode.current === UserMode.STRESSED) {
+                        speakText = speakResponse(SpeechSignal.CLARIFY_AMBIGUOUS, { mode: UserMode.STRESSED });
+                    } else {
+                        // Standard fallback (IVR or generic)
+                        speakText = speakResponse(SpeechSignal.CLARIFY_AMBIGUOUS, { mode: context.mode.current });
                     }
                 }
             }
+        } else if (classification.type === "CONFIRM" || classification.type === "CANCEL") {
+            // Should have been handled above, but if Router catches it late:
+            speakText = "Okay.";
+        } else {
+            // Agency Logic
+            if (classification.suggested || classification.requires_confirmation) {
+                contextStore.update(this.callSessionId, {
+                    pendingConfirmation: {
+                        intent: classification.type,
+                        params: classification.params,
+                        timestamp: Date.now()
+                    }
+                });
+                speakText = speakResponse(SpeechSignal.CONFIRM_INFERRED, { mode: context.mode.current });
+            } else {
+                intentToExecute = classification;
+            }
         }
 
-        // 6. Output Speech
-        if (speakText) {
-            contextStore.appendUtterance(this.callSessionId, speakText, 'assistant');
-            await this.speak(speakText, llmStart, text);
-        }
-
-        this.isThinking = false;
+        // Store Intent History
+        contextStore.appendIntent(this.callSessionId, {
+            intent: classification.type,
+            params: classification.params || {},
+            confidence: classification.confidence,
+            suggested: classification.suggested || false,
+            confirmed: false,
+            timestamp: Date.now()
+        });
     }
+
+    // 5. Execute Tool
+    if (intentToExecute) {
+        const idempotencyKey = `${this.callSessionId}:${this.turnIndex}:${intentToExecute.type}`;
+
+        if (this.executedKeys.has(idempotencyKey)) {
+            console.warn("[CallOrchestrator] Duplicate execution prevented:", idempotencyKey);
+            speakText = "I believe I've already done that.";
+        } else {
+            console.log(`[CallOrchestrator] Executing Action: ${intentToExecute.type}`);
+            this.executedKeys.add(idempotencyKey);
+
+            if (!this.ownerUserId) {
+                speakText = "I'm sorry, I can't access your account details right now.";
+            } else {
+                try {
+                    let toolResult;
+                    switch (intentToExecute.type) {
+                        case "READ_TASKS":
+                            toolResult = await tools.readTasks(this.ownerUserId, idempotencyKey);
+                            break;
+                        case "ADD_TASK":
+                            toolResult = await tools.addTask(this.ownerUserId, intentToExecute.params.description, intentToExecute.params.priority, idempotencyKey);
+                            break;
+                        case "NEXT_MEETING":
+                            toolResult = await tools.nextMeeting(this.ownerUserId, idempotencyKey);
+                            break;
+                        case "CAPTURE_NOTE":
+                            toolResult = await tools.captureNote(this.ownerUserId, intentToExecute.params.content, idempotencyKey);
+                            break;
+                    }
+
+                    // Store Result
+                    if (toolResult) {
+                        contextStore.appendToolResult(this.callSessionId, {
+                            toolName: intentToExecute.type,
+                            status: toolResult.success ? 'success' : 'error',
+                            data: toolResult.data,
+                            timestamp: Date.now()
+                        });
+
+                        if (toolResult.success) {
+                            if (intentToExecute.type === "READ_TASKS") {
+                                const tasks = toolResult.data || [];
+                                const count = tasks.length;
+                                if (count === 0) {
+                                    speakText = speakResponse(SpeechSignal.NO_TASKS, { mode: context.mode.current });
+                                } else {
+                                    speakText = speakResponse(SpeechSignal.HAS_TASKS, { mode: context.mode.current, count });
+                                }
+                            } else if (intentToExecute.type === "NEXT_MEETING") {
+                                speakText = speakResponse(SpeechSignal.CALENDAR_STUB, { mode: context.mode.current });
+                            } else {
+                                speakText = speakResponse(SpeechSignal.EXECUTION_SUCCESS, { mode: context.mode.current });
+                            }
+                        } else {
+                            speakText = speakResponse(SpeechSignal.EXECUTION_ERROR, { mode: context.mode.current });
+                        }
+                    }
+                } catch (err) {
+                    console.error("[CallOrchestrator] Tool Execution Failed:", err);
+                    speakText = "I encountered an error trying to do that.";
+                    this.executedKeys.delete(idempotencyKey);
+                }
+            }
+        }
+    }
+
+    // 6. Output Speech & PERSIST TRACE
+    if (speakText) {
+        contextStore.appendUtterance(this.callSessionId, speakText, 'assistant');
+        await this.speak(speakText, llmStart, text);
+        currentTrace.outcome = "spoken";
+    } else {
+        currentTrace.outcome = "silent";
+    }
+
+    // 7. Explananation Generation (Dynamic)
+    // Required Format: "I noticed... I considered... [Logic]... Next time..."
+    const shortInput = text.length > 50 ? text.substring(0, 47) + "..." : text;
+    const shortIntent = currentTrace.detected_intent || "unknown intent";
+
+    let explanation = "";
+    if (speakText) {
+        explanation = `I noticed you said '${shortInput}'. I considered executing '${shortIntent}' with confidence ${currentTrace.confidence_score.toFixed(2)}. My trust settings allowed me to respond. Next time I will do the same if conditions match.`;
+    } else {
+        explanation = `I noticed you said '${shortInput}'. I considered '${shortIntent}' but my confidence ${currentTrace.confidence_score.toFixed(2)} was too low or I deemed it safer to say nothing. Next time, try being more specific.`;
+    }
+
+    currentTrace.explanation_summary = explanation;
+
+    // PERSIST TRACE
+    // Fire & Forget so we don't block the loop
+    TraceStore.persist(currentTrace).catch(err => console.error("Trace persist failed", err));
+
+    this.isThinking = false;
+}
 
     private async speak(text: string, startTime: number, prompt: string) {
-        const redirectUrl = `${env("PULSE_VOICE_PUBLIC_BASE_URL")}/api/voice/webhook`;
+    const redirectUrl = `${env("PULSE_VOICE_PUBLIC_BASE_URL")}/api/voice/webhook`;
 
-        await supabase.from("pulse_voice_actions").insert({
-            call_session_id: this.callSessionId,
-            action_type: "SAY",
-            payload: { text: text, reason: "LLM_RESPONSE", prompt: prompt },
-            outcome: "PLANNED"
-        });
+    // Phase 16 Safeguard
+    validateNonDirective(text, "CallOrchestrator Output");
 
-        const ttsStart = Date.now();
-        const voiceConfig = VoiceSettings.getProfile();
+    await supabase.from("pulse_voice_actions").insert({
+        call_session_id: this.callSessionId,
+        action_type: "SAY",
+        payload: { text: text, reason: "LLM_RESPONSE", prompt: prompt },
+        outcome: "PLANNED"
+    });
 
-        if (this.onAudio) {
-            await this.onAudio(text, voiceConfig);
-        } else {
-            await sayText(this.callSid, text, redirectUrl);
-        }
+    const ttsStart = Date.now();
+    const voiceConfig = VoiceSettings.getProfile();
 
-        const ttsEnd = Date.now();
-        const llmLatency = ttsStart - startTime;
-        const ttsLatency = ttsEnd - ttsStart;
-        const totalLatency = ttsEnd - startTime;
-
-        console.log(`[CallOrchestrator] Turn Metrics - LLM: ${llmLatency}ms | TTS: ${ttsLatency}ms | Total: ${totalLatency}ms`);
-
-        await supabase.from("pulse_call_events").insert({
-            call_session_id: this.callSessionId,
-            event_type: "TURN_METRICS",
-            payload: {
-                llmLatency,
-                ttsLatency,
-                totalLatency,
-                provider: "dynamic",
-                voice: voiceConfig.id
-            }
-        });
-
-        await supabase.from("pulse_call_events").insert({
-            call_session_id: this.callSessionId,
-            event_type: "IVR_ACTION_SAY",
-            payload: { text: text, reason: "LLM_RESPONSE" }
-        });
-
-        await supabase.from("pulse_voice_actions").update({ outcome: "SENT" })
-            .eq("call_session_id", this.callSessionId)
-            .order("created_at", { ascending: false })
-            .limit(1);
-
-        this.lastActionAt = Date.now();
+    if (this.onAudio) {
+        await this.onAudio(text, voiceConfig);
+    } else {
+        await sayText(this.callSid, text, redirectUrl);
     }
+
+    const ttsEnd = Date.now();
+    const llmLatency = ttsStart - startTime;
+    const ttsLatency = ttsEnd - ttsStart;
+    const totalLatency = ttsEnd - startTime;
+
+    console.log(`[CallOrchestrator] Turn Metrics - LLM: ${llmLatency}ms | TTS: ${ttsLatency}ms | Total: ${totalLatency}ms`);
+
+    await supabase.from("pulse_call_events").insert({
+        call_session_id: this.callSessionId,
+        event_type: "TURN_METRICS",
+        payload: {
+            llmLatency,
+            ttsLatency,
+            totalLatency,
+            provider: "dynamic",
+            voice: voiceConfig.id
+        }
+    });
+
+    await supabase.from("pulse_call_events").insert({
+        call_session_id: this.callSessionId,
+        event_type: "IVR_ACTION_SAY",
+        payload: { text: text, reason: "LLM_RESPONSE" }
+    });
+
+    await supabase.from("pulse_voice_actions").update({ outcome: "SENT" })
+        .eq("call_session_id", this.callSessionId)
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+    this.lastActionAt = Date.now();
+}
 
     // Phase 8: Mock Gemini Analysis (Data Contract Enforced)
     private async runGeminiAnalysis(text: string, context: CallContext) {
-        // MOCK: Simulate Gemini producing an Envelope
-        // This is where the LLM call would happen.
-        const mockEnvelope: GeminiInsightEnvelope = {
-            identity_signals: [],
-            trajectory_deltas: [],
-            confidence_summary: { overall_confidence: 0.0, data_sufficiency: "low" },
-            generated_at: new Date().toISOString()
-        };
+    // MOCK: Simulate Gemini producing an Envelope
+    // This is where the LLM call would happen.
+    const mockEnvelope: GeminiInsightEnvelope = {
+        identity_signals: [],
+        trajectory_deltas: [],
+        confidence_summary: { overall_confidence: 0.0, data_sufficiency: "low" },
+        generated_at: new Date().toISOString()
+    };
 
-        // Example trigger for testing verification script later
-        if (text.includes("I always value freedom")) {
-            mockEnvelope.identity_signals = [{
-                signal_id: "sig_mock_1",
-                category: "value",
-                description: "Values personal freedom",
-                confidence: 0.95,
-                evidence_refs: [],
-                first_observed_at: new Date().toISOString(),
-                last_confirmed_at: new Date().toISOString()
-            }];
-            mockEnvelope.confidence_summary = { overall_confidence: 0.9, data_sufficiency: "high" };
+    // Example trigger for testing verification script later
+    if (text.includes("I always value freedom")) {
+        mockEnvelope.identity_signals = [{
+            signal_id: "sig_mock_1",
+            category: "value",
+            description: "Values personal freedom",
+            confidence: 0.95,
+            evidence_refs: [],
+            first_observed_at: new Date().toISOString(),
+            last_confirmed_at: new Date().toISOString()
+        }];
+        mockEnvelope.confidence_summary = { overall_confidence: 0.9, data_sufficiency: "high" };
+    }
+
+    // GATEKEEPER CHECK
+    const validated = geminiGate.validateEnvelope(mockEnvelope);
+    if (validated) {
+        console.log(`[DeepCognition] Valid Envelope Received.`);
+        if (validated.identity_signals) {
+            validated.identity_signals.forEach(s => identityStore.addSignal(s));
         }
-
-        // GATEKEEPER CHECK
-        const validated = geminiGate.validateEnvelope(mockEnvelope);
-        if (validated) {
-            console.log(`[DeepCognition] Valid Envelope Received.`);
-            if (validated.identity_signals) {
-                validated.identity_signals.forEach(s => identityStore.addSignal(s));
-            }
-            if (validated.trajectory_deltas) {
-                validated.trajectory_deltas.forEach(d => trajectoryEngine.addDelta(d));
-            }
+        if (validated.trajectory_deltas) {
+            validated.trajectory_deltas.forEach(d => trajectoryEngine.addDelta(d));
         }
     }
+}
 }
