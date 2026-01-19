@@ -21,7 +21,7 @@ export default defineConfig({
         ? undefined
         : {
             command: 'npm run start -- -p 3000 -H 0.0.0.0',
-            url: 'http://127.0.0.1:3000/healthz',
+            url: 'http://127.0.0.1:3000/api/healthz',
             reuseExistingServer: true,
             stdout: 'ignore',
             stderr: 'pipe',
