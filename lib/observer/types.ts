@@ -8,7 +8,8 @@ export type ObserverEventType =
     | "unhandledrejection"
     | "perf"
     | "note"
-    | "inability";
+    | "inability"
+    | "pulse_effect";
 
 export type ObserverEvent = {
     id: string;

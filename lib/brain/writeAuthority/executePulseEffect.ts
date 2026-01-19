@@ -53,10 +53,10 @@ export async function executePulseEffect(effect: PulseEffect, ownerId: string) {
 
     // 6. Notify Observer
     pushEvent({
-        type: 'note', // Using 'note' as 'pulse_effect' isn't fully typed in Observer yet, or custom type locally
+        type: 'pulse_effect',
         route: 'brain_executor',
         message: `Effect [${writeMode}]: ${effect.domain} / ${effect.effectType}`,
-        data: { ...effect, applied, writeMode }
+        meta: { ...effect, applied, writeMode }
     });
 
     return { success: true, writeMode, applied };

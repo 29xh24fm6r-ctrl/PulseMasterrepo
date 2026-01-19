@@ -79,6 +79,16 @@ async function main() {
     }
     console.log("✅ Daily Run Success");
 
+    // 4. Test Reversibility
+    console.log("\n🧪 Testing Reversibility...");
+    // @ts-ignore
+    const { revertPulseEffect } = await import('../lib/brain/writeAuthority/revertPulseEffect');
+    const revertRes = await revertPulseEffect('mock-id', highConfEffect);
+    if (!revertRes.success || !revertRes.reverted) {
+        throw new Error("❌ Revert failed");
+    }
+    console.log("✅ Revert Success");
+
     console.log("\n🎯 Phase 18 Verification Complete.");
 }
 

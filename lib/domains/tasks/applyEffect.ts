@@ -10,3 +10,12 @@ export async function applyTaskEffect(effect: PulseEffect) {
         // e.g. createTask(effect.payload)
     }
 }
+
+export async function revertTaskEffect(effect: PulseEffect) {
+    if (effect.domain !== 'tasks') return;
+    console.log(`[TaskAdapter] Reverting effect: ${effect.effectType}`, effect.payload);
+
+    if (effect.effectType === 'create') {
+        // e.g. deleteTask(effect.payload.id)
+    }
+}
