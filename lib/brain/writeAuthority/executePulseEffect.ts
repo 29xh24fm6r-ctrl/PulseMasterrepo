@@ -7,6 +7,8 @@ import { pushEvent } from '@/lib/observer/store';
 import { speak } from '@/lib/voice/speechAuthority';
 // @ts-ignore - dynamic imports or manual switch needed until registry exists
 import { applyTaskEffect } from '@/lib/domains/tasks/applyEffect';
+import { decideAutonomyLevel } from '../autonomy/decideAutonomyLevel';
+import { recordOutcome } from '../autonomy/recordOutcome';
 
 export async function executePulseEffect(effect: PulseEffect, ownerId: string) {
     // 1. IPP Check
@@ -27,12 +29,36 @@ export async function executePulseEffect(effect: PulseEffect, ownerId: string) {
         return { success: false, reason: 'IPP_BLOCK' };
     }
 
-    // 2. Confidence Policy
-    const writeMode = getWriteMode(effect.confidence);
+
+    // 2. Autonomy Decision (L1 Hook)
+    // Default to L0
+    let writeMode = getWriteMode(effect.confidence);
+    let autonomyLevel = 'L0';
+    let decisionReason = 'CONFIDENCE_POLICY';
+    let classKey: string | undefined;
+
+    // Hook: Ask L1 Decision Engine
+    // Only if not already auto (no need to upgrade if already high confidence)
+    if (writeMode !== 'auto') {
+        const decision = decideAutonomyLevel(effect);
+        autonomyLevel = decision.autonomyLevel;
+        classKey = decision.classKey;
+
+        if (decision.autonomyLevel === 'L1' && decision.upgradedWriteMode) {
+            writeMode = decision.upgradedWriteMode;
+            decisionReason = decision.decisionReason;
+            console.log(`[PulseEffect] L1 UPGRADE: ${writeMode} (${decisionReason})`);
+        } else {
+            decisionReason = decision.decisionReason;
+        }
+    } else {
+        // Classify anyway for logging
+        const decision = decideAutonomyLevel(effect);
+        classKey = decision.classKey;
+    }
 
     // 3. Persist to DB (Mock/Real)
-    // In real env: insert into pulse_effects ...
-    // For now we assume optimistic success or verify verification script mocks this step.
+    // insert into pulse_effects (..., autonomy_level, autonomy_class_key, decision_reason)
 
     let applied = false;
 
@@ -42,9 +68,16 @@ export async function executePulseEffect(effect: PulseEffect, ownerId: string) {
             await applyTaskEffect(effect);
             applied = true;
 
+            // 5. Outcome Recording (Success)
+            await recordOutcome(effect, 'success');
+
             // 7. Voice Explanation (Auto only)
             if (effect.source === 'daily_run') {
-                speak(`I've auto-created a task based on our plan.`);
+                if (autonomyLevel === 'L1') {
+                    speak(`I've auto-handled a routine update based on our history.`);
+                } else {
+                    speak(`I've auto-created a task based on our plan.`);
+                }
             }
         } else {
             console.warn(`[PulseEffect] No adapter for domain: ${effect.domain}`);
@@ -56,8 +89,15 @@ export async function executePulseEffect(effect: PulseEffect, ownerId: string) {
         type: 'pulse_effect',
         route: 'brain_executor',
         message: `Effect [${writeMode}]: ${effect.domain} / ${effect.effectType}`,
-        meta: { ...effect, applied, writeMode }
+        meta: {
+            ...effect,
+            applied,
+            writeMode,
+            autonomyLevel,
+            classKey,
+            decisionReason
+        }
     });
 
-    return { success: true, writeMode, applied };
+    return { success: true, writeMode, applied, autonomyLevel, decisionReason };
 }
