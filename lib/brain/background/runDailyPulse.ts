@@ -2,6 +2,7 @@
 import { resolveInabilityToProceed } from '@/lib/brain/inability/resolve';
 import { dailyRun } from '../dailyRun';
 import { calculateDecay } from '../autonomy/applyDecay';
+import { evaluateAutonomyHealth } from '../autonomy/evaluateAutonomyHealth';
 import { pushEvent } from '@/lib/observer/store';
 
 // Mock DB for "pulse_daily_runs" persistence
@@ -53,14 +54,26 @@ export async function runDailyPulse(ownerId: string, runType: RunType, isAbsent:
 
     try {
         // 4. Execute Logic
-        // 4b. Apply Autonomy Decay (Phase 23)
-        // In a real implementation, we would iterator all active autonomy classes and apply:
-        // calculateDecay(cls, now);
-        // if (decay > 0) updateAutonomyClass(cls.key, { decay_score: cls.decay_score + decay });
+        // 4b. Apply Autonomy Decay (Phase 23) & Health Check (Phase 24)
+        // In a real implementation, we would iterate all active autonomy classes:
+        /*
+        for (const cls of activeClasses) {
+            // 1. Decay
+            const decay = calculateDecay(cls, new Date());
+            if (decay > 0) cls.decay_score += decay;
+            
+            // 2. Health Evaluation (Phase 24)
+            const healthResult = evaluateAutonomyHealth(cls);
+            if (healthResult.newHealthState !== cls.health_state) {
+                updateClass(cls.key, { health_state: healthResult.newHealthState });
+                pushEvent({ type: 'autonomy_health_change', payload: healthResult });
+            }
+        }
+        */
 
         // 5. Run core logic
         await dailyRun({
-            userId: userId,
+            userId: ownerId,
             isAbsent: isAbsent
         });
 

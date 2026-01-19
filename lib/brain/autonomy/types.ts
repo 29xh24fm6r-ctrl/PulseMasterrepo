@@ -24,6 +24,11 @@ export type AutonomyClass = {
     last_decay_at?: string;
     decay_score?: number;
     context_hash?: string;
+    // Phase 24 extensions
+    health_state?: 'healthy' | 'degraded' | 'locked';
+    last_degraded_at?: string;
+    last_locked_at?: string;
+    recovery_attempts?: number;
 };
 
 export type AutonomyDecision = {

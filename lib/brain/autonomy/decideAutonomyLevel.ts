@@ -35,7 +35,9 @@ export function decideAutonomyLevel(effect: PulseEffect, options: DailyRunOption
             stats: { successes: 0, confirmations: 0, rejections: 0, reverts: 0, confusionEvents: 0, ippBlocks: 0 },
             user_paused: false,
             decay_score: 0,
-            context_hash: 'morning|wd|home' // Default mock context
+            context_hash: 'morning|wd|home', // Default mock context
+            health_state: 'healthy',
+            recovery_attempts: 0
         };
         MOCK_CLASSES[classKey] = autonomyClass;
     }
@@ -67,14 +69,22 @@ export function decideAutonomyLevel(effect: PulseEffect, options: DailyRunOption
         return { autonomyLevel: 'L0', decisionReason: 'USER_PAUSED', classKey };
     }
 
-    if (autonomyClass.status === 'locked') {
-        return { autonomyLevel: 'L0', decisionReason: 'CLASS_LOCKED', classKey };
+    // Health State Enforcement (Phase 24)
+    const health = autonomyClass.health_state || 'healthy';
+
+    if (health === 'locked') {
+        return { autonomyLevel: 'L0', decisionReason: 'HEALTH_LOCKED', classKey };
+    }
+
+    if (health === 'degraded') {
+        // Forced L0
+        return { autonomyLevel: 'L0', decisionReason: 'HEALTH_DEGRADED', classKey };
     }
 
     // Context Drift (Phase 23)
+    // Note: evaluateHealth might have already set state to 'degraded' due to drift,
+    // but we keep this dynamic check for real-time safety before next daily run syncs state.
     if (detectContextDrift(autonomyClass)) {
-        // Drift detected -> Downgrade to Confirm
-        // We could also penalize the score temporarily here, but forcing L0 is safer.
         return { autonomyLevel: 'L0', decisionReason: 'CONTEXT_DRIFT', classKey };
     }
 
