@@ -98,6 +98,7 @@ export const GENERATED_APIS = [
   "/api/cron/proactive",
   "/api/cron/process-cognitive-mesh",
   "/api/cron/pulse",
+  "/api/cron/pulse-daily",
   "/api/cron/third-brain",
   "/api/cron/weekly",
   "/api/dashboard/config",

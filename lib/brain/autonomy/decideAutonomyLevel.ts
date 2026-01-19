@@ -1,7 +1,9 @@
 import { PulseEffect } from '../writeAuthority/types';
-import { AutonomyDecision, AutonomyClass } from './types';
-import { classifyEffect } from './classifyEffect';
-import { scoreEligibility } from './scoreEligibility';
+import { AutonomyClass, AutonomyDecision } from './types';
+import { classifyPulseEffect } from './classifyEffect';
+import { calculateEligibilityScore } from './scoreEligibility';
+import { detectContextDrift } from './detectContextDrift';
+import { DRIFT_PENALTY_SCORE } from './decayPolicy';
 import {
     ELIGIBILITY_SCORE_FOR_L1,
     L1_CONFIRM_DOWNGRADE_THRESHOLD,
@@ -14,9 +16,10 @@ const MOCK_CLASSES: Record<string, AutonomyClass> = {};
 import { DailyRunOptions } from '../dailyRun';
 
 export function decideAutonomyLevel(effect: PulseEffect, options: DailyRunOptions = {}): AutonomyDecision {
-    const { classKey } = classifyEffect(effect);
+    // 1. Classify
+    const { classKey, domain, effectType, fingerprint } = classifyPulseEffect(effect);
 
-    // 1. Fetch Class State
+    // 2. Check Locks
     // limit for mock purpose
     let autonomyClass = MOCK_CLASSES[classKey];
 
@@ -29,13 +32,18 @@ export function decideAutonomyLevel(effect: PulseEffect, options: DailyRunOption
             fingerprint: classKey.split(':').pop() || '',
             status: 'locked',
             eligibilityScore: 0,
-            stats: { successes: 0, confirmations: 0, rejections: 0, reverts: 0, confusionEvents: 0, ippBlocks: 0 }
+            stats: { successes: 0, confirmations: 0, rejections: 0, reverts: 0, confusionEvents: 0, ippBlocks: 0 },
+            user_paused: false,
+            decay_score: 0,
+            context_hash: 'morning|wd|home', // Default mock context
+            health_state: 'healthy',
+            recovery_attempts: 0
         };
         MOCK_CLASSES[classKey] = autonomyClass;
     }
 
     // 2. Refresh Score
-    autonomyClass.eligibilityScore = scoreEligibility(autonomyClass.stats);
+    autonomyClass.eligibilityScore = calculateEligibilityScore(autonomyClass);
 
     // 3. Status Transition Logic (Simplified)
     if (autonomyClass.status === 'locked') {
@@ -56,8 +64,28 @@ export function decideAutonomyLevel(effect: PulseEffect, options: DailyRunOption
         return { autonomyLevel: 'L0', decisionReason: 'CLASS_PAUSED', classKey };
     }
 
-    if (autonomyClass.status === 'locked') {
-        return { autonomyLevel: 'L0', decisionReason: 'CLASS_LOCKED', classKey };
+    // User Pause (Phase 22)
+    if (autonomyClass.user_paused) {
+        return { autonomyLevel: 'L0', decisionReason: 'USER_PAUSED', classKey };
+    }
+
+    // Health State Enforcement (Phase 24)
+    const health = autonomyClass.health_state || 'healthy';
+
+    if (health === 'locked') {
+        return { autonomyLevel: 'L0', decisionReason: 'HEALTH_LOCKED', classKey };
+    }
+
+    if (health === 'degraded') {
+        // Forced L0
+        return { autonomyLevel: 'L0', decisionReason: 'HEALTH_DEGRADED', classKey };
+    }
+
+    // Context Drift (Phase 23)
+    // Note: evaluateHealth might have already set state to 'degraded' due to drift,
+    // but we keep this dynamic check for real-time safety before next daily run syncs state.
+    if (detectContextDrift(autonomyClass)) {
+        return { autonomyLevel: 'L0', decisionReason: 'CONTEXT_DRIFT', classKey };
     }
 
     // 4. L1 Upgrade Logic (Eligible)

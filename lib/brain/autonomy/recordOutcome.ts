@@ -1,12 +1,12 @@
 import { PulseEffect } from '../writeAuthority/types';
 import { pushEvent } from '@/lib/observer/store';
-import { classifyEffect } from './classifyEffect';
+import { classifyPulseEffect } from './classifyEffect';
 
 export async function recordOutcome(
     effect: PulseEffect,
     outcome: 'success' | 'reject' | 'revert' | 'confusion'
 ) {
-    const { classKey } = classifyEffect(effect);
+    const { classKey } = classifyPulseEffect(effect);
 
     console.log(`[Autonomy] Recording outcome [${outcome}] for ${classKey}`);
 
