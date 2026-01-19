@@ -13,6 +13,8 @@ jobs:
       NEXT_PUBLIC_DEV_PULSE_OWNER_USER_ID: "00000000-0000-0000-0000-000000000001"
       PULSE_DEV_OWNER_ID: "00000000-0000-0000-0000-000000000001"
       PULSE_ENABLE_DEV_BYPASS: "true"
+      # Required for ClerkProviderSafe runtime check (using test key for CI smoke)
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_test_cmVsYXhlZC1jaG93LTgzLmNsZXJrLmFjY291bnRzLmRldiQ"
 
     steps:
       - uses: actions/checkout@v4
