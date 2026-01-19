@@ -99,13 +99,23 @@ export function DevSmokePanel() {
         }
     };
 
-    // Only render in dev/preview (hidden in production by CSS/logic upstream, but double check here)
-    // Only render in dev/preview or if explicitly enabled via public env
-    // process.env.VERCEL_ENV is not available in client bundles, so we rely on the public ID or NODE_ENV.
-    const hasDevIdentity = !!process.env.NEXT_PUBLIC_DEV_PULSE_OWNER_USER_ID;
+    // Visibility Logic:
+    // 1. Visible by default in Dev
+    // 2. Visible if NEXT_PUBLIC_DEV_PULSE_OWNER_USER_ID is set (Preview/CI)
+    // 3. Visible if ?force_smoke=1 is present (Emergency override for Tests)
     const isDev = process.env.NODE_ENV !== "production";
+    const [isVisible, setIsVisible] = useState(isDev);
 
-    if (!isDev && !hasDevIdentity) return null;
+    useEffect(() => {
+        const hasDevIdentity = !!process.env.NEXT_PUBLIC_DEV_PULSE_OWNER_USER_ID;
+        const force = window.location.search.includes("force_smoke=1");
+
+        if (hasDevIdentity || force) {
+            setIsVisible(true);
+        }
+    }, []);
+
+    if (!isVisible) return null;
 
     return (
         <div className="fixed bottom-4 right-4 z-50 w-80 bg-black/90 text-white rounded-xl border border-white/20 shadow-2xl backdrop-blur-md overflow-hidden font-mono text-xs">

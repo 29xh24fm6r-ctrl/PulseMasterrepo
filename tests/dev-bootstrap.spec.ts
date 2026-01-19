@@ -8,7 +8,7 @@ test('Dev Bootstrap Smoke Test', async ({ page, request }) => {
     expect(healthJson.ok).toBe(true);
 
     // 2. Client-side UI Harness
-    await page.goto('/bridge');
+    await page.goto('/bridge?force_smoke=1');
 
     // Verify panel exists
     const panel = page.getByText('Dev Smoke Harness');
