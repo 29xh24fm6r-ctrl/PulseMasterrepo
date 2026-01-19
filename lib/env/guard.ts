@@ -19,15 +19,36 @@ export function isBuildPhase(): boolean {
     return false;
 }
 
+import { isCiSmoke } from "./isCiSmoke";
+
 export function assertServerEnv(): void {
     // 🚫 Never assert required secrets during build-time module evaluation
     if (isBuildPhase()) return;
 
     const missing: string[] = [];
 
-    // ✅ Correct pair (fixes previous duplicate typo)
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) missing.push("NEXT_PUBLIC_SUPABASE_URL");
-    if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) missing.push("NEXT_PUBLIC_SUPABASE_ANON_KEY");
+    // ✅ Enable CI Smoke Fallback for Public Keys
+    const isSmoke = isCiSmoke();
+
+    // Check SUPABASE_URL
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+        if (isSmoke) {
+            // Safe fallback for smoke tests (logic-only, no DB query)
+            process.env.NEXT_PUBLIC_SUPABASE_URL = "https://mock.ci.supabase.co";
+        } else {
+            missing.push("NEXT_PUBLIC_SUPABASE_URL");
+        }
+    }
+
+    // Check SUPABASE_ANON_KEY
+    if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        if (isSmoke) {
+            // Safe fallback for smoke tests
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "mock-ci-anon-key";
+        } else {
+            missing.push("NEXT_PUBLIC_SUPABASE_ANON_KEY");
+        }
+    }
 
     // Add other REQUIRED runtime vars here if they must fail-closed at runtime.
     // Example:

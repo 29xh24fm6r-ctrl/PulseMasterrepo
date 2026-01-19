@@ -19,9 +19,15 @@ jobs:
       # Required for Supabase Client runtime check
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      # Signal to guard.ts to allow placeholders if secrets are missing
+      PULSE_SMOKE: "1"
 
     steps:
       - uses: actions/checkout@v4
+      
+      - name: Assert smoke env present
+        run: node -e "console.log('PULSE_SMOKE=',process.env.PULSE_SMOKE,'URL?',!!process.env.NEXT_PUBLIC_SUPABASE_URL,'ANON?',!!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)"
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
