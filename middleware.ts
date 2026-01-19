@@ -91,6 +91,11 @@ export function middleware(req: NextRequest, evt: NextFetchEvent) {
       const devOwnerId =
         process.env.PULSE_DEV_USER_ID || process.env.NEXT_PUBLIC_DEV_PULSE_OWNER_USER_ID;
 
+      // DEBUG: CI Smoke Test Visibility
+      if (pathname === "/bridge") {
+        console.log("[Mw Debug] Checking Bridge Bypass:", { devBypassEnabled, devOwnerId, pulseEnv });
+      }
+
       if (devBypassEnabled && devOwnerId) {
         const res = NextResponse.next();
         return stamp(res, `allow_dev_bypass:${pulseEnv}`);
