@@ -41,8 +41,38 @@ jobs:
       # We use 'next start' via Playwright webServer, but we can verify it here too or let PW handle it.
       # The config uses 'npm run start'.
       
+      - name: Start Next server (CI)
+        run: |
+          nohup npx next start -p 3000 -H 0.0.0.0 > next-ci.log 2>&1 &
+          echo $! > next-ci.pid
+
+      - name: Wait for server (/healthz)
+        run: |
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:3000/healthz > /dev/null; then
+              echo "Server is up"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Server did not become ready"
+          echo "---- next-ci.log (tail) ----"
+          tail -n 200 next-ci.log || true
+          exit 1
+
       - name: Run Playwright tests
         run: npx playwright test
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
+
+      - name: Stop Next server
+        if: always()
+        run: |
+          if [ -f next-ci.pid ]; then
+            kill $(cat next-ci.pid) || true
+          fi
+          echo "---- next-ci.log (tail) ----"
+          tail -n 200 next-ci.log || true
 
       - uses: actions/upload-artifact@v4
         if: always()

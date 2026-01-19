@@ -8,7 +8,7 @@ export default defineConfig({
     workers: process.env.CI ? 1 : undefined,
     reporter: 'html',
     use: {
-        baseURL: 'http://localhost:3000',
+        baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:3000',
         trace: 'on-first-retry',
     },
     projects: [
@@ -17,12 +17,14 @@ export default defineConfig({
             use: { ...devices['Desktop Chrome'] },
         },
     ],
-    webServer: {
-        command: 'npx next start -p 3000 -H 0.0.0.0',
-        url: 'http://127.0.0.1:3000/healthz',
-        reuseExistingServer: !process.env.CI,
-        stdout: 'ignore',
-        stderr: 'pipe',
-        timeout: 120_000,
-    },
+    webServer: process.env.CI
+        ? undefined
+        : {
+            command: 'npm run start -- -p 3000 -H 0.0.0.0',
+            url: 'http://127.0.0.1:3000/healthz',
+            reuseExistingServer: true,
+            stdout: 'ignore',
+            stderr: 'pipe',
+            timeout: 120_000,
+        },
 });
