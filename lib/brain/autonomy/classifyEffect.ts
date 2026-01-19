@@ -1,10 +1,10 @@
 import { PulseEffect } from '../writeAuthority/types';
 import crypto from 'crypto';
 
-export function classifyEffect(effect: PulseEffect): { classKey: string, fingerprint: string } {
+export function classifyPulseEffect(effect: PulseEffect): { classKey: string, fingerprint: string, domain: string, effectType: string } {
     const fingerprint = deriveFingerprint(effect);
     const classKey = `${effect.domain}:${effect.effectType}:${fingerprint}`;
-    return { classKey, fingerprint };
+    return { classKey, fingerprint, domain: effect.domain, effectType: effect.effectType };
 }
 
 function deriveFingerprint(effect: PulseEffect): string {

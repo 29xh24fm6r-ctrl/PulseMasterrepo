@@ -1,6 +1,7 @@
 
 import { resolveInabilityToProceed } from '@/lib/brain/inability/resolve';
 import { dailyRun } from '../dailyRun';
+import { calculateDecay } from '../autonomy/applyDecay';
 import { pushEvent } from '@/lib/observer/store';
 
 // Mock DB for "pulse_daily_runs" persistence
@@ -52,8 +53,16 @@ export async function runDailyPulse(ownerId: string, runType: RunType, isAbsent:
 
     try {
         // 4. Execute Logic
-        // Pass absence context
-        await dailyRun(ownerId, { isAbsent });
+        // 4b. Apply Autonomy Decay (Phase 23)
+        // In a real implementation, we would iterator all active autonomy classes and apply:
+        // calculateDecay(cls, now);
+        // if (decay > 0) updateAutonomyClass(cls.key, { decay_score: cls.decay_score + decay });
+
+        // 5. Run core logic
+        await dailyRun({
+            userId: userId,
+            isAbsent: isAbsent
+        });
 
         // 5. Status -> Completed
         console.log(`[DailyPulse] Run complete.`);
