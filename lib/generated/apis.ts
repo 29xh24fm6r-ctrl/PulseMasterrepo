@@ -321,6 +321,7 @@ export const GENERATED_APIS = [
   "/api/third-brain/insights/[id]/status",
   "/api/third-brain/memories",
   "/api/today",
+  "/api/trace/[id]",
   "/api/traces/artifacts",
   "/api/traces/get",
   "/api/traces/links",

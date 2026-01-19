@@ -26,7 +26,6 @@ export async function GET() {
     // without absolute URLs, which can be flaky in CI.
     // Instead, we'll validate the logic directly.
 
-    const isPreview = process.env.VERCEL_ENV === "preview";
     const isDev = process.env.NODE_ENV === "development";
     const hasOwnerId = !!process.env.PULSE_DEV_OWNER_ID || !!process.env.NEXT_PUBLIC_DEV_PULSE_OWNER_USER_ID;
 

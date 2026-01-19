@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
  */
 export async function GET() {
     const isPreview = process.env.VERCEL_ENV === "preview";
+    const isDev = process.env.NODE_ENV === "development";
 
     if (process.env.NODE_ENV === "production" && !isPreview) {
         return NextResponse.json(
@@ -16,10 +17,6 @@ export async function GET() {
             { status: 403 }
         );
     }
-
-    const isPreview = process.env.VERCEL_ENV === "preview";
-    const isDev = process.env.NODE_ENV === "development";
-
     return NextResponse.json({
         ok: true,
         env: isPreview ? "preview" : isDev ? "development" : process.env.NODE_ENV,
