@@ -15,6 +15,10 @@ export type AutonomyClass = {
         confusionEvents: number;
         ippBlocks: number;
     };
+    // Phase 22 extensions
+    user_paused?: boolean;
+    display_name?: string;
+    description?: string;
 };
 
 export type AutonomyDecision = {

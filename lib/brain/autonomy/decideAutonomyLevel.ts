@@ -29,7 +29,8 @@ export function decideAutonomyLevel(effect: PulseEffect, options: DailyRunOption
             fingerprint: classKey.split(':').pop() || '',
             status: 'locked',
             eligibilityScore: 0,
-            stats: { successes: 0, confirmations: 0, rejections: 0, reverts: 0, confusionEvents: 0, ippBlocks: 0 }
+            stats: { successes: 0, confirmations: 0, rejections: 0, reverts: 0, confusionEvents: 0, ippBlocks: 0 },
+            user_paused: false
         };
         MOCK_CLASSES[classKey] = autonomyClass;
     }
@@ -54,6 +55,11 @@ export function decideAutonomyLevel(effect: PulseEffect, options: DailyRunOption
     if (autonomyClass.status === 'paused') {
         // Requires manual reset or cool-down
         return { autonomyLevel: 'L0', decisionReason: 'CLASS_PAUSED', classKey };
+    }
+
+    // User Pause (Phase 22)
+    if (autonomyClass.user_paused) {
+        return { autonomyLevel: 'L0', decisionReason: 'USER_PAUSED', classKey };
     }
 
     if (autonomyClass.status === 'locked') {
