@@ -1,8 +1,9 @@
+import { isObserverEnabled } from "./enabled";
+import { OBSERVER_EVENTS_KEY, OBSERVER_STARTED_AT_KEY } from "./keys";
 import type { ObserverBundle, ObserverEvent } from "./types";
 
-const KEY = "pulse.observer.enabled";
-const KEY_EVENTS = "pulse.observer.events";
-const KEY_STARTED = "pulse.observer.startedAt";
+// Re-export for compatibility if needed, but prefer using enabled.ts directly
+export { isObserverEnabled, enableObserver, disableObserver } from "./enabled";
 
 const MAX_EVENTS = 400;
 
@@ -10,22 +11,10 @@ function uid() {
     return Math.random().toString(16).slice(2) + "-" + Date.now().toString(16);
 }
 
-export function isObserverEnabled() {
-    if (typeof window === "undefined") return false;
-    const qs = new URLSearchParams(window.location.search);
-    if (qs.get("observer") === "1") return true;
-    return window.localStorage.getItem(KEY) === "1";
-}
-
-export function setObserverEnabled(v: boolean) {
-    if (typeof window === "undefined") return;
-    window.localStorage.setItem(KEY, v ? "1" : "0");
-}
-
 export function ensureSessionStarted() {
     if (typeof window === "undefined") return;
-    if (!window.localStorage.getItem(KEY_STARTED)) {
-        window.localStorage.setItem(KEY_STARTED, String(Date.now()));
+    if (!window.localStorage.getItem(OBSERVER_STARTED_AT_KEY)) {
+        window.localStorage.setItem(OBSERVER_STARTED_AT_KEY, String(Date.now()));
     }
 }
 
@@ -42,13 +31,13 @@ export function pushEvent(ev: Omit<ObserverEvent, "id" | "ts">) {
     // ring buffer
     while (events.length > MAX_EVENTS) events.shift();
 
-    window.localStorage.setItem(KEY_EVENTS, JSON.stringify(events));
+    window.localStorage.setItem(OBSERVER_EVENTS_KEY, JSON.stringify(events));
 }
 
 export function readEvents(): ObserverEvent[] {
     if (typeof window === "undefined") return [];
     try {
-        const raw = window.localStorage.getItem(KEY_EVENTS);
+        const raw = window.localStorage.getItem(OBSERVER_EVENTS_KEY);
         if (!raw) return [];
         const parsed = JSON.parse(raw);
         if (!Array.isArray(parsed)) return [];
@@ -60,13 +49,13 @@ export function readEvents(): ObserverEvent[] {
 
 export function clearEvents() {
     if (typeof window === "undefined") return;
-    window.localStorage.removeItem(KEY_EVENTS);
-    window.localStorage.removeItem(KEY_STARTED);
+    window.localStorage.removeItem(OBSERVER_EVENTS_KEY);
+    window.localStorage.removeItem(OBSERVER_STARTED_AT_KEY);
 }
 
 export function buildBundle(routeAtExport?: string): ObserverBundle {
     const events = readEvents();
-    const startedAt = Number(window.localStorage.getItem(KEY_STARTED) || Date.now());
+    const startedAt = Number(window.localStorage.getItem(OBSERVER_STARTED_AT_KEY) || Date.now());
     const endedAt = Date.now();
 
     const routes = Array.from(new Set(events.filter(e => e.type === "route").map(e => e.route).filter(Boolean))) as string[];
