@@ -18,6 +18,7 @@ import ServiceWorkerRegistration from "./components/ServiceWorkerRegistration";
 import { ToastProvider } from "@/components/ui/ToastProvider";
 import { PrimaryNav } from "@/components/nav/PrimaryNav";
 import { WhisperFeed } from "@/components/WhisperFeed";
+import PulseObserverMount from "@/components/observer/PulseObserverMount";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -67,6 +68,7 @@ export default function RootLayout({
                       <WhisperFeed />
                       <PulseContextTracker />
                       <ServiceWorkerRegistration />
+                      <PulseObserverMount />
                     </main>
                     <aside className="hidden xl:block w-[400px] border-l border-zinc-200 dark:border-white/10 p-4 shrink-0 bg-zinc-900/50">
                       <PulseCompanionShell ownerUserId={process.env.PULSE_DEV_USER_ID || "00000000-0000-0000-0000-000000000000"} />
