@@ -7,6 +7,13 @@ import { pushEvent } from '@/lib/observer/store';
 import { speak } from '@/lib/voice/speechAuthority';
 // @ts-ignore - dynamic imports or manual switch needed until registry exists
 import { applyTaskEffect } from '@/lib/domains/tasks/applyEffect';
+// @ts-ignore 
+import { applyChefEffect } from '@/lib/domains/chef/applyEffect';
+// @ts-ignore
+import { applyPlanningEffect } from '@/lib/domains/planning/applyEffect';
+// @ts-ignore
+import { applyLifeStateEffect } from '@/lib/domains/life_state/applyEffect';
+
 import { decideAutonomyLevel } from '../autonomy/decideAutonomyLevel';
 import { recordOutcome } from '../autonomy/recordOutcome';
 
@@ -67,7 +74,20 @@ export async function executePulseEffect(effect: PulseEffect, ownerId: string) {
         if (effect.domain === 'tasks') {
             await applyTaskEffect(effect);
             applied = true;
+        } else if (effect.domain === 'chef') {
+            await applyChefEffect(effect);
+            applied = true;
+        } else if (effect.domain === 'planning') {
+            await applyPlanningEffect(effect);
+            applied = true;
+        } else if (effect.domain === 'life_state') {
+            await applyLifeStateEffect(effect);
+            applied = true;
+        } else {
+            console.warn(`[PulseEffect] No adapter for domain: ${effect.domain}`);
+        }
 
+        if (applied) {
             // 5. Outcome Recording (Success)
             await recordOutcome(effect, 'success');
 
@@ -79,8 +99,6 @@ export async function executePulseEffect(effect: PulseEffect, ownerId: string) {
                     speak(`I've auto-created a task based on our plan.`);
                 }
             }
-        } else {
-            console.warn(`[PulseEffect] No adapter for domain: ${effect.domain}`);
         }
     }
 

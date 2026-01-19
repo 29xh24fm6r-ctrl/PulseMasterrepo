@@ -19,5 +19,27 @@ function deriveFingerprint(effect: PulseEffect): string {
         return `struct_${keys}`;
     }
 
+    if (effect.domain === 'chef') {
+        // e.g. chef:add_missing_grocery_item
+        // fingerprint by explicit 'action' if present, or fallback to key sort
+        if (effect.effectType === 'update' && effect.payload.action) {
+            return `action_${effect.payload.action}`;
+        }
+        const keys = Object.keys(effect.payload).sort().join('_');
+        return `struct_${keys}`;
+    }
+
+    if (effect.domain === 'planning') {
+        // e.g. planning:adjust_daily_priorities
+        const keys = Object.keys(effect.payload).sort().join('_');
+        return `struct_${keys}`;
+    }
+
+    if (effect.domain === 'life_state') {
+        // e.g. life_state:damp_overload
+        const keys = Object.keys(effect.payload).sort().join('_');
+        return `struct_${keys}`;
+    }
+
     return 'default';
 }

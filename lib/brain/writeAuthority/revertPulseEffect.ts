@@ -3,17 +3,38 @@ import { PulseEffect } from './types';
 import { pushEvent } from '@/lib/observer/store';
 // @ts-ignore
 import { revertTaskEffect } from '@/lib/domains/tasks/applyEffect';
+// @ts-ignore
+import { revertChefEffect } from '@/lib/domains/chef/applyEffect';
+// @ts-ignore
+import { revertPlanningEffect } from '@/lib/domains/planning/applyEffect';
+// @ts-ignore
+import { revertLifeStateEffect } from '@/lib/domains/life_state/applyEffect';
+
+import { recordOutcome } from '../autonomy/recordOutcome';
 
 export async function revertPulseEffect(effectId: string, effect: PulseEffect) {
     console.log(`[OWA] Reverting effect ${effectId}`);
 
-    let reverted = false;
+    const originalEffect = effect;
 
-    if (effect.domain === 'tasks') {
-        await revertTaskEffect(effect);
-        reverted = true;
+    // 1. Route to Domain
+    let result = { success: false, reverted: false };
+
+    if (originalEffect.domain === 'tasks') {
+        result = await revertTaskEffect(originalEffect);
+    } else if (originalEffect.domain === 'chef') {
+        result = await revertChefEffect(originalEffect);
+    } else if (originalEffect.domain === 'planning') {
+        result = await revertPlanningEffect(originalEffect);
+    } else if (originalEffect.domain === 'life_state') {
+        result = await revertLifeStateEffect(originalEffect);
     } else {
-        console.warn(`[OWA] No revert adapter for domain: ${effect.domain}`);
+        console.warn(`[OWA] No revert adapter for domain: ${originalEffect.domain}`);
+    }
+
+    // 2. Record Outcome (This triggers Pausing if threshold exceeded)
+    if (result.reverted) {
+        await recordOutcome(originalEffect, 'revert');
     }
 
     // In a real implementation: Update DB set reverted = true
