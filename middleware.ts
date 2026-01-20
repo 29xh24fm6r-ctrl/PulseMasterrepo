@@ -1,24 +1,29 @@
-import { NextRequest, NextResponse, NextFetchEvent } from "next/server";
+import { NextResponse, type NextRequest, NextFetchEvent } from "next/server";
 import { clerkMiddleware } from "@clerk/nextjs/server";
-import { getPulseEnv, isDevOrPreview } from "@/lib/env/pulseEnv";
 import { isPublicPath } from "@/lib/http/publicRoutes";
 
-/**
- * PULSE MIDDLEWARE — CI HARDENED
- *
- * Goals:
- * 1) NEVER throw for public assets (manifest, favicon, _next/*, etc.)
- * 2) Always stamp x-pulse-mw for verification scripts
- * 3) Allow /bridge dev-bypass in CI/dev without touching auth clients
- * 4) Keep the rest of your existing auth/route logic behind safe guards
- */
+// Routes that DEFINITELY require Auth and would crash if Clerk is missing
+const PROTECTED_PREFIXES = [
+  "/app",
+  "/dashboard",
+  "/bridge",
+  "/settings",
+  "/voice",
+  "/today",
+  "/inbox",
+  "/memories",
+  "/skills",
+  // Add other protected app routes here
+];
 
-function isCI() {
-  return process.env.CI === "true" || process.env.GITHUB_ACTIONS === "true";
+function isProtectedPath(pathname: string): boolean {
+  return PROTECTED_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
 }
 
-function isDev() {
-  return process.env.NODE_ENV !== "production";
+function hasClerkKeys(): boolean {
+  // Publishable is used client-side, secret is used server-side.
+  // If either is missing, treat as "auth disabled" environment.
+  return !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && !!process.env.CLERK_SECRET_KEY;
 }
 
 function stamp(res: NextResponse, tags: string | string[]) {
@@ -28,86 +33,57 @@ function stamp(res: NextResponse, tags: string | string[]) {
 }
 
 export function middleware(req: NextRequest, evt: NextFetchEvent) {
-  const url = req.nextUrl;
-  const pathname = url.pathname;
+  const { pathname } = req.nextUrl;
 
-  // 1) Public assets: ALWAYS allow, ALWAYS stamp expected header.
+  // 1) Public assets: ALWAYS allow
   if (isPublicPath(pathname)) {
     return stamp(NextResponse.next(), "allow_public_asset");
   }
 
-  // CANON BYPASS: dev bootstrap endpoints must never be auth-blocked
+  // CANON BYPASS: dev bootstrap
   if (pathname.startsWith("/api/dev")) {
     return NextResponse.next();
   }
 
-  // 2) Bridge route: Stability Check Bypass
-  // Only return JSON if explicitly verifying. Or bypass auth if dev override enabled.
+  // 2) Bridge / Dev Bypass Logic
   if (pathname === "/bridge") {
     const isVerify = req.headers.get("x-pulse-verify") === "true";
+    // Allow verification script to bypass auth even if keys exist
     if (isVerify) {
       return stamp(NextResponse.json({ status: "ok", mode: "bypass" }), ["allow_dev_bypass", "allow_auth"]);
     }
+  }
 
-    // CHECK FOR DEV OVERRIDE (Top Level to bypass Clerk redirect)
-    // We trust CI env or explicit flags.
-    const devBypassEnabled = process.env.PULSE_ENABLE_DEV_BYPASS === "true" || process.env.CI === "true";
-    const devOwnerId = process.env.PULSE_DEV_USER_ID || process.env.NEXT_PUBLIC_DEV_PULSE_OWNER_USER_ID;
 
-    // Debug log for troubleshooting
-    console.log("[Mw Top] Checking Bridge Bypass:", { devBypassEnabled, devOwnerId, isCI: process.env.CI });
-
-    if (devBypassEnabled && devOwnerId) {
-      return stamp(NextResponse.next(), "allow_dev_bypass_top");
+  // 3) AUTH DISABLED GUARD (Preview / Missing Keys)
+  // If keys are missing, we CANNOT run clerkMiddleware.
+  // We must REWRITE protected routes to /auth-disabled so they don't crash.
+  if (!hasClerkKeys()) {
+    if (isProtectedPath(pathname)) {
+      const url = req.nextUrl.clone();
+      url.pathname = "/auth-disabled";
+      return stamp(NextResponse.rewrite(url), "rewrite_auth_disabled");
     }
+    // Allow public pages (landing, etc) to render without Clerk
+    return stamp(NextResponse.next(), "public_no_auth");
   }
 
-  // 3) Everything else: run your existing logic, but never hard-crash the process.
-  try {
-    // Re-integrate existing middleware logic via clerkMiddleware wrapper
-    return clerkMiddleware(async (auth, req) => {
-      const pulseEnv = getPulseEnv();
-      const devOrPreview = isDevOrPreview();
+  // 4) Auth Enabled: Run Clerk Middleware normally
+  return clerkMiddleware(async (auth, req) => {
 
-      // 2) ALWAYS ALLOW: auth pages
-      if (pathname.startsWith("/sign-in") || pathname.startsWith("/sign-up")) {
-        const res = NextResponse.next();
-        return stamp(res, "allow_auth_routes");
-      }
+    // Hard Redirects (Legacy)
+    if (pathname === "/dashboard" || pathname === "/today") {
+      return NextResponse.redirect(new URL("/bridge", req.url));
+    }
 
-      // 3) ALWAYS ALLOW: API routes
-      if (pathname.startsWith("/api")) {
-        const res = NextResponse.next();
-        return stamp(res, "allow_api");
-      }
+    // Default protection
+    await auth.protect();
 
-
-
-      // Phase D1: Hard Redirect Enforcement
-      if (pathname === "/dashboard" || pathname === "/today") {
-        return NextResponse.redirect(new URL("/bridge", req.url));
-      }
-
-      // 5) DEFAULT: Protected route (Clerk)
-      await auth.protect();
-
-      const res = NextResponse.next();
-      return stamp(res, "protected_content");
-    })(req, evt);
-
-  } catch (err: any) {
-    // For safety: do not break the app/server on middleware errors.
-    console.error("Middleware failed:", err);
-    const res = NextResponse.next();
-    res.headers.set("x-pulse-mw-error", "middleware_throw");
-    // Do NOT leak error details; CI only needs stability.
-    return stamp(res, "fail_open");
-  }
+    return stamp(NextResponse.next(), "protected_content");
+  })(req, evt);
 }
 
 export const config = {
-  // Match ALL routes so we can guard manifest/favicon/assets inside middleware
-  // BUT exclude known static files to avoid Clerk 401s on some platforms
   matcher: [
     "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml).*)",
   ],
