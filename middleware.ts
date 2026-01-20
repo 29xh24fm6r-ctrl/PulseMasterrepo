@@ -126,6 +126,6 @@ export const config = {
   // Match ALL routes so we can guard manifest/favicon/assets inside middleware
   // BUT exclude known static files to avoid Clerk 401s on some platforms
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|manifest.json|robots.txt|sitemap.xml).*)",
+    "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml).*)",
   ],
 };

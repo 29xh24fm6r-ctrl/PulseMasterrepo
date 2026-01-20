@@ -1,11 +1,12 @@
 import { TOKENS } from "@/lib/ui/tokens";
 import { PrimaryButton } from "@/components/ui/PrimaryButton";
 import { SecondaryButton } from "@/components/ui/SecondaryButton";
+import { useOverlays } from "./OverlayContext";
 
 export function ConfirmationModal() {
-    const { state, setConfirmationActive } = useOverlays();
+    const { confirmationActive, setConfirmationActive } = useOverlays();
 
-    if (!state.confirmationActive) return null;
+    if (!confirmationActive) return null;
 
     return (
         <div className={`fixed inset-0 z-[40] flex items-center justify-center ${TOKENS.COLORS.glass.bg} ${TOKENS.BLUR.sm}`}>

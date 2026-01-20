@@ -5,12 +5,12 @@ import { useOverlays } from "./OverlayContext";
 import { TOKENS } from "@/lib/ui/tokens";
 
 export function SystemBanner() {
-    const { state, setBannerActive } = useOverlays();
+    const { bannerActive, bannerMessage, hideBanner } = useOverlays();
 
-    if (!state.bannerActive) return null;
+    if (!bannerActive) return null;
 
     // Use warning colors if it's a limit message, else default
-    const isLimit = state.bannerMessage?.toLowerCase().includes("limit");
+    const isLimit = bannerMessage?.toLowerCase().includes("limit");
 
     return (
         <div className="fixed top-16 left-0 right-0 z-[30] flex justify-center pointer-events-none animate-in fade-in slide-in-from-top-2 duration-300">
@@ -25,10 +25,10 @@ export function SystemBanner() {
                 flex items-center gap-4 pointer-events-auto
             `}>
                 <span className="text-sm font-medium tracking-wide">
-                    {state.bannerMessage || "System operational"}
+                    {bannerMessage || "System operational"}
                 </span>
                 <button
-                    onClick={() => setBannerActive(false)}
+                    onClick={() => hideBanner()}
                     className={`hover:text-white transition-colors p-1 rounded-full hover:bg-white/10`}
                 >
                     ×
