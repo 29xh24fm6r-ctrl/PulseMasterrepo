@@ -4,6 +4,8 @@ import { useState } from "react";
 import { SettingsSection } from "./SettingsSection";
 import { SettingRow } from "./SettingRow";
 
+import { SectionHeader } from "@/components/ui/SectionHeader";
+
 export function SettingsSurface() {
     // Stub Local State
     const [privacySensitive, setPrivacySensitive] = useState(true);
@@ -12,8 +14,6 @@ export function SettingsSurface() {
     const [notifyQuiet, setNotifyQuiet] = useState(true);
     const [autoExplain, setAutoExplain] = useState(false);
     const [showQuietIndicator, setShowQuietIndicator] = useState(true);
-
-    import { SectionHeader } from "@/components/ui/SectionHeader";
 
     return (
         <div className="max-w-2xl mx-auto p-6 lg:p-12 pb-32">

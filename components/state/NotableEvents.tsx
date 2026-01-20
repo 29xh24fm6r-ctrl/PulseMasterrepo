@@ -3,6 +3,8 @@
 import { useOverlays } from "@/components/shell/overlays/OverlayContext";
 import { HelpCircle, Info, Shuffle } from "lucide-react";
 
+import { TOKENS } from "@/lib/ui/tokens";
+
 export interface NotableEvent {
     id: string;
     timestamp: string; // ISO
@@ -31,8 +33,6 @@ export function NotableEvents({ events }: NotableEventsProps) {
             </div>
         );
     }
-
-    import { TOKENS } from "@/lib/ui/tokens";
 
     return (
         <div className="mb-12">

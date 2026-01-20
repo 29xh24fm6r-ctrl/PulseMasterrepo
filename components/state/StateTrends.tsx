@@ -1,6 +1,7 @@
 "use client";
 
 import { TrendPoint, TrendRow, TrendValue } from "./TrendRow";
+import { TOKENS } from "@/lib/ui/tokens";
 
 interface StateTrendsProps {
     energyData: TrendPoint[];
@@ -19,8 +20,6 @@ export function StateTrends({ energyData, stressData, momentumData }: StateTrend
             </div>
         );
     }
-
-    import { TOKENS } from "@/lib/ui/tokens";
 
     return (
         <div className="mb-12">

@@ -34,6 +34,8 @@ const INITIAL_ITEMS: PlanItem[] = [
     }
 ];
 
+import { SectionHeader } from "@/components/ui/SectionHeader";
+
 export function PlanSurface() {
     const [items, setItems] = useState<PlanItem[]>(INITIAL_ITEMS);
     const { setBannerActive } = useOverlays();
@@ -72,8 +74,6 @@ export function PlanSurface() {
         !i.confirmRequired &&
         new Date(i.timestamp).toDateString() !== today
     );
-
-    import { SectionHeader } from "@/components/ui/SectionHeader";
 
     return (
         <div className="max-w-4xl mx-auto p-6 lg:p-12 pb-32">

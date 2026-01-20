@@ -7,6 +7,9 @@ import { AskPulseCTA } from "./AskPulseCTA";
 import { TrendPoint } from "./TrendRow";
 import { LifeState } from "@/components/home/LifeStateSnapshot";
 
+import { SectionHeader } from "@/components/ui/SectionHeader";
+import { TOKENS } from "@/lib/ui/tokens";
+
 // STUB DATA
 const STUB_STATE: LifeState = {
     energy: 'Medium',
@@ -49,9 +52,6 @@ const STUB_EVENTS: NotableEvent[] = [
 
 export function StateSurface() {
     const trends = generateTrends();
-
-    import { SectionHeader } from "@/components/ui/SectionHeader";
-    import { TOKENS } from "@/lib/ui/tokens";
 
     return (
         <div className="max-w-2xl mx-auto p-6 lg:p-12 pb-32">

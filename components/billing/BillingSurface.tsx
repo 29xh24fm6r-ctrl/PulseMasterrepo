@@ -5,6 +5,8 @@ import { PlanCard, PlanInfo } from "./PlanCard";
 import { InvoicesList } from "./InvoicesList";
 import { Zap } from "lucide-react";
 
+import { SectionHeader } from "@/components/ui/SectionHeader";
+
 // STUB DATA
 const STUB_PLAN: PlanInfo = {
     planName: 'Plus',
@@ -20,8 +22,6 @@ export function BillingSurface() {
         setBannerActive(true);
         setTimeout(() => setBannerActive(false), 3000);
     };
-
-    import { SectionHeader } from "@/components/ui/SectionHeader";
 
     return (
         <div className="max-w-2xl mx-auto p-6 lg:p-12 pb-32">

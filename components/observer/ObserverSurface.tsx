@@ -8,6 +8,8 @@ import { EffectsPanel } from "./panels/EffectsPanel";
 import { IPPPanel } from "./panels/IPPPanel";
 import { BackgroundPanel } from "./panels/BackgroundPanel";
 
+import { SectionHeader } from "@/components/ui/SectionHeader";
+
 export function ObserverSurface() {
     const [activeTab, setActiveTab] = useState<ObserverTabValue>('runtime');
 
@@ -21,8 +23,6 @@ export function ObserverSurface() {
             default: return null;
         }
     };
-
-    import { SectionHeader } from "@/components/ui/SectionHeader";
 
     return (
         <div className="max-w-5xl mx-auto p-6 lg:p-12 pb-32">
