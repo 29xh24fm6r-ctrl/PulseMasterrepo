@@ -24,11 +24,30 @@ jobs:
       - name: Install deps
         run: npm ci
 
-      - name: Canon gate (Node/pg)
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
           CANON_REQUIRE_DB: ${{ vars.CANON_REQUIRE_DB }}
         run: npm run canon:check
+
+      - name: Verify No Runtime Context Throws
+        run: npx tsx scripts/verify-no-runtime-context-throws.ts
+
+      - name: Verify Clerk Production Keys
+        if: github.ref == 'refs/heads/main'
+        env:
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+          VERCEL_ENV: production
+        run: node scripts/verify-clerk-prod-keys.mjs
+
+      - name: Build (Catch ReferenceErrors)
+        run: npm run build
+
+      - name: Start App & Verify Public Assets
+        run: |
+          npm run build
+          npm start &
+          npx wait-on http://localhost:3000
+          node scripts/verify-public-assets.mjs http://localhost:3000
 
   prod-smoke:
     runs-on: ubuntu-latest

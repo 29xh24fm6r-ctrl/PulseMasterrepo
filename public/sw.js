@@ -8,15 +8,51 @@ const STATIC_ASSETS = [
   "/icons/icon-512.png",
 ];
 
-// Install - cache static assets
+// Helper to identify strictly cacheable static assets
+function isCacheable(url) {
+  try {
+    const u = new URL(url, self.location.origin);
+    const p = u.pathname;
+    if (p === "/favicon.ico") return true;
+    if (p.startsWith("/_next/static/")) return true;
+    if (p.startsWith("/icons/")) return true;
+    if (p.startsWith("/images/")) return true;
+    if (p.startsWith("/assets/")) return true;
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+// Install - cache static assets safely
 self.addEventListener("install", (event) => {
   console.log("[SW] Installing...");
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS).catch((err) => {
-        console.log("[SW] Cache addAll failed:", err);
-      });
-    })
+    (async () => {
+      try {
+        const cache = await caches.open(CACHE_NAME);
+        // Safely cache each asset individually, ONLY if it passes the strict allowlist
+        for (const url of STATIC_ASSETS) {
+          if (!isCacheable(url)) {
+            console.log(`[SW] Skipping non-cacheable asset: ${url}`);
+            continue;
+          }
+
+          try {
+            // Use reload to ensure we get fresh content, but allow failure
+            const req = new Request(url, { cache: "reload" });
+            const res = await fetch(req);
+            if (res && res.status === 200) {
+              await cache.put(req, res.clone());
+            }
+          } catch (e) {
+            console.log(`[SW] Failed to cache ${url}:`, e);
+          }
+        }
+      } catch (err) {
+        console.log("[SW] Cache open failed:", err);
+      }
+    })()
   );
   self.skipWaiting();
 });
@@ -40,7 +76,7 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   // Skip non-GET requests
   if (event.request.method !== "GET") return;
-  
+
   // Skip API requests
   if (event.request.url.includes("/api/")) return;
 

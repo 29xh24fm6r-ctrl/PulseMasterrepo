@@ -10,6 +10,7 @@ import PulseContextTracker from "@/components/companion/PulseContextTracker"; //
 import { AppShell } from "@/components/shell/AppShell"; // ✅ Strict AppShell
 
 import { OverlayProvider } from "@/components/shell/overlays/OverlayContext";
+import PulseRuntimeRoot from "@/components/runtime/PulseRuntimeRoot";
 
 import { Inter } from "next/font/google";
 import "./globals.css";
@@ -60,11 +61,13 @@ export default function RootLayout({
             <UserProvider>
               <ToastProvider>
                 <OverlayProvider>
-                  <AppShell>
-                    {children}
-                    <PulseContextTracker />
-                    <ServiceWorkerRegistration />
-                  </AppShell>
+                  <PulseRuntimeRoot>
+                    <AppShell>
+                      {children}
+                      <PulseContextTracker />
+                      <ServiceWorkerRegistration />
+                    </AppShell>
+                  </PulseRuntimeRoot>
                 </OverlayProvider>
                 {/* Visual Observer logic moved to /observer, persistent logic via providers */}
                 <ObserverMount />

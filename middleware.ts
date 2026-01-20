@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse, NextFetchEvent } from "next/server";
 import { clerkMiddleware } from "@clerk/nextjs/server";
 import { getPulseEnv, isDevOrPreview } from "@/lib/env/pulseEnv";
+import { isPublicPath } from "@/lib/http/publicRoutes";
 
 /**
  * PULSE MIDDLEWARE — CI HARDENED
@@ -26,30 +27,12 @@ function stamp(res: NextResponse, tags: string | string[]) {
   return res;
 }
 
-function isPublicAssetPath(pathname: string) {
-  // These MUST be allowed + stamped, and MUST NOT depend on any env/secrets.
-  if (pathname === "/manifest.json") return true;
-  if (pathname === "/favicon.ico") return true;
-  if (pathname === "/robots.txt") return true;
-  if (pathname === "/sitemap.xml") return true;
-  if (pathname.startsWith("/_next/")) return true;
-  if (pathname.startsWith("/assets/")) return true;
-  if (pathname.startsWith("/icons/")) return true;
-  if (pathname.startsWith("/images/")) return true;
-  if (pathname.startsWith("/fonts/")) return true;
-
-  // Common static file suffixes
-  if (pathname.match(/\.(png|jpg|jpeg|gif|webp|svg|ico|css|js|map|txt|xml)$/i)) return true;
-
-  return false;
-}
-
 export function middleware(req: NextRequest, evt: NextFetchEvent) {
   const url = req.nextUrl;
   const pathname = url.pathname;
 
   // 1) Public assets: ALWAYS allow, ALWAYS stamp expected header.
-  if (isPublicAssetPath(pathname)) {
+  if (isPublicPath(pathname)) {
     return stamp(NextResponse.next(), "allow_public_asset");
   }
 
