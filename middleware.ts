@@ -124,7 +124,8 @@ export function middleware(req: NextRequest, evt: NextFetchEvent) {
 
 export const config = {
   // Match ALL routes so we can guard manifest/favicon/assets inside middleware
+  // BUT exclude known static files to avoid Clerk 401s on some platforms
   matcher: [
-    "/:path*",
+    "/((?!_next/static|_next/image|favicon.ico|manifest.json|robots.txt|sitemap.xml).*)",
   ],
 };
