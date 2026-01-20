@@ -1,10 +1,11 @@
 import { TOKENS } from "@/lib/ui/tokens";
 import { PrimaryButton } from "@/components/ui/PrimaryButton";
+import { useOverlays } from "./OverlayContext";
 
 export function IPPReplacement() {
-    const { state, setIPPActive } = useOverlays();
+    const { ippActive, setIPPActive } = useOverlays();
 
-    if (!state.ippActive) return null;
+    if (!ippActive) return null;
 
     return (
         <div className={`fixed inset-0 z-[50] ${TOKENS.COLORS.glass.bg} ${TOKENS.BLUR.lg} flex flex-col items-center justify-center p-6 animate-in fade-in duration-500`}>

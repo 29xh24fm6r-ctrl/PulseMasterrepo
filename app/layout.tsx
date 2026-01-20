@@ -9,6 +9,8 @@ import { ClerkProviderSafe } from "@/components/auth/ClerkProviderSafe";
 import PulseContextTracker from "@/components/companion/PulseContextTracker"; // Global Context Tracker
 import { AppShell } from "@/components/shell/AppShell"; // ✅ Strict AppShell
 
+import { OverlayProvider } from "@/components/shell/overlays/OverlayContext";
+
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
@@ -57,11 +59,13 @@ export default function RootLayout({
           <Providers>
             <UserProvider>
               <ToastProvider>
-                <AppShell>
-                  {children}
-                  <PulseContextTracker />
-                  <ServiceWorkerRegistration />
-                </AppShell>
+                <OverlayProvider>
+                  <AppShell>
+                    {children}
+                    <PulseContextTracker />
+                    <ServiceWorkerRegistration />
+                  </AppShell>
+                </OverlayProvider>
                 {/* Visual Observer logic moved to /observer, persistent logic via providers */}
                 <ObserverMount />
               </ToastProvider>

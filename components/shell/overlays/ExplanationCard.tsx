@@ -3,9 +3,9 @@
 import { useOverlays } from "./OverlayContext";
 
 export function ExplanationCard() {
-    const { state, setExplanationActive } = useOverlays();
+    const { explanationActive, setExplanationActive } = useOverlays();
 
-    if (!state.explanationActive) return null;
+    if (!explanationActive) return null;
 
     return (
         <div className="fixed bottom-4 right-4 z-[20] w-80">
