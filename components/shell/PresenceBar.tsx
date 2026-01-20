@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { Zap } from "lucide-react";
 import { TOKENS } from "@/lib/ui/tokens";
 
 export function PresenceBar() {
