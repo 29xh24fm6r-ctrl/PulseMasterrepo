@@ -34,13 +34,13 @@ function isPreviewHost(hostname: string): boolean {
 
 function isAlwaysPublic(pathname: string): boolean {
   if (pathname === "/auth-disabled") return true;
-  if (pathname === "/favicon.ico") return true;
   if (pathname === "/manifest.json") return true;
   if (pathname === "/site.webmanifest") return true;
+  if (pathname === "/favicon.ico") return true;
+  if (pathname === "/robots.txt") return true;
+  if (pathname === "/sitemap.xml") return true;
   if (pathname.startsWith("/_next/")) return true;
   if (pathname.startsWith("/api/dev")) return true; // Keep dev bootstrap open
-  if (pathname.startsWith("/sign-in") || pathname.startsWith("/sign-up")) return true;
-  if (pathname === "/") return true; // Landing page
   return false;
 }
 
@@ -94,5 +94,5 @@ export function middleware(req: NextRequest, evt: NextFetchEvent) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|manifest.json|site.webmanifest|robots.txt|sitemap.xml).*)"],
 };

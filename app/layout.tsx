@@ -15,7 +15,7 @@ import PulseRuntimeRoot from "@/components/runtime/PulseRuntimeRoot";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
-import { UserProvider } from "./providers/user-provider";
+import { UserProviderSafe } from "@/components/auth/UserProviderSafe";
 import ServiceWorkerRegistration from "./components/ServiceWorkerRegistration";
 import { ToastProvider } from "@/components/ui/ToastProvider";
 import ObserverMount from "@/components/observer/ObserverMount";
@@ -58,7 +58,7 @@ export default function RootLayout({
         </head>
         <body className={`${inter.className} bg-zinc-950 text-slate-100 overflow-hidden`}>
           <Providers>
-            <UserProvider>
+            <UserProviderSafe>
               <ToastProvider>
                 <OverlayProvider>
                   <PulseRuntimeRoot>
@@ -72,7 +72,7 @@ export default function RootLayout({
                 {/* Visual Observer logic moved to /observer, persistent logic via providers */}
                 <ObserverMount />
               </ToastProvider>
-            </UserProvider>
+            </UserProviderSafe>
           </Providers>
         </body>
       </html>
