@@ -279,7 +279,7 @@ export async function trackTTSUsage(
 /**
  * Get daily AI call count for rate limiting
  */
-async function getDailyAICallCount(userId: string): Promise<number> {
+export async function getDailyAICallCount(userId: string): Promise<number> {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 

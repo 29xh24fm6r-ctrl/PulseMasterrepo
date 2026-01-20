@@ -1,8 +1,7 @@
-import { redirect } from 'next/navigation';
+"use client";
 
-/**
- * Redirects root / to canonical /bridge
- */
-export default function Home() {
-  redirect('/bridge');
+import { HomeSurface } from "@/components/home/HomeSurface";
+
+export default function HomePage() {
+  return <HomeSurface />;
 }
