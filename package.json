@@ -18,7 +18,8 @@
         "middleware:verify": "tsx scripts/verify_middleware.ts",
         "audit:parity": "node scripts/audit-parity.mjs",
         "audit:all": "npm run routes:gen && node scripts/audit-parity.mjs",
-        "prebuild": "npm run routes:gen",
+        "prebuild": "node scripts/verify-no-clerk-prod-in-preview.mjs && npm run routes:gen",
+        "verify:clerk:preview": "node scripts/verify-no-clerk-prod-in-preview.mjs",
         "prepare": "husky",
         "test": "echo \"no tests\"",
         "verify:phase14:runtime": "node --loader tsx scripts/verify-phase14-predelegation.runtime.ts"
