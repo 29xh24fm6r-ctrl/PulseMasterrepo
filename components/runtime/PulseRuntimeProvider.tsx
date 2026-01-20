@@ -150,3 +150,7 @@ export function usePulseRuntime() {
     }
     return context;
 }
+
+export function usePulseRuntimeOptional() {
+    return useContext(PulseRuntimeContext);
+}
