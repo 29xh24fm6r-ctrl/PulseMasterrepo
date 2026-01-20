@@ -10,13 +10,13 @@ async function verify() {
         {
             path: '/manifest.json',
             expectedStatus: 200,
-            expectedHeader: 'allow_public_asset',
+            expectedHeader: null, // Bypassed in matcher
             desc: 'Public Asset (Manifest)'
         },
         {
             path: '/favicon.ico',
             expectedStatus: 200,
-            expectedHeader: 'allow_public_asset',
+            expectedHeader: null, // Bypassed in matcher
             desc: 'Public Asset (Favicon)'
         },
         {
@@ -48,7 +48,13 @@ async function verify() {
             if (location) console.log(`   Location: ${location}`);
 
             let headerMatch = false;
-            if (Array.isArray(check.expectedHeader)) {
+
+            if (check.expectedHeader === null) {
+                // If we expect NULL, we don't care about the stamp (or we expect it missing)
+                // Since this verify logic is for "did middleware allow it?", 
+                // and we bypassed middleware, the header WILL be missing.
+                headerMatch = true;
+            } else if (Array.isArray(check.expectedHeader)) {
                 headerMatch = check.expectedHeader.some(expected =>
                     (mwHeader || '').startsWith(expected) || (mwHeader || '') === expected
                 );

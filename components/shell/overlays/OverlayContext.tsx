@@ -1,72 +1,77 @@
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, { createContext, useContext, useMemo, useState } from "react";
 
-type OverlayType = "IPP" | "CONFIRMATION" | "BANNER" | "EXPLANATION" | null;
-
-interface OverlayState {
+type OverlayState = {
     ippActive: boolean;
     confirmationActive: boolean;
-    bannerActive: boolean;
-    bannerMessage: string | null;
     explanationActive: boolean;
-}
 
-interface OverlayContextType {
-    state: OverlayState;
-    setIPPActive: (active: boolean) => void;
-    setConfirmationActive: (active: boolean) => void;
-    setBannerActive: (active: boolean, message?: string) => void;
-    setExplanationActive: (active: boolean) => void;
-    // Helpers to test/stub
-    triggerExampleIPP: () => void;
-}
+    // SystemBanner support (Task #11)
+    bannerActive: boolean;
+    bannerMessage?: string;
+};
 
-const OverlayContext = createContext<OverlayContextType | undefined>(undefined);
+type OverlayApi = OverlayState & {
+    setIPPActive: (v: boolean) => void;
+    setConfirmationActive: (v: boolean) => void;
+    setExplanationActive: (v: boolean) => void;
 
-export function OverlayProvider({ children }: { children: ReactNode }) {
-    const [state, setState] = useState<OverlayState>({
-        ippActive: false,
-        confirmationActive: false,
-        bannerActive: false,
-        bannerMessage: null,
-        explanationActive: false,
-    });
+    showBanner: (message: string) => void;
+    hideBanner: () => void;
+};
 
-    const setIPPActive = (active: boolean) => setState((prev) => ({ ...prev, ippActive: active }));
-    const setConfirmationActive = (active: boolean) => setState((prev) => ({ ...prev, confirmationActive: active }));
-    const setBannerActive = (active: boolean, message?: string) => setState((prev) => ({
-        ...prev,
-        bannerActive: active,
-        bannerMessage: active ? (message || prev.bannerMessage) : null
-    }));
-    const setExplanationActive = (active: boolean) => setState((prev) => ({ ...prev, explanationActive: active }));
+const OverlayContext = createContext<OverlayApi | null>(null);
 
-    const triggerExampleIPP = () => {
-        setIPPActive(true);
-        setTimeout(() => setIPPActive(false), 3000); // Auto-dismiss for test
-    };
+export function OverlayProvider({ children }: { children: React.ReactNode }) {
+    const [ippActive, setIPPActive] = useState(false);
+    const [confirmationActive, setConfirmationActive] = useState(false);
+    const [explanationActive, setExplanationActive] = useState(false);
 
-    return (
-        <OverlayContext.Provider
-            value={{
-                state,
-                setIPPActive,
-                setConfirmationActive,
-                setBannerActive,
-                setExplanationActive,
-                triggerExampleIPP,
-            }}
-        >
-            {children}
-        </OverlayContext.Provider>
+    const [bannerActive, setBannerActive] = useState(false);
+    const [bannerMessage, setBannerMessage] = useState<string | undefined>(undefined);
+
+    const api = useMemo<OverlayApi>(
+        () => ({
+            ippActive,
+            confirmationActive,
+            explanationActive,
+            bannerActive,
+            bannerMessage,
+
+            setIPPActive,
+            setConfirmationActive,
+            setExplanationActive,
+
+            showBanner: (message: string) => {
+                setBannerMessage(message);
+                setBannerActive(true);
+            },
+            hideBanner: () => {
+                setBannerActive(false);
+                setBannerMessage(undefined);
+            },
+        }),
+        [
+            ippActive,
+            confirmationActive,
+            explanationActive,
+            bannerActive,
+            bannerMessage,
+        ]
     );
+
+    return <OverlayContext.Provider value={api}>{children}</OverlayContext.Provider>;
 }
 
-export function useOverlays() {
-    const context = useContext(OverlayContext);
-    if (!context) {
-        throw new Error("useOverlays must be used within an OverlayProvider");
+/**
+ * IMPORTANT: This hook MUST exist as a named export.
+ * Many surfaces (Bridge/Plan/State/Observer) depend on it.
+ */
+export function useOverlays(): OverlayApi {
+    const ctx = useContext(OverlayContext);
+    if (!ctx) {
+        throw new Error("useOverlays must be used within <OverlayProvider />");
     }
-    return context;
+    return ctx;
 }
