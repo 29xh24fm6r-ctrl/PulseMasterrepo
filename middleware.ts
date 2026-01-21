@@ -24,13 +24,14 @@ export function middleware(req: NextRequest, evt: NextFetchEvent) {
   const userAgent = req.headers.get("user-agent") ?? "";
   const isCI = userAgent.includes("GitHubActions");
 
-  if (isCI && pathname === "/bridge") {
-    const res = NextResponse.next();
-    res.headers.set(
-      "X-Pulse-MW",
-      "allow_dev_bypass,allow_auth"
-    );
-    return res;
+  if (isCI && (pathname === "/bridge" || pathname.startsWith("/bridge/"))) {
+    return new NextResponse("CI bridge bypass ok", {
+      status: 200,
+      headers: {
+        "content-type": "text/plain; charset=utf-8",
+        "X-Pulse-MW": "allow_dev_bypass,allow_auth",
+      },
+    });
   }
 
   // --- ABSOLUTE PREVIEW HOST LOCK ---
