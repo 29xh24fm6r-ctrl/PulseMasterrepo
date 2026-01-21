@@ -34,7 +34,14 @@ export function requireUser(req: NextRequest): UserAuthResult {
  */
 export function handleRuntimeError(err: any) {
     if (err?.code === "AUTH_MISSING") {
-        return NextResponse.json({ error: err.message, code: err.code }, { status: 401 });
+        const res = NextResponse.json({
+            ok: false,
+            code: "AUTH_MISSING",
+            message: "User identity missing"
+        }, { status: 401 });
+        res.headers.set("x-pulse-src", "runtime_auth_missing");
+        res.headers.set("x-pulse-auth", "missing");
+        return res;
     }
 
     if (err?.code === "FORBIDDEN") {

@@ -65,7 +65,7 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
     ]);
     const [isLoading, setIsLoading] = useState(true);
 
-    const [runtimeMode, setRuntimeMode] = useState<'live' | 'preview' | 'paused'>('live');
+    const [runtimeMode, setRuntimeMode] = useState<'live' | 'preview' | 'paused' | 'auth_missing'>('live');
 
     const handleError = useCallback((err: any) => {
         console.error("Runtime Provider Error:", err);
@@ -78,6 +78,15 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
         try {
             // Simpler: I will attempt to read `home` raw first.
             const stateParams = await safeFetchJSON('/api/runtime/home');
+
+            // Phase 25J: Canonical handle of Auth Missing
+            if (!stateParams.ok && stateParams.status === 401) {
+                console.warn("[PulseRuntime] Auth Missing - Enforcing Sign In");
+                setRuntimeMode('auth_missing');
+                setIsLoading(false);
+                return;
+            }
+
             if (stateParams.ok && (stateParams.data as any).mode === 'preview') {
                 setRuntimeMode('preview');
                 setLifeState((stateParams.data as any).lifeState || { energy: 'Medium', stress: 'Low', momentum: 'High', orientation: 'Preview Mode' });
@@ -139,6 +148,10 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
             const reply = await client.sendBridgeMessage(text);
             setMessages(prev => [...prev, reply]);
         } catch (err: any) {
+            if (err?.status === 401 || err?.code === 'AUTH_MISSING') {
+                setRuntimeMode('auth_missing');
+                return;
+            }
             setMessages(prev => [...prev, {
                 id: uuidv4(),
                 role: 'system',
@@ -168,6 +181,17 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
             {runtimeMode === 'preview' && (
                 <div className="fixed bottom-0 left-0 right-0 bg-indigo-900/90 text-indigo-100 text-xs px-4 py-1 text-center backdrop-blur-sm z-[9999]">
                     PREVIEW SAFE MODE — Read Only
+                </div>
+            )}
+            {runtimeMode === 'auth_missing' && (
+                <div className="fixed inset-0 z-[10000] bg-black/60 backdrop-blur-md flex items-center justify-center">
+                    <div className="bg-neutral-900 border border-neutral-800 p-8 rounded-2xl shadow-2xl max-w-md text-center">
+                        <h2 className="text-xl font-bold text-white mb-2">Sign in to Pulse</h2>
+                        <p className="text-neutral-400 mb-6">Your session has expired or you are not signed in.</p>
+                        <a href="/sign-in" className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-black bg-white hover:bg-neutral-200 transition-colors">
+                            Sign In
+                        </a>
+                    </div>
                 </div>
             )}
         </PulseRuntimeContext.Provider>
