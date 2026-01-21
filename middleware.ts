@@ -9,6 +9,16 @@ const IS_CI =
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
+  // 🚨 ABSOLUTE BYPASS — MUST NEVER HIT AUTH
+  // Structural exclusion to ensure 401s are impossible for these paths
+  if (pathname === "/manifest.json") {
+    return NextResponse.next();
+  }
+
+  if (pathname.startsWith("/api/runtime/")) {
+    return NextResponse.next();
+  }
+
   // 🔒 ABSOLUTE FIRST: CI HARD STOP FOR /bridge
   if (pathname === "/bridge" && IS_CI) {
     return new NextResponse("CI bridge bypass", {
@@ -18,18 +28,6 @@ export function middleware(req: NextRequest) {
         "X-Pulse-CI": "true",
       },
     });
-  }
-
-  // 🔒 PREVIEW SAFE MODE: BYPASS AUTH for Runtime & Manifest
-  // We allow these through so the Route Handlers can return their safe "Preview Envelope"
-  // logic without being blocked by middleware auth guards.
-  if (IS_CI) {
-    if (pathname === "/manifest.json") {
-      return NextResponse.next();
-    }
-    if (pathname.startsWith("/api/runtime/")) {
-      return NextResponse.next();
-    }
   }
 
   // ⬇️ EVERYTHING ELSE COMES AFTER ⬇️
@@ -48,6 +46,10 @@ export function middleware(req: NextRequest) {
 export const config = {
   matcher: [
     "/bridge/:path*",
-    "/((?!_next/static|_next/image).*)",
+    // Apply middleware to everything EXCEPT:
+    // - /manifest.json
+    // - /api/runtime/*
+    // - standard static assets
+    "/((?!manifest\\.json|api/runtime|_next/static|_next/image).*)",
   ],
 };
