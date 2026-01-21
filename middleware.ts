@@ -1,21 +1,8 @@
-import { NextResponse } from "next/server";
-import type { NextRequest, NextFetchEvent } from "next/server";
-import { clerkMiddleware } from "@clerk/nextjs/server";
+import { isPublicAssetPath } from "@/lib/middleware/publicAssets";
 
-/**
- * Pulse Canonical Middleware Invariant:
- * 1. *.vercel.app is NEVER allowed to behave as Production.
- * 2. Auth is ALWAYS disabled on *.vercel.app.
- * 3. This rule overrides Vercel environment labels and env vars.
- */
-const isCIEnv = (req: NextRequest) => {
-  return (
-    process.env.CI === "true" ||
-    process.env.NODE_ENV === "test" ||
-    process.env.VERCEL_ENV === "preview" ||
-    req.headers.get("user-agent")?.includes("GitHubActions") === true
-  );
-};
+// ... (other imports)
+
+// ...
 
 export function middleware(req: NextRequest, evt: NextFetchEvent) {
   const hostname = req.headers.get("host")?.split(":")[0] ?? "";
@@ -23,12 +10,7 @@ export function middleware(req: NextRequest, evt: NextFetchEvent) {
 
   // 🌍 PUBLIC ASSET BYPASS
   // Explicitly allow static/public files to skip all middleware logic
-  if (
-    pathname === "/manifest.json" ||
-    pathname === "/favicon.ico" ||
-    pathname === "/robots.txt" ||
-    pathname === "/sitemap.xml"
-  ) {
+  if (isPublicAssetPath(pathname)) {
     return NextResponse.next();
   }
 
