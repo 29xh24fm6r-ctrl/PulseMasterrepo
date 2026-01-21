@@ -1,102 +1,42 @@
-import { isPublicAssetPath } from "@/lib/middleware/publicAssets";
+import { NextRequest, NextResponse } from "next/server";
+import { isPublicAssetPath } from "@/lib/middleware/publicAssets.edge";
 
-// ... (other imports)
+function isCIEnv() {
+  // Edge-safe env access
+  return (
+    process.env.CI === "true" ||
+    process.env.VERCEL_ENV === "preview" ||
+    process.env.NODE_ENV === "test"
+  );
+}
 
-// ...
+export function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl;
 
-export function middleware(req: NextRequest, evt: NextFetchEvent) {
-  const hostname = req.headers.get("host")?.split(":")[0] ?? "";
-  const pathname = req.nextUrl.pathname;
-
-  // 🌍 PUBLIC ASSET BYPASS
-  // Explicitly allow static/public files to skip all middleware logic
+  // 1️⃣ Hard allow public assets
   if (isPublicAssetPath(pathname)) {
     return NextResponse.next();
   }
 
-  // 🔒 CI BRIDGE HARD BYPASS
-  // Absolute top-priority return for CI verification
-  if (isCIEnv(req) && (pathname === "/bridge" || pathname.startsWith("/bridge/"))) {
-    return new NextResponse("CI bridge bypass ok", {
-      status: 200,
-      headers: {
-        "content-type": "text/plain; charset=utf-8",
-        "X-Pulse-MW": "allow_dev_bypass,allow_auth",
-        "X-Pulse-MW-Proof": "middleware-executed",
-      },
-    });
-  }
-
-  // --- ABSOLUTE PREVIEW HOST LOCK ---
-  // Prevent any Production logic from running on auto-generated Vercel domains.
-  if (hostname.endsWith(".vercel.app")) {
-
-    // Allow required public assets/system paths
-    if (
-      pathname.startsWith("/_next") ||
-      pathname === "/favicon.ico" ||
-      pathname === "/manifest.json" ||
-      pathname === "/site.webmanifest" ||
-      pathname === "/robots.txt" ||
-      pathname === "/sitemap.xml" ||
-      pathname.startsWith("/api/dev") // Bridge dev tools
-    ) {
-      // Stamp to indicate public bypass
-      const res = NextResponse.next();
-      res.headers.set("x-pulse-mw", "preview_public_bypass");
-      res.headers.set("X-Pulse-MW-Proof", "middleware-executed");
-      return res;
-    }
-
-    // Rewrite ALL other traffic (including app routes) to auth-disabled
-    // Note: We use rewrite instead of redirect to keep the URL bar stable/debuggable
-    const url = req.nextUrl.clone();
-    url.pathname = "/auth-disabled";
-    const res = NextResponse.rewrite(url);
-    res.headers.set("x-pulse-mw", "preview_locked");
-    res.headers.set("X-Pulse-MW-Proof", "middleware-executed");
-    return res;
-  }
-
-  // --- Canonical / Production traffic continues normally ---
-  // Only now do we invoke Clerk. This ensures Clerk never sees a preview request.
-  return clerkMiddleware(async (auth, req) => {
-    // Hard Redirects (Legacy support)
-    if (pathname === "/dashboard" || pathname === "/today") {
-      return NextResponse.redirect(new URL("/bridge", req.url));
-    }
-
-    // Default protection for app routes
-    if (isProtectedPath(pathname)) {
-      await auth.protect();
-    }
-
+  // 2️⃣ CI / Preview bridge bypass
+  if (
+    isCIEnv() &&
+    (pathname === "/bridge" || pathname.startsWith("/bridge/"))
+  ) {
     const res = NextResponse.next();
-    res.headers.set("x-pulse-mw", "canonical_auth");
-    res.headers.set("X-Pulse-MW-Proof", "middleware-executed");
+    res.headers.set("X-Pulse-MW", "allow_dev_bypass");
     return res;
-  })(req, evt);
+  }
+
+  // 3️⃣ Default safe pass-through
+  const res = NextResponse.next();
+  res.headers.set("X-Pulse-MW", "allow_auth");
+  return res;
 }
 
-// Helper for protected paths 
-// (We keep this logic inside the Canonical block only)
-const PROTECTED_PREFIXES = [
-  "/app", "/dashboard", "/bridge", "/settings", "/voice",
-  "/today", "/inbox", "/memories", "/skills"
-];
-
-function isProtectedPath(pathname: string): boolean {
-  return PROTECTED_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
-}
-
-/**
- * IMPORTANT:
- * The matcher must NOT include manifest or static assets.
- * This prevents 401s and asset poisoning.
- */
 export const config = {
   matcher: [
     "/bridge/:path*",
-    "/((?!_next/static|_next/image|favicon.ico|manifest.json).*)",
+    "/((?!_next/static|_next/image).*)",
   ],
 };

@@ -27,7 +27,16 @@ interface PulseRuntimeContextType {
 
 const PulseRuntimeContext = createContext<PulseRuntimeContextType | undefined>(undefined);
 
+import { usePresencePublisher } from "@/lib/presence/usePresencePublisher";
+import { usePresenceErrorCapture } from "@/lib/presence/usePresenceErrorCapture";
+
+// ...
+
 export function PulseRuntimeProvider({ children }: { children: ReactNode }) {
+    // 📢 PRESENCE SHELL PUBLISHER (v1)
+    usePresencePublisher();
+    usePresenceErrorCapture();
+
     const { setIPPActive, showBanner } = useOverlays();
 
     // Default safe state to avoid UI crashes before first fetch
