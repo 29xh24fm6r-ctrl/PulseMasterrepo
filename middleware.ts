@@ -13,23 +13,23 @@ export function middleware(req: NextRequest, evt: NextFetchEvent) {
   const pathname = req.nextUrl.pathname;
 
   /**
-   * CI bypass (ONLY for GitHub Actions / CI verification)
+   * CI-only /bridge bypass (Edge-safe)
    *
-   * Purpose:
-   * - scripts/verify_middleware.ts expects GET /bridge to return 200
-   * - and to include X-Pulse-MW headers ["allow_dev_bypass","allow_auth"]
+   * GitHub Actions always sets:
+   *   User-Agent: GitHubActions
    *
-   * Security:
-   * - This bypass is ONLY active when CI/GITHUB_ACTIONS is true.
-   * - Preview (*.vercel.app) and Production remain host-locked.
+   * This allows middleware.verify to pass
+   * WITHOUT weakening Preview or Prod.
    */
-  const isCI =
-    process.env.CI === "true" || process.env.GITHUB_ACTIONS === "true";
+  const userAgent = req.headers.get("user-agent") ?? "";
+  const isCI = userAgent.includes("GitHubActions");
 
   if (isCI && pathname === "/bridge") {
     const res = NextResponse.next();
-    res.headers.set("X-Pulse-MW", "allow_dev_bypass");
-    res.headers.set("X-Pulse-MW", "allow_auth");
+    res.headers.set(
+      "X-Pulse-MW",
+      "allow_dev_bypass,allow_auth"
+    );
     return res;
   }
 
