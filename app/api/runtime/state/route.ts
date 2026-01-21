@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireUser, handleRuntimeError } from "@/lib/auth/requireUser";
 import { LifeState, TrendPoint, NotableEvent } from "@/lib/runtime/types";
 import { aggregateLifeState } from "@/lib/life-state/aggregateLifeState";
-import { runtimeAuthIsRequired } from "@/lib/runtime/runtimeAuthPolicy";
+import { runtimeAuthIsRequired, getRuntimeAuthMode } from "@/lib/runtime/runtimeAuthPolicy";
 import { previewRuntimeEnvelope } from "@/lib/runtime/previewRuntime";
 
 export async function GET(req: NextRequest) {
@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
             momentum: "Medium",
             orientation: "Preview Safe Mode"
         };
-        return NextResponse.json(previewRuntimeEnvelope({
+        const res = NextResponse.json(previewRuntimeEnvelope({
             lifeState,
             trends: {
                 energy: [],
@@ -23,6 +23,8 @@ export async function GET(req: NextRequest) {
             },
             notables: []
         }));
+        res.headers.set("x-pulse-runtime-auth-mode", getRuntimeAuthMode());
+        return res;
     }
 
     try {

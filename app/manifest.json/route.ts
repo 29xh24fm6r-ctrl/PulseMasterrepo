@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
+import { getRuntimeAuthMode } from "@/lib/runtime/runtimeAuthPolicy";
 
 export async function GET() {
-    return Response.json({
+    const res = NextResponse.json({
         name: "Pulse OS",
         short_name: "Pulse",
         start_url: "/",
@@ -10,5 +11,7 @@ export async function GET() {
         theme_color: "#000000",
         icons: [],
     });
+    res.headers.set("x-pulse-runtime-auth-mode", getRuntimeAuthMode());
+    return res;
 }
 
