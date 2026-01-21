@@ -100,6 +100,7 @@ function isProtectedPath(pathname: string): boolean {
  */
 export const config = {
   matcher: [
+    "/bridge/:path*",
     "/((?!_next/static|_next/image|favicon.ico|manifest.json|site.webmanifest|robots.txt|sitemap.xml).*)",
   ],
 };
