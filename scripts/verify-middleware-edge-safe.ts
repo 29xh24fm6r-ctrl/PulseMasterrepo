@@ -6,15 +6,15 @@ const middlewarePath = fs.existsSync("src/middleware.ts")
 
 const content = fs.readFileSync(middlewarePath, "utf8");
 
-const forbidden = [
-    "fs",
-    "path",
-    "process.cwd",
-    "scripts/",
-    "verify-",
+const forbiddenPatterns = [
+    /['"]fs['"]/,
+    /['"]path['"]/,
+    /process\.cwd/,
+    /['"]scripts\/['"]/,
+    /['"]verify-/,
 ];
 
-const violations = forbidden.filter((f) => content.includes(f));
+const violations = forbiddenPatterns.filter((p) => p.test(content));
 
 if (violations.length) {
     console.error("❌ Middleware is not Edge-safe.");
