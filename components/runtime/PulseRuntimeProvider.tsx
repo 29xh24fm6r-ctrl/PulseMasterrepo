@@ -30,9 +30,19 @@ const PulseRuntimeContext = createContext<PulseRuntimeContextType | undefined>(u
 import { usePresencePublisher } from "@/lib/presence/usePresencePublisher";
 import { usePresenceErrorCapture } from "@/lib/presence/usePresenceErrorCapture";
 
-// ...
+// Helper for safe fetching
+async function safeFetchJSON(url: string) {
+    try {
+        const res = await fetch(url, { headers: { 'Content-Type': 'application/json' } });
+        if (!res.ok) return { ok: false as const, status: res.status };
+        const data = await res.json();
+        return { ok: true as const, data };
+    } catch (e) {
+        return { ok: false as const, error: String(e) };
+    }
+}
 
-export function PulseRuntimeProvider({ children }: { children: ReactNode }) {
+export function PulseRuntimeProvider({ children }: { ReactNode }) {
     // 📢 PRESENCE SHELL PUBLISHER (v1)
     usePresencePublisher();
     usePresenceErrorCapture();
@@ -55,41 +65,27 @@ export function PulseRuntimeProvider({ children }: { children: ReactNode }) {
     ]);
     const [isLoading, setIsLoading] = useState(true);
 
-    const [runtimeMode, setRuntimeMode] = useState<'live' | 'preview'>('live');
+    const [runtimeMode, setRuntimeMode] = useState<'live' | 'preview' | 'paused'>('live');
 
     const handleError = useCallback((err: any) => {
         console.error("Runtime Provider Error:", err);
-
-        // 0. Preview Safe Mode (Recoverable)
-        if (err?.reason === 'auth_disabled_preview' || err?.message?.includes("Preview Mode")) {
-            setRuntimeMode('preview');
-            return;
-        }
-
-        // 1. Subscription Limits (Banner)
-        if (err?.code === 'LIMIT_REACHED') {
-            showBanner("You’ve reached today’s limit. Upgrade for unlimited access.");
-            return; // STOP here, do not trigger IPP
-        }
-
-        // 2. Feature Gates (Banner)
-        if (err?.message?.includes("requires Plus") || err?.code === 'FEATURE_LOCKED') {
-            showBanner("This feature requires Pulse Plus.");
-            return;
-        }
-
-        // 3. Auth/Network Critical Failures (IPP)
-        if (err?.code === 'AUTH_MISSING' || err?.code === 'FORBIDDEN') {
-            setIPPActive(true);
-        } else if (err?.code === 'NETWORK_ERROR' || err?.code === 'SERVER_ERROR') {
-            setIPPActive(true);
-        }
-    }, [setIPPActive, showBanner]);
+        // Fallback to paused safely instead of crash
+        setRuntimeMode('paused');
+    }, []);
 
     const refresh = useCallback(async () => {
         setIsLoading(true);
         try {
-            // Parallel fetch all runtime data
+            // Simpler: I will attempt to read `home` raw first.
+            const stateParams = await safeFetchJSON('/api/runtime/home');
+            if (stateParams.ok && (stateParams.data as any).mode === 'preview') {
+                setRuntimeMode('preview');
+                setLifeState((stateParams.data as any).lifeState || { energy: 'Medium', stress: 'Low', momentum: 'High', orientation: 'Preview Mode' });
+                setIsLoading(false);
+                return;
+            }
+
+            // If not preview or failed checks, try normal client flow
             const [ls, tr, nt, pl, obs] = await Promise.all([
                 client.getLifeState(),
                 client.getTrends(),
@@ -98,16 +94,13 @@ export function PulseRuntimeProvider({ children }: { children: ReactNode }) {
                 client.getObserverData()
             ]);
 
-            // Detect Preview Mode from content (since we return 200 OK)
-            if (ls.orientation?.includes("Pulse Preview Mode")) {
-                setRuntimeMode('preview');
-            }
-
             setLifeState(ls);
             setTrends(tr);
             setNotables(nt);
             setPlanLedger(pl);
             setObserverData(obs);
+            setRuntimeMode('live');
+
         } catch (err: any) {
             handleError(err);
         } finally {

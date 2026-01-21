@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireUser, handleRuntimeError } from "@/lib/auth/requireUser";
 import { aggregateLifeState } from "@/lib/life-state/aggregateLifeState";
 import { LifeState } from "@/lib/runtime/types";
-import { isPreviewRuntime } from "@/lib/runtime/env";
+import { runtimeAuthIsRequired } from "@/lib/runtime/runtimeAuthPolicy";
+import { previewRuntimeEnvelope } from "@/lib/runtime/previewRuntime";
 
 export async function GET(req: NextRequest) {
-    if (isPreviewRuntime()) {
-        return NextResponse.json({
+    if (!runtimeAuthIsRequired()) {
+        return NextResponse.json(previewRuntimeEnvelope({
             lifeState: {
                 energy: "High",
                 stress: "Low",
@@ -14,7 +15,7 @@ export async function GET(req: NextRequest) {
                 orientation: "Pulse Preview Mode Active"
             },
             orientationLine: "Pulse Preview Mode Active"
-        });
+        }));
     }
 
     try {

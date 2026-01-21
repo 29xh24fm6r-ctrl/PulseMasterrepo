@@ -4,11 +4,12 @@ import { v4 as uuidv4 } from 'uuid';
 import { Message } from "@/lib/runtime/types";
 import { resolveSubscription } from "@/lib/subscription/resolveSubscription";
 import { getDailyAICallCount, trackAIUsage } from "@/services/usage";
-import { isPreviewRuntime } from "@/lib/runtime/env";
+import { runtimeAuthIsRequired } from "@/lib/runtime/runtimeAuthPolicy";
+import { previewRuntimeEnvelope } from "@/lib/runtime/previewRuntime";
 
 export async function POST(req: NextRequest) {
-    if (isPreviewRuntime()) {
-        return NextResponse.json({
+    if (!runtimeAuthIsRequired()) {
+        return NextResponse.json(previewRuntimeEnvelope({
             reply: {
                 id: "preview-echo",
                 role: "pulse",
@@ -16,7 +17,7 @@ export async function POST(req: NextRequest) {
                 timestamp: new Date(),
                 hasExplanation: false
             }
-        });
+        }));
     }
 
     try {

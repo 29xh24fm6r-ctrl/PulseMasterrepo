@@ -27,7 +27,8 @@
         "verify:clerk:preview": "node scripts/verify-no-clerk-prod-in-preview.mjs",
         "prepare": "husky",
         "test": "echo \"no tests\"",
-        "verify:phase14:runtime": "node --loader tsx scripts/verify-phase14-predelegation.runtime.ts"
+        "verify:phase14:runtime": "node --loader tsx scripts/verify-phase14-predelegation.runtime.ts",
+        "verify:preview-runtime": "tsx scripts/verify-preview-runtime.ts"
     },
     "dependencies": {
         "@clerk/nextjs": "^6.35.6",

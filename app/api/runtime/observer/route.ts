@@ -3,17 +3,18 @@ import { requireUser, handleRuntimeError } from "@/lib/auth/requireUser";
 import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { ObserverData } from "@/lib/runtime/types";
 import { resolveSubscription } from "@/lib/subscription/resolveSubscription";
-import { isPreviewRuntime } from "@/lib/runtime/env";
+import { runtimeAuthIsRequired } from "@/lib/runtime/runtimeAuthPolicy";
+import { previewRuntimeEnvelope } from "@/lib/runtime/previewRuntime";
 
 export async function GET(req: NextRequest) {
-    if (isPreviewRuntime()) {
-        return NextResponse.json({
+    if (!runtimeAuthIsRequired()) {
+        return NextResponse.json(previewRuntimeEnvelope({
             runtime: [],
             autonomy: [],
             effects: [],
             ipp: [],
             background: []
-        });
+        }));
     }
 
     try {

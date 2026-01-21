@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireUser, handleRuntimeError } from "@/lib/auth/requireUser";
 import { LifeState, TrendPoint, NotableEvent } from "@/lib/runtime/types";
 import { aggregateLifeState } from "@/lib/life-state/aggregateLifeState";
-import { isPreviewRuntime } from "@/lib/runtime/env";
+import { runtimeAuthIsRequired } from "@/lib/runtime/runtimeAuthPolicy";
+import { previewRuntimeEnvelope } from "@/lib/runtime/previewRuntime";
 
 export async function GET(req: NextRequest) {
-    if (isPreviewRuntime()) {
+    if (!runtimeAuthIsRequired()) {
         // Return a deterministic safe state for Preview
         const lifeState: LifeState = {
             energy: "High",
@@ -13,7 +14,7 @@ export async function GET(req: NextRequest) {
             momentum: "Medium",
             orientation: "Preview Safe Mode"
         };
-        return NextResponse.json({
+        return NextResponse.json(previewRuntimeEnvelope({
             lifeState,
             trends: {
                 energy: [],
@@ -21,7 +22,7 @@ export async function GET(req: NextRequest) {
                 momentum: []
             },
             notables: []
-        });
+        }));
     }
 
     try {
