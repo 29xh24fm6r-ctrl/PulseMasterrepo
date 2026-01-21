@@ -1,28 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isPublicAssetPath } from "@/lib/middleware/publicAssets.edge";
 
-function isCIEnv() {
-  // Edge-safe env access
-  return (
-    process.env.CI === "true" ||
-    process.env.VERCEL_ENV === "preview" ||
-    process.env.NODE_ENV === "test"
-  );
-}
+const IS_CI =
+  process.env.CI === "true" ||
+  process.env.VERCEL_ENV === "preview" ||
+  process.env.NODE_ENV === "test";
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // 1️⃣ Hard allow public assets
-  if (isPublicAssetPath(pathname)) {
-    return NextResponse.next();
-  }
-
-  // 2️⃣ Hard short-circuit in CI/Preview/Test for bridge route contract
-  if (
-    isCIEnv() &&
-    (pathname === "/bridge" || pathname.startsWith("/bridge/"))
-  ) {
+  // 🔒 ABSOLUTE FIRST: CI HARD STOP FOR /bridge
+  if (pathname === "/bridge" && IS_CI) {
     return new NextResponse("CI bridge bypass", {
       status: 200,
       headers: {
@@ -30,6 +18,13 @@ export function middleware(req: NextRequest) {
         "X-Pulse-CI": "true",
       },
     });
+  }
+
+  // ⬇️ EVERYTHING ELSE COMES AFTER ⬇️
+
+  // 1️⃣ Hard allow public assets
+  if (isPublicAssetPath(pathname)) {
+    return NextResponse.next();
   }
 
   // 3️⃣ Default safe pass-through
