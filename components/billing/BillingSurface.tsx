@@ -15,12 +15,12 @@ const STUB_PLAN: PlanInfo = {
 };
 
 export function BillingSurface() {
-    const { setBannerActive } = useOverlays();
+    const { showBanner, hideBanner } = useOverlays();
 
     const handleUpgrade = () => {
-        // Stub functionality - show banner
-        setBannerActive(true);
-        setTimeout(() => setBannerActive(false), 3000);
+        // Mock subscription
+        showBanner("Redirecting to Stripe...");
+        setTimeout(() => hideBanner(), 3000);
     };
 
     return (

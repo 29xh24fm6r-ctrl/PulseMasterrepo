@@ -28,7 +28,7 @@ interface PulseRuntimeContextType {
 const PulseRuntimeContext = createContext<PulseRuntimeContextType | undefined>(undefined);
 
 export function PulseRuntimeProvider({ children }: { children: ReactNode }) {
-    const { setIPPActive } = useOverlays();
+    const { setIPPActive, showBanner } = useOverlays();
 
     // Default safe state to avoid UI crashes before first fetch
     const [lifeState, setLifeState] = useState<LifeState>({
@@ -52,13 +52,13 @@ export function PulseRuntimeProvider({ children }: { children: ReactNode }) {
 
         // 1. Subscription Limits (Banner)
         if (err?.code === 'LIMIT_REACHED') {
-            setBannerActive(true, "You’ve reached today’s limit. Upgrade for unlimited access.");
+            showBanner("You’ve reached today’s limit. Upgrade for unlimited access.");
             return; // STOP here, do not trigger IPP
         }
 
         // 2. Feature Gates (Banner)
         if (err?.message?.includes("requires Plus") || err?.code === 'FEATURE_LOCKED') {
-            setBannerActive(true, "This feature requires Pulse Plus.");
+            showBanner("This feature requires Pulse Plus.");
             return;
         }
 
@@ -70,7 +70,7 @@ export function PulseRuntimeProvider({ children }: { children: ReactNode }) {
         } else if (err?.code === 'NETWORK_ERROR' || err?.code === 'SERVER_ERROR') {
             setIPPActive(true);
         }
-    }, [setIPPActive, setBannerActive]);
+    }, [setIPPActive, showBanner]);
 
     const refresh = useCallback(async () => {
         setIsLoading(true);
