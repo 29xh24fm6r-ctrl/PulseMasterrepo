@@ -27,6 +27,7 @@ export function middleware(req: NextRequest) {
       status: 200,
       headers: {
         "X-Pulse-MW": "allow_dev_bypass",
+        "X-Pulse-CI": "true",
       },
     });
   }
