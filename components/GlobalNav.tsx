@@ -3,6 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { UserButton } from "@clerk/nextjs";
+import { WithAuthEnabled } from "@/components/auth/WithAuthEnabled";
 import { ChevronDown, Home, Menu, X, Crown } from "lucide-react";
 
 const NAV_GROUPS = [
@@ -204,7 +205,10 @@ export function GlobalNav() {
                 🎙️ Voice
               </Link>
               <div className="relative">
-                <UserButton afterSignOutUrl="/sign-in" />
+                <WithAuthEnabled
+                  enabled={<UserButton afterSignOutUrl="/sign-in" />}
+                  disabled={<div className="w-8 h-8 rounded-full bg-zinc-800" />}
+                />
                 {isPlusUser && (
                   <div className="absolute -top-1 -right-1 bg-amber-500 rounded-full p-0.5">
                     <Crown className="w-3 h-3 text-white" />
@@ -234,7 +238,10 @@ export function GlobalNav() {
               🎙️
             </Link>
             <div className="relative">
-              <UserButton afterSignOutUrl="/sign-in" />
+              <WithAuthEnabled
+                enabled={<UserButton afterSignOutUrl="/sign-in" />}
+                disabled={<div className="w-8 h-8 rounded-full bg-zinc-800" />}
+              />
               {isPlusUser && (
                 <div className="absolute -top-1 -right-1 bg-amber-500 rounded-full p-0.5">
                   <Crown className="w-3 h-3 text-white" />

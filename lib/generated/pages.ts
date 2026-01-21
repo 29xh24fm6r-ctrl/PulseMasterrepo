@@ -6,6 +6,7 @@ export const GENERATED_PAGES = [
   "/admin",
   "/analytics",
   "/analytics/longitudinal",
+  "/auth-disabled",
   "/autonomy",
   "/billing",
   "/bridge",

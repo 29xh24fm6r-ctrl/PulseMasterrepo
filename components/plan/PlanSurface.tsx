@@ -38,7 +38,7 @@ import { SectionHeader } from "@/components/ui/SectionHeader";
 
 export function PlanSurface() {
     const [items, setItems] = useState<PlanItem[]>(INITIAL_ITEMS);
-    const { setBannerActive } = useOverlays();
+    const { showBanner, hideBanner } = useOverlays();
 
     const handleApprove = (id: string) => {
         setItems(prev => prev.map(item =>
@@ -49,8 +49,14 @@ export function PlanSurface() {
         // Trigger "Recorded" banner via Stub/Context
         // Note: SystemBanner component implementation might need a way to set custom text
         // For now, toggle active is what the context provides.
-        setBannerActive(true);
-        setTimeout(() => setBannerActive(false), 2000);
+        showBanner("Action recorded!");
+        setTimeout(() => hideBanner(), 2000);
+    };
+
+    const handleUpgrade = () => {
+        // Mock upgrade flow
+        showBanner("Processing upgrade...");
+        setTimeout(() => hideBanner(), 2000);
     };
 
     const handleDecline = (id: string) => {
