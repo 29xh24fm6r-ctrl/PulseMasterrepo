@@ -55,9 +55,16 @@ export function PulseRuntimeProvider({ children }: { children: ReactNode }) {
     ]);
     const [isLoading, setIsLoading] = useState(true);
 
+    const [runtimeMode, setRuntimeMode] = useState<'live' | 'preview'>('live');
+
     const handleError = useCallback((err: any) => {
         console.error("Runtime Provider Error:", err);
-        // Map simplified error codes to IPP or Banner
+
+        // 0. Preview Safe Mode (Recoverable)
+        if (err?.reason === 'auth_disabled_preview' || err?.message?.includes("Preview Mode")) {
+            setRuntimeMode('preview');
+            return;
+        }
 
         // 1. Subscription Limits (Banner)
         if (err?.code === 'LIMIT_REACHED') {
@@ -73,8 +80,6 @@ export function PulseRuntimeProvider({ children }: { children: ReactNode }) {
 
         // 3. Auth/Network Critical Failures (IPP)
         if (err?.code === 'AUTH_MISSING' || err?.code === 'FORBIDDEN') {
-            // Note: If FORBIDDEN is used for capability gating, it might be caught above if message differs.
-            // But generic 403 usually implies Auth issue if not LIMIT_REACHED.
             setIPPActive(true);
         } else if (err?.code === 'NETWORK_ERROR' || err?.code === 'SERVER_ERROR') {
             setIPPActive(true);
@@ -85,7 +90,6 @@ export function PulseRuntimeProvider({ children }: { children: ReactNode }) {
         setIsLoading(true);
         try {
             // Parallel fetch all runtime data
-            // We use the client helper which handles fallback logic if enabled
             const [ls, tr, nt, pl, obs] = await Promise.all([
                 client.getLifeState(),
                 client.getTrends(),
@@ -93,6 +97,11 @@ export function PulseRuntimeProvider({ children }: { children: ReactNode }) {
                 client.getPlanLedger(),
                 client.getObserverData()
             ]);
+
+            // Detect Preview Mode from content (since we return 200 OK)
+            if (ls.orientation?.includes("Pulse Preview Mode")) {
+                setRuntimeMode('preview');
+            }
 
             setLifeState(ls);
             setTrends(tr);
@@ -112,6 +121,21 @@ export function PulseRuntimeProvider({ children }: { children: ReactNode }) {
     }, [refresh]);
 
     const sendBridgeMessage = async (text: string) => {
+        // If in preview, optimistic add only, or show banner?
+        if (runtimeMode === 'preview') {
+            setMessages(prev => [...prev, { id: uuidv4(), content: text, role: 'user', timestamp: new Date() }]);
+            // Simulate reply
+            setTimeout(() => {
+                setMessages(prev => [...prev, {
+                    id: uuidv4(),
+                    role: 'pulse',
+                    content: "Preview Mode: Writes are disabled.",
+                    timestamp: new Date()
+                }]);
+            }, 500);
+            return;
+        }
+
         // 1. Optimistic Add
         const tempId = uuidv4();
         const userMsg: Message = { id: tempId, content: text, role: 'user', timestamp: new Date() };
@@ -122,7 +146,6 @@ export function PulseRuntimeProvider({ children }: { children: ReactNode }) {
             const reply = await client.sendBridgeMessage(text);
             setMessages(prev => [...prev, reply]);
         } catch (err: any) {
-            // Rollback or Error Message
             setMessages(prev => [...prev, {
                 id: uuidv4(),
                 role: 'system',
@@ -142,12 +165,18 @@ export function PulseRuntimeProvider({ children }: { children: ReactNode }) {
         messages,
         sendBridgeMessage,
         isLoading,
-        refresh
+        refresh,
+        runtimeMode // Exposed for UI
     };
 
     return (
         <PulseRuntimeContext.Provider value={value}>
             {children}
+            {runtimeMode === 'preview' && (
+                <div className="fixed bottom-0 left-0 right-0 bg-indigo-900/90 text-indigo-100 text-xs px-4 py-1 text-center backdrop-blur-sm z-[9999]">
+                    PREVIEW SAFE MODE — Read Only
+                </div>
+            )}
         </PulseRuntimeContext.Provider>
     );
 }

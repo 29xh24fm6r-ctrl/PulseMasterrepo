@@ -4,14 +4,21 @@ import { v4 as uuidv4 } from 'uuid';
 import { Message } from "@/lib/runtime/types";
 import { resolveSubscription } from "@/lib/subscription/resolveSubscription";
 import { getDailyAICallCount, trackAIUsage } from "@/services/usage";
-
-// NOTE: We need to call the real brain router here.
-// Attempting to import router or orchestrator.
-// If not available, we throw 500 (SERVER_ERROR) as per strict "No silent fake" rule.
-// But we need to check if we have it locally mapped.
-// I see imports like `app/api/voice/...`.
+import { isPreviewRuntime } from "@/lib/runtime/env";
 
 export async function POST(req: NextRequest) {
+    if (isPreviewRuntime()) {
+        return NextResponse.json({
+            reply: {
+                id: "preview-echo",
+                role: "pulse",
+                content: "[PREVIEW MODE] Bridge writes are disabled.",
+                timestamp: new Date(),
+                hasExplanation: false
+            }
+        });
+    }
+
     try {
         const { userId } = requireUser(req);
 

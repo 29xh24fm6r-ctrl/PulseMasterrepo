@@ -2,8 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireUser, handleRuntimeError } from "@/lib/auth/requireUser";
 import { aggregateLifeState } from "@/lib/life-state/aggregateLifeState";
 import { LifeState } from "@/lib/runtime/types";
+import { isPreviewRuntime } from "@/lib/runtime/env";
 
 export async function GET(req: NextRequest) {
+    if (isPreviewRuntime()) {
+        return NextResponse.json({
+            lifeState: {
+                energy: "High",
+                stress: "Low",
+                momentum: "High",
+                orientation: "Pulse Preview Mode Active"
+            },
+            orientationLine: "Pulse Preview Mode Active"
+        });
+    }
+
     try {
         const { userId } = requireUser(req);
 

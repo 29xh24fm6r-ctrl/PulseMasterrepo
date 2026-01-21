@@ -2,8 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireUser, handleRuntimeError } from "@/lib/auth/requireUser";
 import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { PlanItem } from "@/lib/runtime/types";
+import { isPreviewRuntime } from "@/lib/runtime/env";
 
 export async function GET(req: NextRequest) {
+    if (isPreviewRuntime()) {
+        return NextResponse.json({
+            today: [],
+            pending: [],
+            recent: []
+        });
+    }
+
     try {
         const { userId } = requireUser(req);
         const db = getSupabaseAdminRuntimeClient();

@@ -2,8 +2,28 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireUser, handleRuntimeError } from "@/lib/auth/requireUser";
 import { LifeState, TrendPoint, NotableEvent } from "@/lib/runtime/types";
 import { aggregateLifeState } from "@/lib/life-state/aggregateLifeState";
+import { isPreviewRuntime } from "@/lib/runtime/env";
 
 export async function GET(req: NextRequest) {
+    if (isPreviewRuntime()) {
+        // Return a deterministic safe state for Preview
+        const lifeState: LifeState = {
+            energy: "High",
+            stress: "Low",
+            momentum: "Medium",
+            orientation: "Preview Safe Mode"
+        };
+        return NextResponse.json({
+            lifeState,
+            trends: {
+                energy: [],
+                stress: [],
+                momentum: []
+            },
+            notables: []
+        });
+    }
+
     try {
         const { userId } = requireUser(req);
 

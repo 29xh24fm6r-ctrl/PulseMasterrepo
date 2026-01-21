@@ -3,8 +3,19 @@ import { requireUser, handleRuntimeError } from "@/lib/auth/requireUser";
 import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { ObserverData } from "@/lib/runtime/types";
 import { resolveSubscription } from "@/lib/subscription/resolveSubscription";
+import { isPreviewRuntime } from "@/lib/runtime/env";
 
 export async function GET(req: NextRequest) {
+    if (isPreviewRuntime()) {
+        return NextResponse.json({
+            runtime: [],
+            autonomy: [],
+            effects: [],
+            ipp: [],
+            background: []
+        });
+    }
+
     try {
         const { userId } = requireUser(req);
 
