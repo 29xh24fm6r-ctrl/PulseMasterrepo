@@ -21,10 +21,6 @@ export function middleware(req: NextRequest, evt: NextFetchEvent) {
   const hostname = req.headers.get("host")?.split(":")[0] ?? "";
   const pathname = req.nextUrl.pathname;
 
-  // 🔥 PROOF HEADER — Dispatched on every request to prove middleware execution
-  const proofHeaders = new Headers(req.headers);
-  proofHeaders.set("X-Pulse-MW-Proof", "middleware-executed");
-
   // 🔒 CI BRIDGE HARD BYPASS
   // Absolute top-priority return for CI verification
   if (isCIEnv(req) && (pathname === "/bridge" || pathname.startsWith("/bridge/"))) {
@@ -55,6 +51,7 @@ export function middleware(req: NextRequest, evt: NextFetchEvent) {
       // Stamp to indicate public bypass
       const res = NextResponse.next();
       res.headers.set("x-pulse-mw", "preview_public_bypass");
+      res.headers.set("X-Pulse-MW-Proof", "middleware-executed");
       return res;
     }
 
@@ -64,6 +61,7 @@ export function middleware(req: NextRequest, evt: NextFetchEvent) {
     url.pathname = "/auth-disabled";
     const res = NextResponse.rewrite(url);
     res.headers.set("x-pulse-mw", "preview_locked");
+    res.headers.set("X-Pulse-MW-Proof", "middleware-executed");
     return res;
   }
 
@@ -82,6 +80,7 @@ export function middleware(req: NextRequest, evt: NextFetchEvent) {
 
     const res = NextResponse.next();
     res.headers.set("x-pulse-mw", "canonical_auth");
+    res.headers.set("X-Pulse-MW-Proof", "middleware-executed");
     return res;
   })(req, evt);
 }
@@ -105,6 +104,7 @@ function isProtectedPath(pathname: string): boolean {
 export const config = {
   matcher: [
     "/bridge/:path*",
-    "/((?!_next/static|_next/image|favicon.ico|manifest.json|site.webmanifest|robots.txt|sitemap.xml).*)",
+    // Exclude static assets but ALLOW manifest.json/robots.txt to verify middleware runs for them
+    "/((?!_next/static|_next/image|favicon.ico).*)",
   ],
 };
