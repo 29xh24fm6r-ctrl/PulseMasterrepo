@@ -8,7 +8,7 @@
         "start": "next start",
         "lint": "eslint",
         "check": "npm run routes:gen && npm run middleware:verify && npm run canon:check && npm run guardrails",
-        "guardrails": "node scripts/guardrails/check-legacy-routes.mjs",
+        "guardrails": "node scripts/guardrails/check-legacy-routes.mjs && node scripts/guardrails/check-state-hygiene.mjs",
         "canon:check": "tsx scripts/canon_check.ts",
         "prod:smoke": "tsx scripts/prod_smoke.ts",
         "jobs:worker": "node --import tsx scripts/job-worker.ts",
