@@ -21,6 +21,17 @@ export function middleware(req: NextRequest, evt: NextFetchEvent) {
   const hostname = req.headers.get("host")?.split(":")[0] ?? "";
   const pathname = req.nextUrl.pathname;
 
+  // 🌍 PUBLIC ASSET BYPASS
+  // Explicitly allow static/public files to skip all middleware logic
+  if (
+    pathname === "/manifest.json" ||
+    pathname === "/favicon.ico" ||
+    pathname === "/robots.txt" ||
+    pathname === "/sitemap.xml"
+  ) {
+    return NextResponse.next();
+  }
+
   // 🔒 CI BRIDGE HARD BYPASS
   // Absolute top-priority return for CI verification
   if (isCIEnv(req) && (pathname === "/bridge" || pathname.startsWith("/bridge/"))) {
@@ -104,7 +115,6 @@ function isProtectedPath(pathname: string): boolean {
 export const config = {
   matcher: [
     "/bridge/:path*",
-    // Exclude static assets but ALLOW manifest.json/robots.txt to verify middleware runs for them
-    "/((?!_next/static|_next/image|favicon.ico).*)",
+    "/((?!_next/static|_next/image|favicon.ico|manifest.json).*)",
   ],
 };
