@@ -78,6 +78,7 @@ export const GENERATED_PAGES = [
   "/planner",
   "/plugins",
   "/pomodoro",
+  "/presence",
   "/productivity",
   "/pulse",
   "/pulse-ai",
