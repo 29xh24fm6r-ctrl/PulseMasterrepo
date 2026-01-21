@@ -17,6 +17,7 @@ export async function GET(req: NextRequest) {
             orientationLine: "Pulse Preview Mode Active"
         }));
         res.headers.set("x-pulse-runtime-auth-mode", getRuntimeAuthMode());
+        res.headers.set("x-pulse-src", "runtime_preview_envelope");
         return res;
     }
 
@@ -56,6 +57,10 @@ export async function GET(req: NextRequest) {
         });
 
     } catch (err) {
-        return handleRuntimeError(err);
+        const res = handleRuntimeError(err);
+        if (res.status === 401) {
+            res.headers.set("x-pulse-src", "runtime_auth_denied");
+        }
+        return res;
     }
 }

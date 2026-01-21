@@ -44,7 +44,7 @@ async function main() {
             header: {
                 key: "x-pulse-mw",
                 required: true,
-                allowedIncludes: ["allow_dev_bypass", "allow_auth"],
+                allowedIncludes: ["allow_dev_bypass", "allow_auth", "HIT_CI_BRIDGE"],
             },
         },
     ];

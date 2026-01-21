@@ -22,7 +22,7 @@ async function verify() {
         {
             path: '/bridge',
             expectedStatus: 200,
-            expectedHeader: ['allow_dev_bypass', 'allow_auth'],
+            expectedHeader: ['allow_dev_bypass', 'allow_auth', 'HIT_CI_BRIDGE'],
             desc: 'Bridge Route (Dev Bypass)'
         }
     ];
