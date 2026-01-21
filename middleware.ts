@@ -6,40 +6,46 @@ const IS_CI =
   process.env.VERCEL_ENV === "preview" ||
   process.env.NODE_ENV === "test";
 
+function tag(res: NextResponse, value: string) {
+  res.headers.set("x-pulse-mw", value);
+  return res;
+}
+
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // 🚨 ABSOLUTE BYPASS — MUST NEVER HIT AUTH
-  // Structural exclusion to ensure 401s are impossible for these paths
+  // 🚨 ABSOLUTE BYPASS — MUST NEVER ENFORCE AUTH
   if (pathname === "/manifest.json") {
-    return NextResponse.next();
+    return tag(NextResponse.next(), "BYPASS_MANIFEST");
   }
 
   if (pathname.startsWith("/api/runtime/")) {
-    return NextResponse.next();
+    return tag(NextResponse.next(), "BYPASS_RUNTIME");
   }
+
+  // 👇 Any request reaching here DID hit middleware
 
   // 🔒 ABSOLUTE FIRST: CI HARD STOP FOR /bridge
   if (pathname === "/bridge" && IS_CI) {
-    return new NextResponse("CI bridge bypass", {
+    const res = new NextResponse("CI bridge bypass", {
       status: 200,
       headers: {
         "X-Pulse-MW": "allow_dev_bypass",
         "X-Pulse-CI": "true",
       },
     });
+    return tag(res, "HIT_CI_BRIDGE");
   }
-
-  // ⬇️ EVERYTHING ELSE COMES AFTER ⬇️
 
   // 1️⃣ Hard allow public assets
   if (isPublicAssetPath(pathname)) {
-    return NextResponse.next();
+    return tag(NextResponse.next(), "HIT_PUBLIC_ASSET");
   }
 
   // 3️⃣ Default safe pass-through
   const res = NextResponse.next();
   res.headers.set("X-Pulse-MW", "allow_auth");
+  tag(res, "HIT");
   return res;
 }
 
