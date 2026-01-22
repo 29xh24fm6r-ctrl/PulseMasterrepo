@@ -1,41 +1,53 @@
-```typescript
-import { NextRequest, NextResponse } from "next/server";
-import { applyNoStoreHeaders } from "@/lib/runtime/httpNoStore";
+import { NextResponse } from "next/server";
+
+/**
+ * Phase 25K-G
+ * Absolute runtime-only identity probe.
+ * This route MUST NEVER be statically evaluated.
+ */
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
-export async function GET(req: NextRequest) {
-    try {
-        // Zero Build-Time SDK: Dynamic import to prevent build crashes
-        const { getAuth } = await import("@clerk/nextjs/server");
-        const { userId } = getAuth(req);
-        
-        const env = process.env.VERCEL_ENV || process.env.NODE_ENV || "development";
-        
-        const res = NextResponse.json({
-            ok: true,
-            authed: !!userId,
-            userIdPresent: !!userId,
-            env,
-            build: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) || "dev",
-        });
-
-        res.headers.set("x-pulse-src", "runtime_whoami");
-        res.headers.set("x-pulse-auth", userId ? "present" : "missing");
-        res.headers.set("x-pulse-env", env);
-
-        return applyNoStoreHeaders(res);
-    } catch (err) {
-        // Fallback for environment where clerk might fail or throw
-        const res = NextResponse.json({
-            ok: true,
-            authed: false,
-            userIdPresent: false,
-            error: "Probe failed safe", 
-            env: "unknown"
-        });
-        res.headers.set("x-pulse-src", "runtime_whoami_error");
-        return applyNoStoreHeaders(res);
+export async function GET() {
+    // HARD BUILD-TIME KILL SWITCH
+    // If this ever runs at build, we immediately short-circuit.
+    if (process.env.NEXT_PHASE === "phase-production-build") {
+        return NextResponse.json(
+            { ok: true, authed: false, build: true },
+            {
+                headers: {
+                    "cache-control": "no-store",
+                },
+            }
+        );
     }
+
+    let userId: string | null = null;
+
+    try {
+        // Dynamic import INSIDE handler (never hoisted)
+        const clerk = await import("@clerk/nextjs/server");
+        const auth = clerk.auth?.();
+        userId = auth?.userId ?? null;
+    } catch {
+        // Clerk unavailable or not configured — expected in Preview/CI
+        userId = null;
+    }
+
+    return NextResponse.json(
+        {
+            ok: true,
+            authed: Boolean(userId),
+            userId,
+        },
+        {
+            headers: {
+                "cache-control": "no-store, no-cache, must-revalidate",
+                pragma: "no-cache",
+                expires: "0",
+                "x-pulse-runtime": "whoami",
+            },
+        }
+    );
 }
-```
