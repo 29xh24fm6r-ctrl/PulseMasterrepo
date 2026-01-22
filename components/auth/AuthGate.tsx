@@ -5,18 +5,20 @@ import { useRouter } from "next/navigation";
 
 export function AuthGate({
     authed,
+    redirectTo = "/sign-in",
     children,
 }: {
     authed: boolean;
+    redirectTo?: string;
     children: React.ReactNode;
 }) {
     const router = useRouter();
 
     useEffect(() => {
         if (!authed) {
-            router.replace("/sign-in");
+            router.replace(redirectTo);
         }
-    }, [authed, router]);
+    }, [authed, redirectTo, router]);
 
     if (!authed) {
         // Render nothing or a loader, BUT do not conditionally skip hooks

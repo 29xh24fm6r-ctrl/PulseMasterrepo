@@ -72,13 +72,6 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
 
     const { setIPPActive, showBanner } = useOverlays();
 
-    // ✅ HARD BYPASS: Inert on Auth Routes
-    // This prevents "Runtime vs Clerk" race conditions (e.g. sso-callback loops).
-    // On these pages, we render children immediately and run NO runtime logic.
-    if (isAuth) {
-        return <>{children}</>;
-    }
-
     // Default safe state to avoid UI crashes before first fetch
     const [lifeState, setLifeState] = useState<LifeState>({
         energy: 'Medium', stress: 'Medium', momentum: 'Medium', orientation: "Connecting..."
@@ -104,6 +97,9 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
     }, []);
 
     const refresh = useCallback(async () => {
+        // ✅ EXIT EARLY if on auth route (never fetch)
+        if (isAuth) return;
+
         setIsLoading(true);
         try {
             // 1. Check Truth Endpoint (WhoAmI)
@@ -149,12 +145,14 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
         } finally {
             setIsLoading(false);
         }
-    }, [handleError]);
+    }, [handleError, isAuth]);
 
     // Initial Load
     useEffect(() => {
-        refresh();
-    }, [refresh]);
+        if (!isAuth) {
+            refresh();
+        }
+    }, [refresh, isAuth]);
 
     const sendBridgeMessage = async (text: string) => {
         // If in preview, optimistic add only, or show banner?
@@ -209,6 +207,15 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
         runtimeMode // Exposed for UI
     };
 
+    // ✅ HARD BYPASS: Inert on Auth Routes
+    // This prevents "Runtime vs Clerk" race conditions (e.g. sso-callback loops).
+    // On these pages, we render children immediately WITHOUT the provider.
+    // This ensures no hydration mismatches because the tree structure below here 
+    // is consistent (children are rendered) but context is missing (which is fine for Shell).
+    if (isAuth) {
+        return <>{children}</>;
+    }
+
     return (
         <PulseRuntimeContext.Provider value={value}>
             {children}
@@ -218,43 +225,35 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
                 </div>
             )}
             {runtimeMode === 'auth_missing' && (
-                // ✅ BYPASS: Do not show blocking modal on Auth Routes (sign-in, sign-up, etc)
-                // This prevents the "500-like" conflict where the sign-in page is overlaid by this modal.
-                typeof window !== 'undefined' &&
-                    !window.location.pathname.startsWith('/sign-in') &&
-                    !window.location.pathname.startsWith('/sign-up') &&
-                    !window.location.pathname.startsWith('/welcome') // Welcome handles its own redirect
-                    ? (
-                        <div className="fixed inset-0 z-[10000] bg-black/60 backdrop-blur-md flex items-center justify-center">
-                            <div className="bg-neutral-900 border border-neutral-800 p-8 rounded-2xl shadow-2xl max-w-md text-center">
-                                <h2 className="text-xl font-bold text-white mb-2">Sign in to Pulse</h2>
-                                <p className="text-neutral-400 mb-6">Your session has expired or you are not signed in.</p>
-                                <a href="/sign-in" className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-black bg-white hover:bg-neutral-200 transition-colors">
-                                    Sign In
-                                </a>
+                <div className="fixed inset-0 z-[10000] bg-black/60 backdrop-blur-md flex items-center justify-center">
+                    <div className="bg-neutral-900 border border-neutral-800 p-8 rounded-2xl shadow-2xl max-w-md text-center">
+                        <h2 className="text-xl font-bold text-white mb-2">Sign in to Pulse</h2>
+                        <p className="text-neutral-400 mb-6">Your session has expired or you are not signed in.</p>
+                        <a href="/sign-in" className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-black bg-white hover:bg-neutral-200 transition-colors">
+                            Sign In
+                        </a>
 
-                                <div className="mt-6 pt-6 border-t border-neutral-800">
-                                    <button
-                                        onClick={async () => {
-                                            // 1. Service Worker update check
-                                            if ('serviceWorker' in navigator) {
-                                                const regs = await navigator.serviceWorker.getRegistrations();
-                                                for (const reg of regs) {
-                                                    await reg.update();
-                                                }
-                                            }
-                                            // 2. Clear Runtime Keys (if any - mostly relying on SW bypass now)
-                                            // 3. Hard Reload
-                                            window.location.reload();
-                                        }}
-                                        className="text-xs text-neutral-500 hover:text-neutral-300 underline transition-colors"
-                                    >
-                                        Reset Runtime Cache
-                                    </button>
-                                </div>
-                            </div>
+                        <div className="mt-6 pt-6 border-t border-neutral-800">
+                            <button
+                                onClick={async () => {
+                                    // 1. Service Worker update check
+                                    if ('serviceWorker' in navigator) {
+                                        const regs = await navigator.serviceWorker.getRegistrations();
+                                        for (const reg of regs) {
+                                            await reg.update();
+                                        }
+                                    }
+                                    // 2. Clear Runtime Keys (if any - mostly relying on SW bypass now)
+                                    // 3. Hard Reload
+                                    window.location.reload();
+                                }}
+                                className="text-xs text-neutral-500 hover:text-neutral-300 underline transition-colors"
+                            >
+                                Reset Runtime Cache
+                            </button>
                         </div>
-                    ) : null
+                    </div>
+                </div>
             )}
         </PulseRuntimeContext.Provider>
     );
