@@ -34,7 +34,12 @@ export function ClerkProviderSafe({ children }: Props) {
     // Runtime Logic
     const hostname = getHostnameSafe();
     const canonical = isCanonicalHost(hostname);
-    const enabled = canonical && hasPublishableKey();
+
+    // ✅ FIX: Allow SSR (window undefined) OR canonical host
+    // During SSR, hostname is empty, so we must default to enabled if key exists.
+    // On Client, we enforce strict canonical check.
+    const isSSR = typeof window === 'undefined';
+    const enabled = (isSSR || canonical) && hasPublishableKey();
 
     if (!enabled) {
         const showBanner = isVercelPreviewHost(hostname) || !canonical || !hasPublishableKey();
