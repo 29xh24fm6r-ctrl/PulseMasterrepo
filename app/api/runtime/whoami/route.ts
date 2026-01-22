@@ -1,30 +1,35 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getAuth } from "@clerk/nextjs/server";
+import { runtimeHeaders } from "@/lib/runtime/runtimeHeaders";
 
-export async function GET(req: NextRequest) {
-    try {
-        const { userId } = getAuth(req);
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
-        const res = NextResponse.json({
-            ok: true,
-            authed: !!userId,
-            userIdPresent: !!userId,
-            // safe probe: no PII allowed
-        });
-
-        res.headers.set("x-pulse-src", "runtime_whoami");
-        res.headers.set("x-pulse-auth", userId ? "present" : "missing");
-
-        return res;
-    } catch (err) {
-        // Fallback for environment where clerk might fail or throw
-        const res = NextResponse.json({
-            ok: true,
-            authed: false,
-            userIdPresent: false,
-            error: "Probe failed safe"
-        });
-        res.headers.set("x-pulse-src", "runtime_whoami_error");
-        return res;
+export async function GET() {
+    if (process.env.NEXT_PHASE === "phase-production-build") {
+        return new Response(
+            JSON.stringify({ ok: true, authed: false, build: true }),
+            {
+                status: 200,
+                headers: runtimeHeaders({ authed: false }),
+            }
+        );
     }
+
+    let userId: string | null = null;
+
+    try {
+        const clerk = await import("@clerk/nextjs/server");
+        userId = clerk.auth()?.userId ?? null;
+    } catch { }
+
+    return new Response(
+        JSON.stringify({
+            ok: true,
+            authed: Boolean(userId),
+            userId,
+        }),
+        {
+            status: 200,
+            headers: runtimeHeaders({ authed: Boolean(userId) }),
+        }
+    );
 }

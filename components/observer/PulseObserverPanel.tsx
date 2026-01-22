@@ -32,6 +32,18 @@ export default function PulseObserverPanel({ route: routeProp }: { route?: strin
     const [dock, setDock] = useState<ObserverDock>("br");
     const [hidden, setHidden] = useState(false);
     const [route, setRoute] = useState(routeProp || "");
+    const [diagnostics, setDiagnostics] = useState<{ env: string; authed: boolean; build: string } | null>(null);
+
+    useEffect(() => {
+        // Phase 25K: Independent probe for Observer
+        if (open) {
+            fetch('/api/runtime/whoami')
+                .then(res => res.json())
+                .then(data => setDiagnostics({ env: data.env, authed: data.authed, build: data.build }))
+                .catch(() => setDiagnostics({ env: 'error', authed: false, build: '?' }));
+        }
+    }, [open]);
+
 
     // Hydrate state from storage
     useEffect(() => {
@@ -222,6 +234,16 @@ export default function PulseObserverPanel({ route: routeProp }: { route?: strin
                         <Stat label="Inputs" value={bundle.summary.interactions.inputs} />
                     </div>
 
+                    {/* Phase 25K Badges */}
+                    {diagnostics && (
+                        <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+                            <Badge label="ENV" value={diagnostics.env} color={diagnostics.env === 'production' ? 'green' : 'amber'} />
+                            <Badge label="AUTH" value={diagnostics.authed ? 'YES' : 'NO'} color={diagnostics.authed ? 'green' : 'red'} />
+                            <Badge label="VER" value={diagnostics.build} color="gray" />
+                        </div>
+                    )}
+
+
                     <textarea
                         value={note}
                         onChange={(e) => setNote(e.target.value)}
@@ -324,4 +346,36 @@ function btnStyle(kind?: "danger") {
         cursor: "pointer",
         fontWeight: 500
     } as const;
+}
+
+function Badge({ label, value, color }: { label: string; value: string; color: 'green' | 'amber' | 'red' | 'gray' }) {
+    const map = {
+        green: 'rgba(120,255,170,0.2)',
+        amber: 'rgba(255,200,80,0.2)',
+        red: 'rgba(255,80,80,0.2)',
+        gray: 'rgba(255,255,255,0.1)'
+    };
+    const textMap = {
+        green: 'rgba(120,255,170,0.9)',
+        amber: 'rgba(255,200,80,0.9)',
+        red: 'rgba(255,80,80,0.9)',
+        gray: 'rgba(255,255,255,0.6)'
+    };
+
+    return (
+        <div style={{
+            background: map[color],
+            color: textMap[color],
+            borderRadius: 6,
+            padding: "2px 6px",
+            fontSize: 10,
+            fontWeight: 600,
+            border: `1px solid ${map[color]}`,
+            display: 'flex',
+            gap: 4
+        }}>
+            <span style={{ opacity: 0.7 }}>{label}</span>
+            <span>{value}</span>
+        </div>
+    );
 }

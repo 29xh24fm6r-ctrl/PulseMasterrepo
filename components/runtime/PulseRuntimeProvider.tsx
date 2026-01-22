@@ -191,6 +191,26 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
                         <a href="/sign-in" className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-black bg-white hover:bg-neutral-200 transition-colors">
                             Sign In
                         </a>
+
+                        <div className="mt-6 pt-6 border-t border-neutral-800">
+                            <button
+                                onClick={async () => {
+                                    // 1. Service Worker update check
+                                    if ('serviceWorker' in navigator) {
+                                        const regs = await navigator.serviceWorker.getRegistrations();
+                                        for (const reg of regs) {
+                                            await reg.update();
+                                        }
+                                    }
+                                    // 2. Clear Runtime Keys (if any - mostly relying on SW bypass now)
+                                    // 3. Hard Reload
+                                    window.location.reload();
+                                }}
+                                className="text-xs text-neutral-500 hover:text-neutral-300 underline transition-colors"
+                            >
+                                Reset Runtime Cache
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

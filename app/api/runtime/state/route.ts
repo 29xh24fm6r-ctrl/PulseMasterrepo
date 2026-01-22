@@ -4,6 +4,7 @@ import { LifeState, TrendPoint, NotableEvent } from "@/lib/runtime/types";
 import { aggregateLifeState } from "@/lib/life-state/aggregateLifeState";
 import { runtimeAuthIsRequired, getRuntimeAuthMode } from "@/lib/runtime/runtimeAuthPolicy";
 import { previewRuntimeEnvelope } from "@/lib/runtime/previewRuntime";
+import { runtimeHeaders } from "@/lib/runtime/runtimeHeaders";
 
 export async function GET(req: NextRequest) {
     if (!runtimeAuthIsRequired()) {
@@ -14,14 +15,18 @@ export async function GET(req: NextRequest) {
             momentum: "Medium",
             orientation: "Preview Safe Mode"
         };
-        const res = NextResponse.json(previewRuntimeEnvelope({
+        return new Response(JSON.stringify(previewRuntimeEnvelope({
             life: { condition: "nominal", energy: 100, focus: 100, mood: "calm" },
             trends: [],
             notable: []
-        }));
-        res.headers.set("x-pulse-runtime-auth-mode", getRuntimeAuthMode());
-        res.headers.set("x-pulse-src", "runtime_preview_envelope");
-        return res;
+        })), {
+            status: 200,
+            headers: {
+                ...runtimeHeaders({ authed: false }),
+                "x-pulse-runtime-auth-mode": getRuntimeAuthMode(),
+                "x-pulse-src": "runtime_preview_envelope"
+            }
+        });
     }
 
     try {
@@ -70,14 +75,20 @@ export async function GET(req: NextRequest) {
         // I'll check for 'pulse_effects' or 'autonomy_audit' for recent actions.
         const notables: NotableEvent[] = []; // Start empty to be truthful.
 
-        return NextResponse.json({
+        return new Response(JSON.stringify({
             lifeState,
             trends,
             notables
+        }), {
+            status: 200,
+            headers: runtimeHeaders({ authed: true })
         });
 
     } catch (err) {
         const res = handleRuntimeError(err);
+        const headers = runtimeHeaders({ authed: res.status !== 401 });
+        Object.entries(headers).forEach(([k, v]) => res.headers.set(k, v));
+
         if (res.status === 401) {
             res.headers.set("x-pulse-src", "runtime_auth_denied");
         }

@@ -1,7 +1,7 @@
 // Pulse Life OS Service Worker
 // Handles push notifications and basic caching
 
-const CACHE_NAME = "pulse-v1";
+const CACHE_NAME = "pulse-v25k-20260121";
 const STATIC_ASSETS = [
   "/life",
   "/icons/icon-192.png",
@@ -59,7 +59,7 @@ self.addEventListener("install", (event) => {
 
 // Activate - clean up old caches
 self.addEventListener("activate", (event) => {
-  console.log("[SW] Activating...");
+  console.log("[SW] Activating pulse-v25k-20260121...");
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
@@ -77,8 +77,17 @@ self.addEventListener("fetch", (event) => {
   // Skip non-GET requests
   if (event.request.method !== "GET") return;
 
-  // Skip API requests
-  if (event.request.url.includes("/api/")) return;
+  const url = new URL(event.request.url);
+
+  // CRITICAL: Strictly bypass runtime/auth endpoints (Phase 25K)
+  // We return immediately to let the network handle it without SW interference.
+  if (url.pathname.startsWith("/api/runtime/")) return;
+  if (url.pathname.startsWith("/api/auth/")) return;
+  if (url.pathname.startsWith("/api/clerk/")) return;
+  if (url.pathname === "/manifest.json") return;
+
+  // Skip other API requests generally (legacy rule)
+  if (url.pathname.startsWith("/api/")) return;
 
   event.respondWith(
     fetch(event.request)
