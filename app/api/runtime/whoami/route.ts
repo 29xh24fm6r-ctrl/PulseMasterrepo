@@ -1,23 +1,15 @@
-/**
- * Phase 25K-H
- * Absolute runtime-only identity probe.
- * ZERO Next.js helpers. ZERO build-time hooks.
- */
+import { runtimeHeaders } from "@/lib/runtime/runtimeHeaders";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET() {
-    // Absolute build-time escape hatch
     if (process.env.NEXT_PHASE === "phase-production-build") {
         return new Response(
             JSON.stringify({ ok: true, authed: false, build: true }),
             {
                 status: 200,
-                headers: {
-                    "content-type": "application/json",
-                    "cache-control": "no-store",
-                },
+                headers: runtimeHeaders({ authed: false }),
             }
         );
     }
@@ -26,11 +18,8 @@ export async function GET() {
 
     try {
         const clerk = await import("@clerk/nextjs/server");
-        const auth = clerk.auth?.();
-        userId = auth?.userId ?? null;
-    } catch {
-        userId = null;
-    }
+        userId = clerk.auth()?.userId ?? null;
+    } catch { }
 
     return new Response(
         JSON.stringify({
@@ -40,13 +29,7 @@ export async function GET() {
         }),
         {
             status: 200,
-            headers: {
-                "content-type": "application/json",
-                "cache-control": "no-store, no-cache, must-revalidate",
-                pragma: "no-cache",
-                expires: "0",
-                "x-pulse-runtime": "whoami",
-            },
+            headers: runtimeHeaders({ authed: Boolean(userId) }),
         }
     );
 }

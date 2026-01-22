@@ -6,12 +6,12 @@ import { resolveSubscription } from "@/lib/subscription/resolveSubscription";
 import { getDailyAICallCount, trackAIUsage } from "@/services/usage";
 import { runtimeAuthIsRequired, getRuntimeAuthMode } from "@/lib/runtime/runtimeAuthPolicy";
 import { previewRuntimeEnvelope } from "@/lib/runtime/previewRuntime";
-import { applyNoStoreHeaders } from "@/lib/runtime/httpNoStore";
+import { runtimeHeaders } from "@/lib/runtime/runtimeHeaders";
 
 export async function POST(req: NextRequest) {
     // 1. Preview Mode / CI Bypass
     if (!runtimeAuthIsRequired()) {
-        const res = NextResponse.json(previewRuntimeEnvelope({
+        return new Response(JSON.stringify(previewRuntimeEnvelope({
             reply: {
                 id: "preview-echo",
                 role: "pulse",
@@ -19,10 +19,14 @@ export async function POST(req: NextRequest) {
                 timestamp: new Date(),
                 hasExplanation: false
             }
-        }));
-        res.headers.set("x-pulse-runtime-auth-mode", getRuntimeAuthMode());
-        res.headers.set("x-pulse-src", "runtime_preview_envelope");
-        return applyNoStoreHeaders(res);
+        })), {
+            status: 200,
+            headers: {
+                ...runtimeHeaders({ authed: false }),
+                "x-pulse-runtime-auth-mode": getRuntimeAuthMode(),
+                "x-pulse-src": "runtime_preview_envelope"
+            }
+        });
     }
 
     try {
@@ -38,9 +42,13 @@ export async function POST(req: NextRequest) {
                     code: 'LIMIT_REACHED',
                     message: "Daily limit reached"
                 };
-                const res = NextResponse.json(payload, { status: 403 });
-                res.headers.set("x-pulse-src", "runtime_limit_reached");
-                return applyNoStoreHeaders(res);
+                return new Response(JSON.stringify(payload), {
+                    status: 403,
+                    headers: {
+                        ...runtimeHeaders({ authed: true }),
+                        "x-pulse-src": "runtime_limit_reached"
+                    }
+                });
             }
         }
 
@@ -48,7 +56,10 @@ export async function POST(req: NextRequest) {
         const text = body.text;
 
         if (!text) {
-            return applyNoStoreHeaders(NextResponse.json({ error: "No text provided" }, { status: 400 }));
+            return new Response(JSON.stringify({ error: "No text provided" }), {
+                status: 400,
+                headers: runtimeHeaders({ authed: true })
+            });
         }
 
         // 3. Track Usage (Increment Count)
@@ -62,13 +73,19 @@ export async function POST(req: NextRequest) {
             hasExplanation: false
         };
 
-        return applyNoStoreHeaders(NextResponse.json({ reply }));
+        return new Response(JSON.stringify({ reply }), {
+            status: 200,
+            headers: runtimeHeaders({ authed: true })
+        });
 
     } catch (err) {
         const res = handleRuntimeError(err);
+        const headers = runtimeHeaders({ authed: res.status !== 401 });
+        Object.entries(headers).forEach(([k, v]) => res.headers.set(k, v));
+
         if (res.status === 401) {
             res.headers.set("x-pulse-src", "runtime_auth_denied");
         }
-        return applyNoStoreHeaders(res);
+        return res;
     }
 }
