@@ -46,8 +46,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   // ✅ Optional: runtime-only assertion (safe)
-  if (!isBuildPhase()) {
-    assertServerEnv();
+  // ✅ Optional: runtime-only assertion (safe)
+  // We wrap this in try-catch so the LAYOUT never crashes.
+  // This ensures /sign-in can always render even if envs are missing.
+  try {
+    if (!isBuildPhase()) {
+      assertServerEnv();
+    }
+  } catch (e) {
+    console.warn("⚠️ [Pulse] Environment assertion failed in RootLayout (safe-fail for sign-in):", e);
+    // We swallow the error here so the UI can render.
+    // Deep runtime features will fail naturally later if they need the keys.
   }
 
   return (
