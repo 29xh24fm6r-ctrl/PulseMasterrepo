@@ -76,16 +76,19 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
     const refresh = useCallback(async () => {
         setIsLoading(true);
         try {
-            // Simpler: I will attempt to read `home` raw first.
-            const stateParams = await safeFetchJSON('/api/runtime/home');
+            // 1. Check Truth Endpoint (WhoAmI)
+            const whoami = await safeFetchJSON('/api/runtime/whoami');
 
-            // Phase 25J: Canonical handle of Auth Missing
-            if (!stateParams.ok && stateParams.status === 401) {
-                console.warn("[PulseRuntime] Auth Missing - Enforcing Sign In");
+            // If we can't even reach whoami, or it says not authed
+            if (!whoami.ok || !(whoami.data as any).authed) {
+                console.warn("[PulseRuntime] Auth Missing (WhoAmI) - Enforcing Sign In", whoami);
                 setRuntimeMode('auth_missing');
                 setIsLoading(false);
                 return;
             }
+
+            // 2. Fetch Home (now redundant for auth check, but good for preview mode)
+            const stateParams = await safeFetchJSON('/api/runtime/home');
 
             if (stateParams.ok && (stateParams.data as any).mode === 'preview') {
                 setRuntimeMode('preview');
@@ -94,7 +97,8 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
                 return;
             }
 
-            // If not preview or failed checks, try normal client flow
+            // 3. Parallel fetch of all runtime data
+            // We TRUST whoami, so even if these 401, we know we are authed, so it's a glitch not a logout.
             const [ls, tr, nt, pl, obs] = await Promise.all([
                 client.getLifeState(),
                 client.getTrends(),
