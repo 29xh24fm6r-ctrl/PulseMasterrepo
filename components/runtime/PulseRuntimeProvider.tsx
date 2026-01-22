@@ -42,12 +42,42 @@ async function safeFetchJSON(url: string) {
     }
 }
 
+import { usePathname } from "next/navigation";
+
+// Helper to detect if we are on an auth route where the runtime loop must be inert.
+function isAuthPath(pathname: string) {
+    if (!pathname) return false;
+    // Normalize pathname to ensure we don't miss cases due to trailing slashes (though Next.js usually handles this)
+    const p = pathname.endsWith("/") && pathname.length > 1 ? pathname.slice(0, -1) : pathname;
+
+    return (
+        p === "/sign-in" ||
+        p.startsWith("/sign-in/") ||
+        p === "/sign-up" ||
+        p.startsWith("/sign-up/") ||
+        p === "/welcome" ||
+        p.startsWith("/welcome/")
+    );
+}
+
 export function PulseRuntimeProvider({ children }: { ReactNode }) {
     // 📢 PRESENCE SHELL PUBLISHER (v1)
     usePresencePublisher();
     usePresenceErrorCapture();
 
+    const pathname = usePathname();
+    // Wrap in useMemo mainly if it was expensive, but here plain var is fine.
+    // However, to follow the spec strictly:
+    const isAuth = isAuthPath(pathname || "");
+
     const { setIPPActive, showBanner } = useOverlays();
+
+    // ✅ HARD BYPASS: Inert on Auth Routes
+    // This prevents "Runtime vs Clerk" race conditions (e.g. sso-callback loops).
+    // On these pages, we render children immediately and run NO runtime logic.
+    if (isAuth) {
+        return <>{children}</>;
+    }
 
     // Default safe state to avoid UI crashes before first fetch
     const [lifeState, setLifeState] = useState<LifeState>({
