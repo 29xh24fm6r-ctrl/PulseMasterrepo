@@ -7,6 +7,8 @@ export function runtimeHeaders(opts?: {
             "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0",
         pragma: "no-cache",
         expires: "0",
+        "surrogate-control": "no-store",
+        vary: "Authorization, Cookie",
 
         // Pulse diagnostics
         "x-pulse-env": process.env.VERCEL_ENV ?? "unknown",
