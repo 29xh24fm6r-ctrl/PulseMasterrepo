@@ -105,9 +105,17 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
             // 1. Check Truth Endpoint (WhoAmI)
             const whoami = await safeFetchJSON('/api/runtime/whoami');
 
-            // If we can't even reach whoami, or it says not authed
-            if (!whoami.ok || !(whoami.data as any).authed) {
-                console.warn("[PulseRuntime] Auth Missing (WhoAmI) - Enforcing Sign In", whoami);
+            // STRICT CHECK: Only enforce "Auth Missing" if whoami explicitly says we are NOT authed.
+            // If the fetch fails (ok: false), we might be offline or have a network error, so purely logging a warning is safer strictly speaking than locking them out,
+            // but for security "fail closed" is standard. However, the recurring bug is logging "Auth Missing" when ok:true.
+            const isAuthed = whoami.ok && (whoami.data as any).authed === true;
+
+            if (!isAuthed) {
+                console.warn("[PulseRuntime] Auth Missing (WhoAmI) - Enforcing Sign In", {
+                    ok: whoami.ok,
+                    status: (whoami as any).status,
+                    authed: (whoami.data as any)?.authed
+                });
                 setRuntimeMode('auth_missing');
                 setIsLoading(false);
                 return;
