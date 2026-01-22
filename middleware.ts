@@ -11,7 +11,19 @@ function tag(res: NextResponse, value: string) {
   return res;
 }
 
-export function middleware(req: NextRequest) {
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+
+const isPublicRoute = createRouteMatcher([
+  "/sign-in(.*)",
+  "/sign-up(.*)",
+  "/api/clerk(.*)",
+  "/_clerk(.*)",
+  "/manifest.json",
+  "/api/runtime(.*)",
+  "/_next(.*)"
+]);
+
+export default clerkMiddleware((auth, req) => {
   const { pathname } = req.nextUrl;
   const host = req.headers.get("host") ?? "";
 
@@ -23,24 +35,15 @@ export function middleware(req: NextRequest) {
   }
 
   // 1️⃣ ALWAYS Allow Clerk + Auth Pages (Hard Bypass)
-  // This prevents the middleware from EVER blocking sign-in loading
-  if (
-    pathname.startsWith("/sign-in") ||
-    pathname.startsWith("/sign-up") ||
-    pathname.startsWith("/sso-callback") ||
-    pathname.startsWith("/api/clerk") ||
-    pathname.startsWith("/_clerk")
-  ) {
-    return tag(NextResponse.next(), "BYPASS_AUTH_ROUTE");
+  if (isPublicRoute(req)) {
+    // Check for CI Bridge Logic even on public routes if needed, but keeping it simple
+    // Just pass through. Clerk adds the auth state.
+    return NextResponse.next();
   }
 
   // 🚨 ABSOLUTE BYPASS — MUST NEVER ENFORCE AUTH
   if (pathname === "/manifest.json") {
     return tag(NextResponse.next(), "BYPASS_MANIFEST");
-  }
-
-  if (pathname.startsWith("/api/runtime/")) {
-    return tag(NextResponse.next(), "BYPASS_RUNTIME");
   }
 
   // 👇 Any request reaching here DID hit middleware
@@ -63,11 +66,12 @@ export function middleware(req: NextRequest) {
   }
 
   // 3️⃣ Default safe pass-through
+  // Clerk Middleware automatically handles the session injection here.
   const res = NextResponse.next();
   res.headers.set("X-Pulse-MW", "allow_auth");
   tag(res, "HIT");
   return res;
-}
+});
 
 export const config = {
   matcher: [
