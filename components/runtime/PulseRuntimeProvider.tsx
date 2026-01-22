@@ -202,7 +202,24 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
         }
     };
 
-    const value = {
+    // ✅ HARD BYPASS: Inert on Auth Routes
+    // FIX Phase 28-A: We MUST mount the Provider unconditionally to prevent React #418 hydration errors.
+    // Instead of returning early, we provide an "Inert" (No-op) context.
+
+    const inertValue: PulseRuntimeContextType = {
+        lifeState: { energy: 'Medium', stress: 'Medium', momentum: 'Medium', orientation: "Auth..." },
+        trends: {},
+        notables: [],
+        planLedger: [],
+        observerData: { runtime: [], autonomy: [], effects: [], ipp: [], background: [] },
+        messages: [],
+        sendBridgeMessage: () => { },
+        isLoading: false,
+        refresh: async () => { },
+        runtimeMode: 'paused'
+    };
+
+    const value = isAuth ? inertValue : {
         lifeState,
         trends,
         notables,
@@ -212,27 +229,18 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
         sendBridgeMessage,
         isLoading,
         refresh,
-        runtimeMode // Exposed for UI
+        runtimeMode
     };
-
-    // ✅ HARD BYPASS: Inert on Auth Routes
-    // This prevents "Runtime vs Clerk" race conditions (e.g. sso-callback loops).
-    // On these pages, we render children immediately WITHOUT the provider.
-    // This ensures no hydration mismatches because the tree structure below here 
-    // is consistent (children are rendered) but context is missing (which is fine for Shell).
-    if (isAuth) {
-        return <>{children}</>;
-    }
 
     return (
         <PulseRuntimeContext.Provider value={value}>
             {children}
-            {runtimeMode === 'preview' && (
+            {!isAuth && runtimeMode === 'preview' && (
                 <div className="fixed bottom-0 left-0 right-0 bg-indigo-900/90 text-indigo-100 text-xs px-4 py-1 text-center backdrop-blur-sm z-[9999]">
                     PREVIEW SAFE MODE — Read Only
                 </div>
             )}
-            {runtimeMode === 'auth_missing' && (
+            {!isAuth && runtimeMode === 'auth_missing' && (
                 <div className="fixed inset-0 z-[10000] bg-black/60 backdrop-blur-md flex items-center justify-center">
                     <div className="bg-neutral-900 border border-neutral-800 p-8 rounded-2xl shadow-2xl max-w-md text-center">
                         <h2 className="text-xl font-bold text-white mb-2">Sign in to Pulse</h2>
