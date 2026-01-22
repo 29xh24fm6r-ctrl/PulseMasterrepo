@@ -20,7 +20,8 @@ const isPublicRoute = createRouteMatcher([
   "/_clerk(.*)",
   "/manifest.json",
   "/api/runtime(.*)",
-  "/_next(.*)"
+  "/_next(.*)",
+  "/bridge(.*)" // Safe: CI Check Logic manually guards this below
 ]);
 
 export default clerkMiddleware((auth, req) => {
