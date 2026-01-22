@@ -41,6 +41,7 @@ export default clerkMiddleware((auth, req) => {
   }
 
   // 🔒 ABSOLUTE FIRST: CI HARD STOP FOR /bridge (MUST BE BEFORE CLERK PASS-THROUGH)
+  // FIX: Phase 28 - Reordered to top to unblock CI Pipeline
   if (pathname === "/bridge" && IS_CI) {
     const res = new NextResponse("CI bridge bypass", {
       status: 200,
