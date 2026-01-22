@@ -9,12 +9,15 @@ export async function POST(req: Request) {
   console.log(`[sync:${debugId}] Starting user sync`);
 
   try {
-    const access = await requireOpsAuth(req as any);
-    if (!access.ok || !access.gate) {
-      // 401 is acceptable here as it's a hard auth failure, not a runtime crash
+    // FIX Phase 28-D: Provisioning Deadlock
+    // We cannot use requireOpsAuth here because it enforces `requireCanonUser`,
+    // which fails if the user doesn't exist yet. This endpoint's JOB is to create them.
+    const access = await currentUser();
+
+    if (!access || !access.id) {
       return NextResponse.json({ ok: false, code: "UNAUTHED", debugId }, { status: 401 });
     }
-    const userId = access.gate.canon.clerkUserId;
+    const userId = access.id;
 
     const user = await currentUser();
     if (!user) {
