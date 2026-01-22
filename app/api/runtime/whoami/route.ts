@@ -15,14 +15,14 @@ export async function GET(req: Request) {
         // swallow: diagnostics must not crash
     }
 
-    const cookie = req.headers.get("cookie") ?? "";
-    const cookieNames = cookie
-        .split(";")
-        .map((c) => c.trim().split("=")[0])
-        .filter(Boolean)
-        .slice(0, 50);
-
     const host = req.headers.get("host") ?? "unknown";
+    const cookie = req.headers.get("cookie");
+
+    if (!cookie) {
+        console.warn(`[whoami] No cookies received by server (Host: ${host})`);
+    }
+
+    const cookieNames = (cookie ?? "")
 
     const data = {
         ok: true,
