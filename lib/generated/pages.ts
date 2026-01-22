@@ -97,6 +97,7 @@ export const GENERATED_PAGES = [
   "/setup",
   "/shutdown",
   "/sign-in/[[...sign-in]]",
+  "/sign-in/[[...sign-in]]",
   "/sign-up/[[...sign-up]]",
   "/state",
   "/strategy",
