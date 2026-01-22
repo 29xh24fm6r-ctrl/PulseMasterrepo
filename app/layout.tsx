@@ -61,7 +61,7 @@ export default function RootLayout({
 
   return (
     <ClerkProviderSafe>
-      <html lang="en">
+      <html lang="en" suppressHydrationWarning>
         <head>
           <link rel="apple-touch-icon" href="/icons/icon-192.png" />
         </head>
