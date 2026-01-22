@@ -47,8 +47,11 @@ import { usePathname } from "next/navigation";
 // Helper to detect if we are on an auth route where the runtime loop must be inert.
 function isAuthPath(pathname: string) {
     if (!pathname) return false;
-    // Normalize pathname to ensure we don't miss cases due to trailing slashes (though Next.js usually handles this)
-    const p = pathname.endsWith("/") && pathname.length > 1 ? pathname.slice(0, -1) : pathname;
+    // Normalize pathname: lowercase and remove trailing slash
+    let p = pathname.toLowerCase();
+    if (p.endsWith("/") && p.length > 1) {
+        p = p.slice(0, -1);
+    }
 
     return (
         p === "/sign-in" ||
@@ -66,8 +69,6 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
     usePresenceErrorCapture();
 
     const pathname = usePathname();
-    // Wrap in useMemo mainly if it was expensive, but here plain var is fine.
-    // However, to follow the spec strictly:
     const isAuth = isAuthPath(pathname || "");
 
     const { setIPPActive, showBanner } = useOverlays();
@@ -83,12 +84,19 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
         runtime: [], autonomy: [], effects: [], ipp: [], background: []
     });
 
-    const [messages, setMessages] = useState<Message[]>([
-        { id: 'init-1', content: "Good morning. Connecting to Pulse.", role: 'pulse', timestamp: new Date() }
-    ]);
+    // FIX Phase 28-B: Hydration Mismatch
+    // Do NOT use new Date() in initial state. Start empty, add in effect.
+    const [messages, setMessages] = useState<Message[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     const [runtimeMode, setRuntimeMode] = useState<'live' | 'preview' | 'paused' | 'auth_missing'>('live');
+
+    // FIX Phase 28-B: Debug Telemetry
+    useEffect(() => {
+        if (process.env.NODE_ENV === 'development') {
+            console.log(`[PulseRuntime] Debug: Path=${pathname} IsAuth=${isAuth} Mode=${runtimeMode}`);
+        }
+    }, [pathname, isAuth, runtimeMode]);
 
     const handleError = useCallback((err: any) => {
         console.error("Runtime Provider Error:", err);
@@ -155,8 +163,17 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
         }
     }, [handleError, isAuth]);
 
-    // Initial Load
+    // Initial Load & Hydration Safe Message
     useEffect(() => {
+        // 1. Add initial message on client only (prevents hydration mismatch)
+        setMessages(prev => {
+            if (prev.length === 0) {
+                return [{ id: 'init-1', content: "Good morning. Connecting to Pulse.", role: 'pulse', timestamp: new Date() }];
+            }
+            return prev;
+        });
+
+        // 2. Trigger Refresh logic
         if (!isAuth) {
             refresh();
         }
