@@ -13,6 +13,26 @@ function tag(res: NextResponse, value: string) {
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+  const host = req.headers.get("host") ?? "";
+
+  // 0️⃣ Canonicalize to www (if production apex)
+  if (host === "pulselifeos.com") {
+    const redirectUrl = new URL(req.url);
+    redirectUrl.host = "www.pulselifeos.com";
+    return NextResponse.redirect(redirectUrl, 308);
+  }
+
+  // 1️⃣ ALWAYS Allow Clerk + Auth Pages (Hard Bypass)
+  // This prevents the middleware from EVER blocking sign-in loading
+  if (
+    pathname.startsWith("/sign-in") ||
+    pathname.startsWith("/sign-up") ||
+    pathname.startsWith("/sso-callback") ||
+    pathname.startsWith("/api/clerk") ||
+    pathname.startsWith("/_clerk")
+  ) {
+    return tag(NextResponse.next(), "BYPASS_AUTH_ROUTE");
+  }
 
   // 🚨 ABSOLUTE BYPASS — MUST NEVER ENFORCE AUTH
   if (pathname === "/manifest.json") {

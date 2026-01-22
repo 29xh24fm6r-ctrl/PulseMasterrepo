@@ -1,35 +1,40 @@
+import { auth } from "@clerk/nextjs/server";
 import { runtimeHeaders } from "@/lib/runtime/runtimeHeaders";
 
 export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
 
-export async function GET() {
-    if (process.env.NEXT_PHASE === "phase-production-build") {
-        return new Response(
-            JSON.stringify({ ok: true, authed: false, build: true }),
-            {
-                status: 200,
-                headers: runtimeHeaders({ authed: false }),
-            }
-        );
-    }
-
+export async function GET(req: Request) {
     let userId: string | null = null;
+    let sessionId: string | null = null;
 
     try {
-        const clerk = await import("@clerk/nextjs/server");
-        userId = clerk.auth()?.userId ?? null;
-    } catch { }
+        const a = auth();
+        userId = a.userId ?? null;
+        sessionId = a.sessionId ?? null;
+    } catch {
+        // swallow: diagnostics must not crash
+    }
 
-    return new Response(
-        JSON.stringify({
-            ok: true,
-            authed: Boolean(userId),
-            userId,
-        }),
-        {
-            status: 200,
-            headers: runtimeHeaders({ authed: Boolean(userId) }),
-        }
-    );
+    const cookie = req.headers.get("cookie") ?? "";
+    const cookieNames = cookie
+        .split(";")
+        .map((c) => c.trim().split("=")[0])
+        .filter(Boolean)
+        .slice(0, 50);
+
+    const host = req.headers.get("host") ?? "unknown";
+
+    const data = {
+        ok: true,
+        host,
+        authed: !!userId,
+        userId,
+        sessionId,
+        cookieNames,
+    };
+
+    return new Response(JSON.stringify(data, null, 2), {
+        status: 200,
+        headers: runtimeHeaders({ authed: !!userId }),
+    });
 }

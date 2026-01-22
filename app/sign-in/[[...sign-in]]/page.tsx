@@ -1,9 +1,7 @@
-import { SignIn } from "@clerk/nextjs";
+export const dynamic = "force-dynamic";
+
+import SignInClient from "../SignInClient";
 
 export default function SignInPage() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-zinc-950">
-      <SignIn afterSignInUrl="/" />
-    </div>
-  );
+  return <SignInClient />;
 }
