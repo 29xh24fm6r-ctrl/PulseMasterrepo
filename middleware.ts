@@ -35,21 +35,12 @@ export default clerkMiddleware((auth, req) => {
     return NextResponse.redirect(redirectUrl, 308);
   }
 
-  // 1️⃣ ALWAYS Allow Clerk + Auth Pages (Hard Bypass)
-  if (isPublicRoute(req)) {
-    // Check for CI Bridge Logic even on public routes if needed, but keeping it simple
-    // Just pass through. Clerk adds the auth state.
-    return NextResponse.next();
-  }
-
   // 🚨 ABSOLUTE BYPASS — MUST NEVER ENFORCE AUTH
   if (pathname === "/manifest.json") {
     return tag(NextResponse.next(), "BYPASS_MANIFEST");
   }
 
-  // 👇 Any request reaching here DID hit middleware
-
-  // 🔒 ABSOLUTE FIRST: CI HARD STOP FOR /bridge
+  // 🔒 ABSOLUTE FIRST: CI HARD STOP FOR /bridge (MUST BE BEFORE CLERK PASS-THROUGH)
   if (pathname === "/bridge" && IS_CI) {
     const res = new NextResponse("CI bridge bypass", {
       status: 200,
@@ -60,6 +51,15 @@ export default clerkMiddleware((auth, req) => {
     });
     return tag(res, "HIT_CI_BRIDGE");
   }
+
+  // 1️⃣ ALWAYS Allow Clerk + Auth Pages (Hard Bypass)
+  if (isPublicRoute(req)) {
+    // Check for CI Bridge Logic even on public routes if needed, but keeping it simple
+    // Just pass through. Clerk adds the auth state.
+    return NextResponse.next();
+  }
+
+  // 👇 Any request reaching here DID hit middleware
 
   // 1️⃣ Hard allow public assets
   if (isPublicAssetPath(pathname)) {
