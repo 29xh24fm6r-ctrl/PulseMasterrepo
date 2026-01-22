@@ -80,8 +80,7 @@ export const config = {
     "/bridge/:path*",
     // Apply middleware to everything EXCEPT:
     // - /manifest.json
-    // - /api/runtime/*
     // - standard static assets
-    "/((?!manifest\\.json|api/runtime|_next/static|_next/image).*)",
+    "/((?!manifest\\.json|_next/static|_next/image).*)",
   ],
 };
