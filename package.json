@@ -9,7 +9,7 @@
         "lint": "eslint",
         "check": "npm run routes:gen && npm run verify:middleware:location && npm run guard:no-shadow-middleware && npm run verify:middleware:edge && npm run middleware:verify && npm run canon:check && npm run guardrails",
         "check:ci": "npm run check && npm run verify:ci:routes",
-        "guardrails": "node scripts/guardrails/check-legacy-routes.mjs && node scripts/guardrails/check-state-hygiene.mjs",
+        "guardrails": "node scripts/guardrails/check-legacy-routes.mjs && node scripts/guardrails/check-state-hygiene.mjs && npm run verify:runtime:immunity",
         "canon:check": "tsx scripts/canon_check.ts",
         "prod:smoke": "tsx scripts/prod_smoke.ts",
         "jobs:worker": "node --import tsx scripts/job-worker.ts",
@@ -28,7 +28,8 @@
         "prepare": "husky",
         "test": "echo \"no tests\"",
         "verify:phase14:runtime": "node --loader tsx scripts/verify-phase14-predelegation.runtime.ts",
-        "verify:preview-runtime": "tsx scripts/verify-preview-runtime.ts"
+        "verify:preview-runtime": "tsx scripts/verify-preview-runtime.ts",
+        "verify:runtime:immunity": "tsx scripts/verify-runtime-cache-immunity.ts"
     },
     "dependencies": {
         "@clerk/nextjs": "^6.35.6",

@@ -6,6 +6,7 @@ import { resolveSubscription } from "@/lib/subscription/resolveSubscription";
 import { getDailyAICallCount, trackAIUsage } from "@/services/usage";
 import { runtimeAuthIsRequired, getRuntimeAuthMode } from "@/lib/runtime/runtimeAuthPolicy";
 import { previewRuntimeEnvelope } from "@/lib/runtime/previewRuntime";
+import { applyNoStoreHeaders } from "@/lib/runtime/httpNoStore";
 
 export async function POST(req: NextRequest) {
     // 1. Preview Mode / CI Bypass
@@ -21,7 +22,7 @@ export async function POST(req: NextRequest) {
         }));
         res.headers.set("x-pulse-runtime-auth-mode", getRuntimeAuthMode());
         res.headers.set("x-pulse-src", "runtime_preview_envelope");
-        return res;
+        return applyNoStoreHeaders(res);
     }
 
     try {
@@ -39,7 +40,7 @@ export async function POST(req: NextRequest) {
                 };
                 const res = NextResponse.json(payload, { status: 403 });
                 res.headers.set("x-pulse-src", "runtime_limit_reached");
-                return res;
+                return applyNoStoreHeaders(res);
             }
         }
 
@@ -47,7 +48,7 @@ export async function POST(req: NextRequest) {
         const text = body.text;
 
         if (!text) {
-            return NextResponse.json({ error: "No text provided" }, { status: 400 });
+            return applyNoStoreHeaders(NextResponse.json({ error: "No text provided" }, { status: 400 }));
         }
 
         // 3. Track Usage (Increment Count)
@@ -61,13 +62,13 @@ export async function POST(req: NextRequest) {
             hasExplanation: false
         };
 
-        return NextResponse.json({ reply });
+        return applyNoStoreHeaders(NextResponse.json({ reply }));
 
     } catch (err) {
         const res = handleRuntimeError(err);
         if (res.status === 401) {
             res.headers.set("x-pulse-src", "runtime_auth_denied");
         }
-        return res;
+        return applyNoStoreHeaders(res);
     }
 }

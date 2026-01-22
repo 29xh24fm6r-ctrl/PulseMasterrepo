@@ -4,6 +4,7 @@ import { aggregateLifeState } from "@/lib/life-state/aggregateLifeState";
 import { LifeState } from "@/lib/runtime/types";
 import { runtimeAuthIsRequired, getRuntimeAuthMode } from "@/lib/runtime/runtimeAuthPolicy";
 import { previewRuntimeEnvelope } from "@/lib/runtime/previewRuntime";
+import { applyNoStoreHeaders } from "@/lib/runtime/httpNoStore";
 
 export async function GET(req: NextRequest) {
     if (!runtimeAuthIsRequired()) {
@@ -18,7 +19,7 @@ export async function GET(req: NextRequest) {
         }));
         res.headers.set("x-pulse-runtime-auth-mode", getRuntimeAuthMode());
         res.headers.set("x-pulse-src", "runtime_preview_envelope");
-        return res;
+        return applyNoStoreHeaders(res);
     }
 
     try {
@@ -51,16 +52,19 @@ export async function GET(req: NextRequest) {
             };
         }
 
-        return NextResponse.json({
+        return applyNoStoreHeaders(NextResponse.json({
             lifeState,
             orientationLine: lifeState.orientation // Redundant but requested in spec
-        });
+        }));
 
     } catch (err) {
         const res = handleRuntimeError(err);
         if (res.status === 401) {
             res.headers.set("x-pulse-src", "runtime_auth_denied");
         }
-        return res;
+        if (res.status === 401) {
+            res.headers.set("x-pulse-src", "runtime_auth_denied");
+        }
+        return applyNoStoreHeaders(res);
     }
 }

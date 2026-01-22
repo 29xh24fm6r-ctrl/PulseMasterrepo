@@ -5,6 +5,7 @@ import { ObserverData } from "@/lib/runtime/types";
 import { resolveSubscription } from "@/lib/subscription/resolveSubscription";
 import { runtimeAuthIsRequired, getRuntimeAuthMode } from "@/lib/runtime/runtimeAuthPolicy";
 import { previewRuntimeEnvelope } from "@/lib/runtime/previewRuntime";
+import { applyNoStoreHeaders } from "@/lib/runtime/httpNoStore";
 
 export async function GET(req: NextRequest) {
     if (!runtimeAuthIsRequired()) {
@@ -17,7 +18,7 @@ export async function GET(req: NextRequest) {
         }));
         res.headers.set("x-pulse-runtime-auth-mode", getRuntimeAuthMode());
         res.headers.set("x-pulse-src", "runtime_preview_envelope");
-        return res;
+        return applyNoStoreHeaders(res);
     }
 
     try {
@@ -105,14 +106,14 @@ export async function GET(req: NextRequest) {
             }))
         };
 
-        return NextResponse.json(data);
+        return applyNoStoreHeaders(NextResponse.json(data));
 
     } catch (err) {
         const res = handleRuntimeError(err);
         if (res.status === 401) {
             res.headers.set("x-pulse-src", "runtime_auth_denied");
         }
-        return res;
+        return applyNoStoreHeaders(res);
     }
 }
 
