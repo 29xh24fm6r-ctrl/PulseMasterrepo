@@ -86,11 +86,12 @@ export default clerkMiddleware((auth, req) => {
 });
 
 export const config = {
-  matcher: [
-    "/bridge/:path*",
-    // Apply middleware to everything EXCEPT:
-    // - /manifest.json
-    // - standard static assets
-    "/((?!manifest\\.json|_next/static|_next/image).*)",
-  ],
-};
+  export const config = {
+    matcher: [
+      // Apply middleware to everything EXCEPT:
+      // - /manifest.json
+      // - /bridge (CI Bypass)
+      // - standard static assets
+      "/((?!manifest\\.json|bridge|api/bridge|_next/static|_next/image).*)",
+    ],
+  };
