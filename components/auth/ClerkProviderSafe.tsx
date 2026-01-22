@@ -32,24 +32,41 @@ export function ClerkProviderSafe({ children }: Props) {
     }
 
     // Runtime Logic
-    const hostname = getHostnameSafe();
-    const canonical = isCanonicalHost(hostname);
+    // Runtime Logic
+    // ✅ FIX Phase 28-C: Hydration Safety
+    // We cannot check `window.location.hostname` during the initial render because
+    // Server sees nothing, Client sees "localhost", leading to tree mismatch.
+    //
+    // Strategy:
+    // 1. Initial State: Assume ENABLED (Optimistic). This matches SSR.
+    // 2. Client Effect: Check hostname. If invalid, switch to DISABLED.
 
-    // ✅ FIX: Allow SSR (window undefined) OR canonical host
-    // During SSR, hostname is empty, so we must default to enabled if key exists.
-    // On Client, we enforce strict canonical check.
-    const isSSR = typeof window === 'undefined';
-    const enabled = (isSSR || canonical) && hasPublishableKey();
+    const [isClientDisabled, setIsClientDisabled] = React.useState(false);
 
-    if (!enabled) {
-        const showBanner = isVercelPreviewHost(hostname) || !canonical || !hasPublishableKey();
+    React.useEffect(() => {
+        // Now valid to check window
+        const h = window.location.hostname;
+        const valid = isCanonicalHost(h) && hasPublishableKey();
+
+        if (!valid) {
+            console.warn("[ClerkProviderSafe] Disabling Auth: Non-Canonical Host", h);
+            setIsClientDisabled(true);
+        }
+    }, []);
+
+    // If disabled by Client Logic 
+    if (isClientDisabled) {
         return (
             <>
-                {showBanner ? <PreviewAuthDisabledBanner /> : null}
+                <PreviewAuthDisabledBanner />
                 {children}
             </>
         );
     }
+
+    // Default: Render Provider (SSR safe)
+    // If no key, we might crash, but `hasPublishableKey` check at top level guards mostly.
+    return <ClerkProvider>{children}</ClerkProvider>;
 
     return <ClerkProvider>{children}</ClerkProvider>;
 }
