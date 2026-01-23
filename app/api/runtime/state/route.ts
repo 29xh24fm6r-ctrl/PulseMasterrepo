@@ -1,82 +1,82 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth/requireUser";
 import { LifeState, NotableEvent } from "@/lib/runtime/types";
 import { aggregateLifeState } from "@/lib/life-state/aggregateLifeState";
-import { runtimeAuthIsRequired, getRuntimeAuthMode } from "@/lib/runtime/runtimeAuthPolicy";
+import { runtimeAuthIsRequired } from "@/lib/runtime/runtimeAuthPolicy";
 import { previewRuntimeEnvelope } from "@/lib/runtime/previewRuntime";
-import { runtimeHeaders } from "@/lib/runtime/runtimeHeaders";
+import { runtimeHeaders, PulseAuthHeader } from "@/lib/runtime/runtimeHeaders";
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function GET(req: NextRequest) {
+    let status = 200;
+    let auth: PulseAuthHeader = "required";
+    let body: any;
+
     if (!runtimeAuthIsRequired()) {
-        const body = previewRuntimeEnvelope({
+        body = previewRuntimeEnvelope({
             life: { condition: "nominal", energy: 100, focus: 100, mood: "calm" },
             trends: [],
             notable: []
         });
-        return new Response(JSON.stringify(body), {
-            status: 200,
-            headers: {
-                "Content-Type": "application/json",
-                ...runtimeHeaders({ auth: "bypassed" }),
-                "x-pulse-runtime-auth-mode": getRuntimeAuthMode(),
-                "x-pulse-src": "runtime_preview_envelope"
-            }
-        });
-    }
-
-    try {
-        const { userId } = requireUser(req);
-
-        let lifeState: LifeState;
+        auth = "bypassed";
+    } else {
         try {
-            const raw = await aggregateLifeState(userId);
-            lifeState = {
-                energy: raw.energy,
-                stress: raw.stress,
-                momentum: raw.momentum,
-                orientation: raw.summary || "Phase 10 initialized."
+            const { userId } = requireUser(req);
+
+            let lifeState: LifeState;
+            try {
+                const raw = await aggregateLifeState(userId);
+                lifeState = {
+                    energy: raw.energy,
+                    stress: raw.stress,
+                    momentum: raw.momentum,
+                    orientation: raw.summary || "Phase 10 initialized."
+                };
+            } catch (e) {
+                console.warn("State aggregation failed, safe default", e);
+                lifeState = { energy: 'Medium', stress: 'Medium', momentum: 'Medium', orientation: "System standby." };
+            }
+
+            const todayLabel = new Date().toLocaleDateString('en-US', { weekday: 'short' });
+            const trends = {
+                energy: [{ day: todayLabel.charAt(0), value: mapLevelToValue(lifeState.energy), label: todayLabel }],
+                stress: [{ day: todayLabel.charAt(0), value: mapLevelToValue(lifeState.stress), label: todayLabel }],
+                momentum: [{ day: todayLabel.charAt(0), value: mapLevelToValue(lifeState.momentum), label: todayLabel }],
             };
-        } catch (e) {
-            console.warn("State aggregation failed, safe default", e);
-            lifeState = { energy: 'Medium', stress: 'Medium', momentum: 'Medium', orientation: "System standby." };
+
+            const notables: NotableEvent[] = [];
+
+            body = {
+                lifeState,
+                trends,
+                notables
+            };
+            auth = "required";
+
+        } catch (err: any) {
+            console.error("[Runtime] Error:", err);
+            status = err.status || 500;
+            const msg = err.message || "Internal Error";
+
+            if (status === 401) {
+                auth = "missing";
+            }
+            body = { error: msg };
         }
-
-        const todayLabel = new Date().toLocaleDateString('en-US', { weekday: 'short' });
-        const trends = {
-            energy: [{ day: todayLabel.charAt(0), value: mapLevelToValue(lifeState.energy), label: todayLabel }],
-            stress: [{ day: todayLabel.charAt(0), value: mapLevelToValue(lifeState.stress), label: todayLabel }],
-            momentum: [{ day: todayLabel.charAt(0), value: mapLevelToValue(lifeState.momentum), label: todayLabel }],
-        };
-
-        const notables: NotableEvent[] = [];
-
-        return new Response(JSON.stringify({
-            lifeState,
-            trends,
-            notables
-        }), {
-            status: 200,
-            headers: {
-                "Content-Type": "application/json",
-                ...runtimeHeaders({ auth: "required" })
-            }
-        });
-
-    } catch (err: any) {
-        console.error("[Runtime] Error:", err);
-        const status = err.status || 500;
-        const msg = err.message || "Internal Error";
-        const isAuthErr = status === 401;
-
-        return new Response(JSON.stringify({ error: msg }), {
-            status,
-            headers: {
-                "Content-Type": "application/json",
-                ...runtimeHeaders({ auth: isAuthErr ? "missing" : "required" }),
-                "x-pulse-src": "runtime_error_boundary"
-            }
-        });
     }
+
+    const customHeaders = runtimeHeaders({ auth });
+    const response = NextResponse.json(body, { status });
+    response.headers.delete('cache-control');
+    response.headers.delete('pragma');
+    response.headers.delete('expires');
+    for (const [key, value] of Object.entries(customHeaders)) {
+        response.headers.set(key, value);
+    }
+    return response;
 }
 
 function mapLevelToValue(level: string): number {

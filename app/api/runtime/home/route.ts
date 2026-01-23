@@ -1,10 +1,14 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth/requireUser";
 import { aggregateLifeState } from "@/lib/life-state/aggregateLifeState";
 import { LifeState } from "@/lib/runtime/types";
 import { runtimeAuthIsRequired, getRuntimeAuthMode } from "@/lib/runtime/runtimeAuthPolicy";
 import { previewRuntimeEnvelope } from "@/lib/runtime/previewRuntime";
 import { runtimeHeaders } from "@/lib/runtime/runtimeHeaders";
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function GET(req: NextRequest) {
     if (!runtimeAuthIsRequired()) {
@@ -17,15 +21,19 @@ export async function GET(req: NextRequest) {
             },
             orientationLine: "Pulse Preview Mode Active"
         });
-        return new Response(JSON.stringify(body), {
-            status: 200,
-            headers: {
-                "Content-Type": "application/json",
-                ...runtimeHeaders({ auth: "bypassed" }),
-                "x-pulse-runtime-auth-mode": getRuntimeAuthMode(),
-                "x-pulse-src": "runtime_preview_envelope"
-            }
-        });
+
+        const customHeaders = runtimeHeaders({ auth: "bypassed" });
+        const response = NextResponse.json(body);
+        response.headers.delete('cache-control');
+        response.headers.delete('pragma');
+        response.headers.delete('expires');
+        for (const [key, value] of Object.entries(customHeaders)) {
+            response.headers.set(key, value);
+        }
+        // Restore diagnostic headers for preview if needed, manually
+        response.headers.set("x-pulse-runtime-auth-mode", getRuntimeAuthMode());
+        response.headers.set("x-pulse-src", "runtime_preview_envelope");
+        return response;
     }
 
     try {
@@ -50,20 +58,20 @@ export async function GET(req: NextRequest) {
             };
         }
 
-        const headers = runtimeHeaders({ auth: "required" });
-        return new Response(JSON.stringify({
+        const customHeaders = runtimeHeaders({ auth: "required" });
+        const response = NextResponse.json({
             lifeState,
-            orientationLine: lifeState.orientation // Redundant but requested in spec
-        }), {
-            status: 200,
-            headers: {
-                "Content-Type": "application/json",
-                ...headers,
-            }
+            orientationLine: lifeState.orientation
         });
+        response.headers.delete('cache-control');
+        response.headers.delete('pragma');
+        response.headers.delete('expires');
+        for (const [key, value] of Object.entries(customHeaders)) {
+            response.headers.set(key, value);
+        }
+        return response;
 
     } catch (err: any) {
-        // SAFE ERROR HANDLING (No NextResponse)
         console.error("[Runtime] Error:", err);
         const status = err.status || 500;
         const msg = err.message || "Internal Error";
@@ -71,13 +79,16 @@ export async function GET(req: NextRequest) {
         // Auth check specific
         const isAuthErr = status === 401 || err.code === 'AUTH_MISSING';
 
-        return new Response(JSON.stringify({ error: msg }), {
-            status,
-            headers: {
-                "Content-Type": "application/json",
-                ...runtimeHeaders({ auth: isAuthErr ? "missing" : "required" }),
-                "x-pulse-src": "runtime_error_boundary"
-            }
-        });
+        const customHeaders = runtimeHeaders({ auth: isAuthErr ? "missing" : "required" });
+        const response = NextResponse.json({ error: msg }, { status });
+
+        response.headers.delete('cache-control');
+        response.headers.delete('pragma');
+        response.headers.delete('expires');
+        for (const [key, value] of Object.entries(customHeaders)) {
+            response.headers.set(key, value);
+        }
+        response.headers.set("x-pulse-src", "runtime_error_boundary");
+        return response;
     }
 }

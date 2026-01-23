@@ -1,7 +1,10 @@
 import { auth } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
 import { runtimeHeaders } from "@/lib/runtime/runtimeHeaders";
 
-export const dynamic = "force-dynamic";
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function GET(req: Request) {
     let userId: string | null = null;
@@ -22,10 +25,6 @@ export async function GET(req: Request) {
         console.warn(`[whoami] No cookies received by server (Host: ${host})`);
     }
 
-    // Diagnostics should ideally be 'unknown' or 'present' depending on if we think we found a user
-    // The spec said: "/api/runtime/whoami -> auth: 'unknown'"
-    const headers = runtimeHeaders({ auth: "unknown" });
-
     const cookieNames = (cookie ?? "")
 
     const data = {
@@ -37,11 +36,21 @@ export async function GET(req: Request) {
         cookieNames,
     };
 
-    return new Response(JSON.stringify(data), {
-        status: 200,
-        headers: {
-            "Content-Type": "application/json",
-            ...headers,
-        },
-    });
+    // Get custom headers
+    const customHeaders = runtimeHeaders({ authed: !!userId });
+
+    // Create response
+    const response = NextResponse.json(data);
+
+    // Delete Next.js defaults
+    response.headers.delete('cache-control');
+    response.headers.delete('pragma');
+    response.headers.delete('expires');
+
+    // Set our custom headers
+    for (const [key, value] of Object.entries(customHeaders)) {
+        response.headers.set(key, value);
+    }
+
+    return response;
 }

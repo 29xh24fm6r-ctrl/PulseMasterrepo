@@ -1,91 +1,90 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth/requireUser";
 import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { PlanItem } from "@/lib/runtime/types";
-import { runtimeAuthIsRequired, getRuntimeAuthMode } from "@/lib/runtime/runtimeAuthPolicy";
+import { runtimeAuthIsRequired } from "@/lib/runtime/runtimeAuthPolicy";
 import { previewRuntimeEnvelope } from "@/lib/runtime/previewRuntime";
-import { runtimeHeaders } from "@/lib/runtime/runtimeHeaders";
+import { runtimeHeaders, PulseAuthHeader } from "@/lib/runtime/runtimeHeaders";
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function GET(req: NextRequest) {
+    let status = 200;
+    let auth: PulseAuthHeader = "required";
+    let body: any;
+
     if (!runtimeAuthIsRequired()) {
-        const body = previewRuntimeEnvelope({
+        body = previewRuntimeEnvelope({
             today: [],
             pending: [],
             recent: []
         });
-        return new Response(JSON.stringify(body), {
-            status: 200,
-            headers: {
-                "Content-Type": "application/json",
-                ...runtimeHeaders({ auth: "bypassed" }),
-                "x-pulse-runtime-auth-mode": getRuntimeAuthMode(),
-                "x-pulse-src": "runtime_preview_envelope"
-            }
-        });
-    }
+        auth = "bypassed";
+    } else {
+        try {
+            const { userId } = requireUser(req);
+            const db = getSupabaseAdminRuntimeClient();
 
-    try {
-        const { userId } = requireUser(req);
-        const db = getSupabaseAdminRuntimeClient();
+            const { data: effects, error } = await db
+                .from('pulse_effects')
+                .select('*')
+                .eq('user_id', userId)
+                .order('created_at', { ascending: false })
+                .limit(20);
 
-        const { data: effects, error } = await db
-            .from('pulse_effects')
-            .select('*')
-            .eq('user_id', userId)
-            .order('created_at', { ascending: false })
-            .limit(20);
+            if (error) throw error;
 
-        if (error) throw error;
+            const today: PlanItem[] = [];
+            const pending: PlanItem[] = [];
+            const recent: PlanItem[] = [];
 
-        const today: PlanItem[] = [];
-        const pending: PlanItem[] = [];
-        const recent: PlanItem[] = [];
+            (effects || []).forEach((e: any) => {
+                const item: PlanItem = {
+                    id: e.id,
+                    title: formatTitle(e.domain, e.action),
+                    status: mapStatus(e.status),
+                    type: inferType(e.domain),
+                    context: e.explanation
+                };
 
-        (effects || []).forEach((e: any) => {
-            const item: PlanItem = {
-                id: e.id,
-                title: formatTitle(e.domain, e.action),
-                status: mapStatus(e.status),
-                type: inferType(e.domain),
-                context: e.explanation
+                if (item.status === 'pending') {
+                    pending.push(item);
+                } else if (item.status === 'approved' || item.status === 'completed') {
+                    today.push(item);
+                } else {
+                    recent.push(item);
+                }
+            });
+
+            body = {
+                today,
+                pending,
+                recent
             };
+            auth = "required";
 
-            if (item.status === 'pending') {
-                pending.push(item);
-            } else if (item.status === 'approved' || item.status === 'completed') {
-                today.push(item);
-            } else {
-                recent.push(item);
+        } catch (err: any) {
+            console.error("[Runtime] Error:", err);
+            status = err.status || 500;
+            const msg = err.message || "Internal Error";
+            if (status === 401) {
+                auth = "missing";
             }
-        });
-
-        return new Response(JSON.stringify({
-            today,
-            pending,
-            recent
-        }), {
-            status: 200,
-            headers: {
-                "Content-Type": "application/json",
-                ...runtimeHeaders({ auth: "required" })
-            }
-        });
-
-    } catch (err: any) {
-        console.error("[Runtime] Error:", err);
-        const status = err.status || 500;
-        const msg = err.message || "Internal Error";
-        const isAuthErr = status === 401;
-
-        return new Response(JSON.stringify({ error: msg }), {
-            status,
-            headers: {
-                "Content-Type": "application/json",
-                ...runtimeHeaders({ auth: isAuthErr ? "missing" : "required" }),
-                "x-pulse-src": "runtime_error_boundary"
-            }
-        });
+            body = { error: msg };
+        }
     }
+
+    const customHeaders = runtimeHeaders({ auth });
+    const response = NextResponse.json(body, { status });
+    response.headers.delete('cache-control');
+    response.headers.delete('pragma');
+    response.headers.delete('expires');
+    for (const [key, value] of Object.entries(customHeaders)) {
+        response.headers.set(key, value);
+    }
+    return response;
 }
 
 function mapStatus(dbStatus: string): PlanItem['status'] {

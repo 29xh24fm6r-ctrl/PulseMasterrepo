@@ -4,13 +4,20 @@ export type PulseAuthHeader =
     | "required"
     | "missing"
     | "unknown"
-    | "bypassed";
+    | "bypassed"
+    | "true"
+    | "false";
 
-export function runtimeHeaders(opts?: { auth?: PulseAuthHeader }) {
+export function runtimeHeaders(opts?: { auth?: PulseAuthHeader; authed?: boolean }) {
     const env =
         process.env.VERCEL_ENV ??
         process.env.NODE_ENV ??
         "local";
+
+    let authValue = opts?.auth ?? "unknown";
+    if (opts?.authed !== undefined) {
+        authValue = opts.authed ? "true" : "false";
+    }
 
     return {
         "Cache-Control":
@@ -18,6 +25,6 @@ export function runtimeHeaders(opts?: { auth?: PulseAuthHeader }) {
         Pragma: "no-cache",
         "Surrogate-Control": "no-store",
         "x-pulse-env": env,
-        "x-pulse-auth": opts?.auth ?? "unknown",
+        "x-pulse-auth": authValue,
     };
 }
