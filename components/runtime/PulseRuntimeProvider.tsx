@@ -30,26 +30,6 @@ const PulseRuntimeContext = createContext<PulseRuntimeContextType | undefined>(u
 import { usePresencePublisher } from "@/lib/presence/usePresencePublisher";
 import { usePresenceErrorCapture } from "@/lib/presence/usePresenceErrorCapture";
 
-// Helper for safe fetching
-// Helper for safe fetching
-async function safeFetchJSON(url: string) {
-    try {
-        // ✅ FIX Phase 28-F: Auth Loop
-        // We MUST send credentials (cookies) to the backend.
-        // Default fetch does not send cookies for same-origin unless specified or standard.
-        // Next.js/Browser defaults vary, explicit is safer.
-        const res = await fetch(url, {
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include' // <--- CRITICAL FIX
-        });
-        if (!res.ok) return { ok: false as const, status: res.status };
-        const data = await res.json();
-        return { ok: true as const, data };
-    } catch (e) {
-        return { ok: false as const, error: String(e) };
-    }
-}
-
 import { usePathname } from "next/navigation";
 
 // Helper to detect if we are on an auth route where the runtime loop must be inert.
@@ -118,7 +98,8 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
         setIsLoading(true);
         try {
             // Preview detection only (NO AUTH CHECK)
-            const stateParams = await safeFetchJSON('/api/runtime/home');
+            // ✅ Antigravity: Use unified runtime client with credentials: 'include'
+            const stateParams = await client.runtimeFetchJSON('home');
 
             if (stateParams.ok && (stateParams.data as any).mode === 'preview') {
                 setRuntimeMode('preview');

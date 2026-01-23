@@ -18,7 +18,7 @@ export default function WelcomePage() {
     const runSync = async () => {
         setSyncState('syncing');
         try {
-            const res = await fetch('/api/user/sync', { method: 'POST' });
+            const res = await fetch('/api/user/sync', { method: 'POST', credentials: 'include' });
             const data = await res.json();
 
             if (data.ok) {
