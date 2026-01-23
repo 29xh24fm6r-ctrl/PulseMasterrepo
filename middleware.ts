@@ -97,6 +97,6 @@ export default clerkMiddleware(async (auth, req) => {
 
 export const config = {
   matcher: [
-    "/((?!manifest\\.json|bridge|api/bridge|_next/static|_next/image).*)",
+    "/((?!manifest\\.json|favicon.ico|bridge|api/bridge|_next/static|_next/image).*)",
   ],
 };
