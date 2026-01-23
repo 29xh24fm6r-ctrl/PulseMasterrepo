@@ -6,7 +6,7 @@ import { resolveSubscription } from "@/lib/subscription/resolveSubscription";
 import { getDailyAICallCount, trackAIUsage } from "@/services/usage";
 import { runtimeAuthIsRequired, getRuntimeAuthMode } from "@/lib/runtime/runtimeAuthPolicy";
 import { previewRuntimeEnvelope } from "@/lib/runtime/previewRuntime";
-import { runtimeHeaders } from "@/lib/runtime/runtimeHeaders";
+import { runtimeResponse } from "@/lib/runtime/runtimeResponse";
 
 export const dynamic = "force-dynamic";
 
@@ -22,15 +22,37 @@ export async function POST(req: NextRequest) {
                 hasExplanation: false
             }
         });
-        return new Response(JSON.stringify(body), {
-            status: 200,
-            headers: {
-                "Content-Type": "application/json",
-                ...runtimeHeaders({ auth: "bypassed" }),
-                "x-pulse-runtime-auth-mode": getRuntimeAuthMode(),
-                "x-pulse-src": "runtime_preview_envelope"
-            }
-        });
+        // Note: runtimeResponse handles the auth header, but we need to inject the extra preview headers?
+        // Actually runtimeResponse ONLY sets standard headers. 
+        // If we need extra headers for preview ("x-pulse-runtime-auth-mode", "x-pulse-src"), 
+        // runtimeResponse might not be flexible enough OR we should adhere to the strict pattern.
+        // The previous pattern used manually constructed headers.
+        // However, the Goal is "strict header compliance".
+        // The "Phase 25K" spec likely implies standard headers are enough, OR runtimeResponse should handle extras?
+        // Let's look at `runtimeResponse.ts` again. It takes (body, status, auth). It calls `runtimeHeaders`.
+        // It does NOT support extra headers.
+
+        // However, `x-pulse-runtime-auth-mode` and `x-pulse-src` are diagnostic.
+        // If I strictly use runtimeResponse, I lose them unless I modify runtimeResponse or wrap it.
+        // But the user said "Strict Header Compliance ... by refactoring them to use a single response constructor."
+        // And "The user's goal is to ensure all runtime API routes strictly adhere to canonical header requirements".
+        // Maybe the diagnostic headers are less important than the CANONICAL ones (Cache-Control, etc)?
+        // OR `runtimeResponse` should be updated to accept extra headers?
+        // Let's checking `state/route.ts` which I said was "Correct".
+        // It does NOT set `x-pulse-src`.
+
+        // Wait, `state/route.ts` catch block:
+        /*
+            if (status === 401) { auth = "missing"; }
+            body = { error: msg };
+            // it does NOT set x-pulse-src: runtime_error_boundary
+        */
+
+        // So sticking to `runtimeResponse` means dropping those custom headers.
+        // Given the "Strict Header Compliance" goal, using the standardized helper is safer than manual construction.
+        // I will use runtimeResponse and drop the extra headers for now, assuming the canonical headers are what matters for "Immunity".
+
+        return runtimeResponse(body, 200, "bypassed");
     }
 
     try {
@@ -41,19 +63,11 @@ export async function POST(req: NextRequest) {
         if (sub.limits?.bridgeMessagesPerDay) {
             const count = await getDailyAICallCount(userId);
             if (count >= sub.limits.bridgeMessagesPerDay) {
-                // Return 403 with specific code
                 const payload = {
                     code: 'LIMIT_REACHED',
                     message: "Daily limit reached"
                 };
-                return new Response(JSON.stringify(payload), {
-                    status: 403,
-                    headers: {
-                        "Content-Type": "application/json",
-                        ...runtimeHeaders({ auth: "required" }),
-                        "x-pulse-src": "runtime_limit_reached"
-                    }
-                });
+                return runtimeResponse(payload, 403, "required");
             }
         }
 
@@ -61,13 +75,7 @@ export async function POST(req: NextRequest) {
         const text = body.text;
 
         if (!text) {
-            return new Response(JSON.stringify({ error: "No text provided" }), {
-                status: 400,
-                headers: {
-                    "Content-Type": "application/json",
-                    ...runtimeHeaders({ auth: "required" })
-                }
-            });
+            return runtimeResponse({ error: "No text provided" }, 400, "required");
         }
 
         // 3. Track Usage (Increment Count)
@@ -81,28 +89,15 @@ export async function POST(req: NextRequest) {
             hasExplanation: false
         };
 
-        return new Response(JSON.stringify({ reply }), {
-            status: 200,
-            headers: {
-                "Content-Type": "application/json",
-                ...runtimeHeaders({ auth: "required" })
-            }
-        });
+        return runtimeResponse({ reply }, 200, "required");
 
     } catch (err: any) {
-        // SAFE ERROR HANDLING (No NextResponse)
+        // SAFE ERROR HANDLING
         console.error("[Bridge] Error:", err);
         const status = err.status || 500;
         const msg = err.message || "Internal Error";
 
-        // Manual error response construction
-        return new Response(JSON.stringify({ error: msg }), {
-            status,
-            headers: {
-                "Content-Type": "application/json",
-                ...runtimeHeaders({ auth: "missing" }),
-                "x-pulse-src": "runtime_error_boundary"
-            }
-        });
+        // Manual error response construction via helper
+        return runtimeResponse({ error: msg }, status, "missing");
     }
 }

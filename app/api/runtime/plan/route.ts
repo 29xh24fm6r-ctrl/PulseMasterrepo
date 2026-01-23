@@ -77,14 +77,10 @@ export async function GET(req: NextRequest) {
     }
 
     const customHeaders = runtimeHeaders({ auth });
-    const response = NextResponse.json(body, { status });
-    response.headers.delete('cache-control');
-    response.headers.delete('pragma');
-    response.headers.delete('expires');
-    for (const [key, value] of Object.entries(customHeaders)) {
-        response.headers.set(key, value);
-    }
-    return response;
+    return NextResponse.json(body, {
+        status,
+        headers: customHeaders as any
+    });
 }
 
 function mapStatus(dbStatus: string): PlanItem['status'] {

@@ -23,17 +23,12 @@ export async function GET(req: NextRequest) {
         });
 
         const customHeaders = runtimeHeaders({ auth: "bypassed" });
-        const response = NextResponse.json(body);
-        response.headers.delete('cache-control');
-        response.headers.delete('pragma');
-        response.headers.delete('expires');
-        for (const [key, value] of Object.entries(customHeaders)) {
-            response.headers.set(key, value);
-        }
-        // Restore diagnostic headers for preview if needed, manually
-        response.headers.set("x-pulse-runtime-auth-mode", getRuntimeAuthMode());
-        response.headers.set("x-pulse-src", "runtime_preview_envelope");
-        return response;
+        // Restore diagnostic headers for preview if needed
+        const headers: any = { ...customHeaders };
+        headers["x-pulse-runtime-auth-mode"] = getRuntimeAuthMode();
+        headers["x-pulse-src"] = "runtime_preview_envelope";
+
+        return NextResponse.json(body, { headers });
     }
 
     try {
@@ -59,17 +54,12 @@ export async function GET(req: NextRequest) {
         }
 
         const customHeaders = runtimeHeaders({ auth: "required" });
-        const response = NextResponse.json({
+        return NextResponse.json({
             lifeState,
             orientationLine: lifeState.orientation
+        }, {
+            headers: customHeaders as any
         });
-        response.headers.delete('cache-control');
-        response.headers.delete('pragma');
-        response.headers.delete('expires');
-        for (const [key, value] of Object.entries(customHeaders)) {
-            response.headers.set(key, value);
-        }
-        return response;
 
     } catch (err: any) {
         console.error("[Runtime] Error:", err);
@@ -80,15 +70,10 @@ export async function GET(req: NextRequest) {
         const isAuthErr = status === 401 || err.code === 'AUTH_MISSING';
 
         const customHeaders = runtimeHeaders({ auth: isAuthErr ? "missing" : "required" });
-        const response = NextResponse.json({ error: msg }, { status });
 
-        response.headers.delete('cache-control');
-        response.headers.delete('pragma');
-        response.headers.delete('expires');
-        for (const [key, value] of Object.entries(customHeaders)) {
-            response.headers.set(key, value);
-        }
-        response.headers.set("x-pulse-src", "runtime_error_boundary");
-        return response;
+        const headers: any = { ...customHeaders };
+        headers["x-pulse-src"] = "runtime_error_boundary";
+
+        return NextResponse.json({ error: msg }, { status, headers });
     }
 }

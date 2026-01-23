@@ -39,18 +39,8 @@ export async function GET(req: Request) {
     // Get custom headers
     const customHeaders = runtimeHeaders({ authed: !!userId });
 
-    // Create response
-    const response = NextResponse.json(data);
-
-    // Delete Next.js defaults
-    response.headers.delete('cache-control');
-    response.headers.delete('pragma');
-    response.headers.delete('expires');
-
-    // Set our custom headers
-    for (const [key, value] of Object.entries(customHeaders)) {
-        response.headers.set(key, value);
-    }
-
-    return response;
+    // Create response with headers directly to prevent Next.js overrides
+    return NextResponse.json(data, {
+        headers: customHeaders as any
+    });
 }
