@@ -88,6 +88,18 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
 
     const handleError = useCallback((err: any) => {
         console.error("Runtime Provider Error:", err);
+
+        // ✅ Antigravity Phase 2: 401 Failsafe
+        // If we get an explicit 401/AUTH_MISSING, stop retrying immediately.
+        // This prevents the "Connecting..." purgatory.
+        if (err?.status === 401 || err?.code === 'AUTH_MISSING') {
+            console.warn("[PulseRuntime] 401 detected. Pausing runtime to prevent loops.");
+            setRuntimeMode('paused');
+            // Optional: You could redirect to /sign-in here, but 'paused' is safer 
+            // to avoid routing loops if the page itself is public.
+            return;
+        }
+
         // Fallback to paused safely instead of crash
         setRuntimeMode('paused');
     }, []);

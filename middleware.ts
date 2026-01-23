@@ -31,10 +31,11 @@ export default clerkMiddleware(async (auth, req) => {
     const host = req.headers.get("host") ?? "";
 
     // 0️⃣ Canonicalize to www (if production apex)
+    // ✅ Antigravity Phase 2: Permanent Fix
     if (host === "pulselifeos.com") {
-      const redirectUrl = new URL(req.url);
-      redirectUrl.host = "www.pulselifeos.com";
-      return NextResponse.redirect(redirectUrl, 308);
+      const url = req.nextUrl.clone();
+      url.host = "www.pulselifeos.com";
+      return NextResponse.redirect(url, 308);
     }
 
     // 🚨 ABSOLUTE BYPASS — MUST NEVER ENFORCE AUTH
