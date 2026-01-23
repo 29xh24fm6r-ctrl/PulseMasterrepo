@@ -97,7 +97,7 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    const [runtimeMode, setRuntimeMode] = useState<'live' | 'preview' | 'paused' | 'auth_missing'>('live');
+    const [runtimeMode, setRuntimeMode] = useState<'live' | 'preview' | 'paused'>('live');
 
     // FIX Phase 28-B: Debug Telemetry
     useEffect(() => {
@@ -113,42 +113,25 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
     }, []);
 
     const refresh = useCallback(async () => {
-        // ✅ EXIT EARLY if on auth route (never fetch)
         if (isAuth) return;
 
         setIsLoading(true);
         try {
-            // 1. Check Truth Endpoint (WhoAmI)
-            const whoami = await safeFetchJSON('/api/runtime/whoami');
-
-            // STRICT CHECK: Only enforce "Auth Missing" if whoami explicitly says we are NOT authed.
-            // If the fetch fails (ok: false), we might be offline or have a network error, so purely logging a warning is safer strictly speaking than locking them out,
-            // but for security "fail closed" is standard. However, the recurring bug is logging "Auth Missing" when ok:true.
-            const isAuthed = whoami.ok && (whoami.data as any).authed === true;
-
-            if (!isAuthed) {
-                console.warn("[PulseRuntime] Auth Missing (WhoAmI) - Enforcing Sign In", {
-                    ok: whoami.ok,
-                    status: (whoami as any).status,
-                    authed: (whoami.data as any)?.authed
-                });
-                setRuntimeMode('auth_missing');
-                setIsLoading(false);
-                return;
-            }
-
-            // 2. Fetch Home (now redundant for auth check, but good for preview mode)
+            // Preview detection only (NO AUTH CHECK)
             const stateParams = await safeFetchJSON('/api/runtime/home');
 
             if (stateParams.ok && (stateParams.data as any).mode === 'preview') {
                 setRuntimeMode('preview');
-                setLifeState((stateParams.data as any).lifeState || { energy: 'Medium', stress: 'Low', momentum: 'High', orientation: 'Preview Mode' });
-                setIsLoading(false);
+                setLifeState((stateParams.data as any).lifeState || {
+                    energy: 'Medium',
+                    stress: 'Low',
+                    momentum: 'High',
+                    orientation: 'Preview Mode'
+                });
                 return;
             }
 
-            // 3. Parallel fetch of all runtime data
-            // We TRUST whoami, so even if these 401, we know we are authed, so it's a glitch not a logout.
+            // Parallel runtime data fetch
             const [ls, tr, nt, pl, obs] = await Promise.all([
                 client.getLifeState(),
                 client.getTrends(),
@@ -213,10 +196,7 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
             const reply = await client.sendBridgeMessage(text);
             setMessages(prev => [...prev, reply]);
         } catch (err: any) {
-            if (err?.status === 401 || err?.code === 'AUTH_MISSING') {
-                setRuntimeMode('auth_missing');
-                return;
-            }
+
             setMessages(prev => [...prev, {
                 id: uuidv4(),
                 role: 'system',
@@ -265,37 +245,7 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
                     PREVIEW SAFE MODE — Read Only
                 </div>
             )}
-            {!isAuth && runtimeMode === 'auth_missing' && (
-                <div className="fixed inset-0 z-[10000] bg-black/60 backdrop-blur-md flex items-center justify-center">
-                    <div className="bg-neutral-900 border border-neutral-800 p-8 rounded-2xl shadow-2xl max-w-md text-center">
-                        <h2 className="text-xl font-bold text-white mb-2">Sign in to Pulse</h2>
-                        <p className="text-neutral-400 mb-6">Your session has expired or you are not signed in.</p>
-                        <a href="/sign-in" className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-black bg-white hover:bg-neutral-200 transition-colors">
-                            Sign In
-                        </a>
 
-                        <div className="mt-6 pt-6 border-t border-neutral-800">
-                            <button
-                                onClick={async () => {
-                                    // 1. Service Worker update check
-                                    if ('serviceWorker' in navigator) {
-                                        const regs = await navigator.serviceWorker.getRegistrations();
-                                        for (const reg of regs) {
-                                            await reg.update();
-                                        }
-                                    }
-                                    // 2. Clear Runtime Keys (if any - mostly relying on SW bypass now)
-                                    // 3. Hard Reload
-                                    window.location.reload();
-                                }}
-                                className="text-xs text-neutral-500 hover:text-neutral-300 underline transition-colors"
-                            >
-                                Reset Runtime Cache
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </PulseRuntimeContext.Provider>
     );
 }
