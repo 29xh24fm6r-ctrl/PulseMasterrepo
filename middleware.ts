@@ -42,6 +42,7 @@ export default clerkMiddleware((auth, req) => {
     }
 
     // 🔒 ABSOLUTE FIRST: CI HARD STOP FOR /bridge (MUST BE BEFORE CLERK PASS-THROUGH)
+    // FIX: Phase 28 - Reordered to top to unblock CI Pipeline
     if (pathname === "/bridge" && IS_CI) {
       const res = new NextResponse("CI bridge bypass", {
         status: 200,
@@ -64,6 +65,7 @@ export default clerkMiddleware((auth, req) => {
     }
 
     // 3️⃣ Default safe pass-through
+    // Clerk Middleware automatically handles the session injection here.
     const res = NextResponse.next();
     res.headers.set("X-Pulse-MW", "allow_auth");
     tag(res, "HIT");
@@ -86,12 +88,11 @@ export default clerkMiddleware((auth, req) => {
 });
 
 export const config = {
-  export const config = {
-    matcher: [
-      // Apply middleware to everything EXCEPT:
-      // - /manifest.json
-      // - /bridge (CI Bypass)
-      // - standard static assets
-      "/((?!manifest\\.json|bridge|api/bridge|_next/static|_next/image).*)",
-    ],
-  };
+  matcher: [
+    // Apply middleware to everything EXCEPT:
+    // - /manifest.json
+    // - /bridge (CI Bypass)
+    // - standard static assets
+    "/((?!manifest\\.json|bridge|api/bridge|_next/static|_next/image).*)",
+  ],
+};
