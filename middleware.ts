@@ -19,7 +19,7 @@ const isPublicRoute = createRouteMatcher([
   "/api/clerk(.*)",
   "/_clerk(.*)",
   "/manifest.json",
-  "/api/runtime(.*)",
+  // "/api/runtime(.*)", // REMOVED: Must be protected to load Auth
   "/_next(.*)",
   "/bridge(.*)" // Safe: CI Check Logic manually guards this below
 ]);
