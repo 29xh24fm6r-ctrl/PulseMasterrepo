@@ -24,6 +24,10 @@ const isPublicRoute = createRouteMatcher([
   "/bridge(.*)" // Safe: CI Check Logic manually guards this below
 ]);
 
+const isProtectedApiRoute = createRouteMatcher([
+  "/api/runtime(.*)"
+]);
+
 export default clerkMiddleware((auth, req) => {
   try {
     const { pathname } = req.nextUrl;
@@ -59,7 +63,15 @@ export default clerkMiddleware((auth, req) => {
       return NextResponse.next();
     }
 
-    // 1️⃣ Hard allow public assets
+    // 2️⃣ EXPLICITLY PROTECT /api/runtime/* - THIS IS THE FIX
+    if (isProtectedApiRoute(req)) {
+      auth().protect();  // ← THIS LINE IS THE ENTIRE FIX
+      const res = NextResponse.next();
+      res.headers.set("X-Pulse-MW", "protected_api");
+      return tag(res, "HIT_PROTECTED_API");
+    }
+
+    // 3️⃣ Hard allow public assets
     if (isPublicAssetPath(pathname)) {
       return tag(NextResponse.next(), "HIT_PUBLIC_ASSET");
     }
