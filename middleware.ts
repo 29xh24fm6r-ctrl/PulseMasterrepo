@@ -65,7 +65,6 @@ export default clerkMiddleware((auth, req) => {
     if (isProtectedApiRoute(req)) {
       auth().protect();
       const res = NextResponse.next();
-      res.headers.set("X-Pulse-MW", "protected_api");
       return tag(res, "HIT_PROTECTED_API");
     }
 
