@@ -110,9 +110,10 @@ export async function GET(req: NextRequest) {
             }))
         };
 
-        return new Response(JSON.stringify(data), {
+        const headers = runtimeHeaders({ authed: true });
+        return NextResponse.json(data, {
             status: 200,
-            headers: runtimeHeaders({ authed: true })
+            headers: new Headers(headers),
         });
 
     } catch (err) {

@@ -75,13 +75,14 @@ export async function GET(req: NextRequest) {
         // I'll check for 'pulse_effects' or 'autonomy_audit' for recent actions.
         const notables: NotableEvent[] = []; // Start empty to be truthful.
 
-        return new Response(JSON.stringify({
+        const headers = runtimeHeaders({ authed: true });
+        return NextResponse.json({
             lifeState,
             trends,
             notables
-        }), {
+        }, {
             status: 200,
-            headers: runtimeHeaders({ authed: true })
+            headers: new Headers(headers),
         });
 
     } catch (err) {

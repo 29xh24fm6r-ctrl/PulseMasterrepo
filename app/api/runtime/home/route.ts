@@ -56,12 +56,13 @@ export async function GET(req: NextRequest) {
             };
         }
 
-        return new Response(JSON.stringify({
+        const headers = runtimeHeaders({ authed: true });
+        return NextResponse.json({
             lifeState,
             orientationLine: lifeState.orientation // Redundant but requested in spec
-        }), {
+        }, {
             status: 200,
-            headers: runtimeHeaders({ authed: true })
+            headers: new Headers(headers),
         });
 
     } catch (err) {
