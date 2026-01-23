@@ -23,11 +23,9 @@ const isPublicRoute = createRouteMatcher([
   "/bridge(.*)" // Safe: CI Check Logic manually guards this below
 ]);
 
-const isProtectedApiRoute = createRouteMatcher([
-  "/api/runtime(.*)"
-]);
 
-export default clerkMiddleware((auth, req) => {
+
+export default clerkMiddleware(async (auth, req) => {
   try {
     const { pathname } = req.nextUrl;
     const host = req.headers.get("host") ?? "";
@@ -61,11 +59,13 @@ export default clerkMiddleware((auth, req) => {
       return NextResponse.next();
     }
 
-    // 2️⃣ EXPLICITLY PROTECT /api/runtime/* - THIS IS THE FIX
-    if (isProtectedApiRoute(req)) {
-      auth().protect();
+    // 2️⃣ For /api/runtime/*, just pass through - Clerk injects auth automatically
+    // DON'T call auth().protect() - that enforces auth and throws if not signed in
+    // We want auth context injected, but not enforced (whoami should work unauthenticated)
+    if (pathname.startsWith("/api/runtime/")) {
       const res = NextResponse.next();
-      return tag(res, "HIT_PROTECTED_API");
+      res.headers.set("X-Pulse-MW", "runtime_api");
+      return tag(res, "HIT_RUNTIME_API");
     }
 
     // 3️⃣ Hard allow public assets
