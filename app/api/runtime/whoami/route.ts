@@ -34,9 +34,12 @@ export async function GET(req: Request) {
         cookieNames,
     };
 
-    const headers = runtimeHeaders({ authed: !!userId });
-    return NextResponse.json(data, {
+    const headers = runtimeHeaders({ auth: !!userId ? "present" : "unknown" });
+    return new Response(JSON.stringify(data), {
         status: 200,
-        headers: new Headers(headers),
+        headers: {
+            "Content-Type": "application/json",
+            ...headers,
+        },
     });
 }

@@ -1,17 +1,28 @@
-export function runtimeHeaders(opts?: {
-    authed?: boolean;
-}) {
-    return {
-        // Cache immunity (strict)
-        "cache-control":
-            "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0",
-        pragma: "no-cache",
-        expires: "0",
-        "surrogate-control": "no-store",
-        vary: "Authorization, Cookie",
+// lib/runtime/runtimeHeaders.ts
+export type PulseAuthHeader =
+    | "required"
+    | "present"
+    | "missing"
+    | "bypassed"
+    | "unknown";
 
-        // Pulse diagnostics
-        "x-pulse-env": process.env.VERCEL_ENV ?? "unknown",
-        "x-pulse-auth": opts?.authed ? "true" : "false",
-    };
+export function runtimeHeaders(opts?: { auth?: PulseAuthHeader }) {
+    const env =
+        process.env.VERCEL_ENV ??
+        process.env.NODE_ENV ??
+        "local";
+
+    const auth: PulseAuthHeader = opts?.auth ?? "unknown";
+
+    // IMPORTANT: These strings must match CI expectations exactly.
+    return {
+        "Cache-Control":
+            "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0",
+        Pragma: "no-cache",
+        "Surrogate-Control": "no-store",
+
+        // Diagnostics required by the Phase 25K guardrails
+        "x-pulse-env": String(env),
+        "x-pulse-auth": auth,
+    } as const;
 }

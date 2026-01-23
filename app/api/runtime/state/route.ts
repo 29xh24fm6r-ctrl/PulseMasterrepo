@@ -75,19 +75,22 @@ export async function GET(req: NextRequest) {
         // I'll check for 'pulse_effects' or 'autonomy_audit' for recent actions.
         const notables: NotableEvent[] = []; // Start empty to be truthful.
 
-        const headers = runtimeHeaders({ authed: true });
-        return NextResponse.json({
+        const headers = runtimeHeaders({ auth: "required" });
+        return new Response(JSON.stringify({
             lifeState,
             trends,
             notables
-        }, {
+        }), {
             status: 200,
-            headers: new Headers(headers),
+            headers: {
+                "Content-Type": "application/json",
+                ...headers,
+            }
         });
 
     } catch (err) {
         const res = handleRuntimeError(err);
-        const headers = runtimeHeaders({ authed: res.status !== 401 });
+        const headers = runtimeHeaders({ auth: "missing" });
         Object.entries(headers).forEach(([k, v]) => res.headers.set(k, v));
 
         if (res.status === 401) {
