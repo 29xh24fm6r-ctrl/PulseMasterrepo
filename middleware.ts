@@ -19,16 +19,13 @@ const isPublicRoute = createRouteMatcher([
   "/api/clerk(.*)",
   "/_clerk(.*)",
   "/manifest.json",
-  // "/api/runtime(.*)", // REMOVED: Must be protected to load Auth
   "/_next(.*)",
   "/bridge(.*)" // Safe: CI Check Logic manually guards this below
 ]);
 
-const isProtectedApiRoute = createRouteMatcher([
-  "/api/runtime(.*)"
-]);
 
-export default clerkMiddleware((auth, req) => {
+
+export default clerkMiddleware(async (auth, req) => {
   try {
     const { pathname } = req.nextUrl;
     const host = req.headers.get("host") ?? "";
@@ -46,7 +43,6 @@ export default clerkMiddleware((auth, req) => {
     }
 
     // 🔒 ABSOLUTE FIRST: CI HARD STOP FOR /bridge (MUST BE BEFORE CLERK PASS-THROUGH)
-    // FIX: Phase 28 - Reordered to top to unblock CI Pipeline
     if (pathname === "/bridge" && IS_CI) {
       const res = new NextResponse("CI bridge bypass", {
         status: 200,
@@ -63,12 +59,13 @@ export default clerkMiddleware((auth, req) => {
       return NextResponse.next();
     }
 
-    // 2️⃣ EXPLICITLY PROTECT /api/runtime/* - THIS IS THE FIX
-    if (isProtectedApiRoute(req)) {
-      auth().protect();  // ← THIS LINE IS THE ENTIRE FIX
+    // 2️⃣ For /api/runtime/*, just pass through - Clerk injects auth automatically
+    // DON'T call auth().protect() - that enforces auth and throws if not signed in
+    // We want auth context injected, but not enforced (whoami should work unauthenticated)
+    if (pathname.startsWith("/api/runtime/")) {
       const res = NextResponse.next();
-      res.headers.set("X-Pulse-MW", "protected_api");
-      return tag(res, "HIT_PROTECTED_API");
+      res.headers.set("X-Pulse-MW", "runtime_api");
+      return tag(res, "HIT_RUNTIME_API");
     }
 
     // 3️⃣ Hard allow public assets
@@ -76,8 +73,7 @@ export default clerkMiddleware((auth, req) => {
       return tag(NextResponse.next(), "HIT_PUBLIC_ASSET");
     }
 
-    // 3️⃣ Default safe pass-through
-    // Clerk Middleware automatically handles the session injection here.
+    // 4️⃣ Default safe pass-through
     const res = NextResponse.next();
     res.headers.set("X-Pulse-MW", "allow_auth");
     tag(res, "HIT");
@@ -101,10 +97,6 @@ export default clerkMiddleware((auth, req) => {
 
 export const config = {
   matcher: [
-    // Apply middleware to everything EXCEPT:
-    // - /manifest.json
-    // - /bridge (CI Bypass)
-    // - standard static assets
-    "/((?!manifest\\.json|bridge|api/bridge|_next/static|_next/image).*)",
+    "/((?!manifest\\.json|favicon.ico|bridge|api/bridge|_next/static|_next/image).*)",
   ],
 };

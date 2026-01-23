@@ -65,13 +65,14 @@ export async function GET(req: NextRequest) {
             }
         });
 
-        return new Response(JSON.stringify({
+        const headers = runtimeHeaders({ authed: true });
+        return NextResponse.json({
             today,
             pending,
             recent
-        }), {
+        }, {
             status: 200,
-            headers: runtimeHeaders({ authed: true })
+            headers: new Headers(headers),
         });
 
     } catch (err) {

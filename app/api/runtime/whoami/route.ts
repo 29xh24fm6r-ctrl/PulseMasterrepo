@@ -1,4 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
 import { runtimeHeaders } from "@/lib/runtime/runtimeHeaders";
 
 export const dynamic = "force-dynamic";
@@ -33,8 +34,9 @@ export async function GET(req: Request) {
         cookieNames,
     };
 
-    return new Response(JSON.stringify(data, null, 2), {
+    const headers = runtimeHeaders({ authed: !!userId });
+    return NextResponse.json(data, {
         status: 200,
-        headers: runtimeHeaders({ authed: !!userId }),
+        headers: new Headers(headers),
     });
 }
