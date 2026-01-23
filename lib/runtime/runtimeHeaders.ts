@@ -1,10 +1,10 @@
 // lib/runtime/runtimeHeaders.ts
+
 export type PulseAuthHeader =
     | "required"
-    | "present"
     | "missing"
-    | "bypassed"
-    | "unknown";
+    | "unknown"
+    | "bypassed";
 
 export function runtimeHeaders(opts?: { auth?: PulseAuthHeader }) {
     const env =
@@ -12,17 +12,12 @@ export function runtimeHeaders(opts?: { auth?: PulseAuthHeader }) {
         process.env.NODE_ENV ??
         "local";
 
-    const auth: PulseAuthHeader = opts?.auth ?? "unknown";
-
-    // IMPORTANT: These strings must match CI expectations exactly.
     return {
         "Cache-Control":
             "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0",
         Pragma: "no-cache",
         "Surrogate-Control": "no-store",
-
-        // Diagnostics required by the Phase 25K guardrails
-        "x-pulse-env": String(env),
-        "x-pulse-auth": auth,
-    } as const;
+        "x-pulse-env": env,
+        "x-pulse-auth": opts?.auth ?? "unknown",
+    };
 }

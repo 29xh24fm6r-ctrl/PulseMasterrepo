@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
-import { requireUser, handleRuntimeError } from "@/lib/auth/requireUser";
-import { LifeState, TrendPoint, NotableEvent } from "@/lib/runtime/types";
+import { NextRequest } from "next/server";
+import { requireUser } from "@/lib/auth/requireUser";
+import { LifeState, NotableEvent } from "@/lib/runtime/types";
 import { aggregateLifeState } from "@/lib/life-state/aggregateLifeState";
 import { runtimeAuthIsRequired, getRuntimeAuthMode } from "@/lib/runtime/runtimeAuthPolicy";
 import { previewRuntimeEnvelope } from "@/lib/runtime/previewRuntime";
@@ -8,21 +8,16 @@ import { runtimeHeaders } from "@/lib/runtime/runtimeHeaders";
 
 export async function GET(req: NextRequest) {
     if (!runtimeAuthIsRequired()) {
-        // Return a deterministic safe state for Preview
-        const lifeState: LifeState = {
-            energy: "High",
-            stress: "Low",
-            momentum: "Medium",
-            orientation: "Preview Safe Mode"
-        };
-        return new Response(JSON.stringify(previewRuntimeEnvelope({
+        const body = previewRuntimeEnvelope({
             life: { condition: "nominal", energy: 100, focus: 100, mood: "calm" },
             trends: [],
             notable: []
-        })), {
+        });
+        return new Response(JSON.stringify(body), {
             status: 200,
             headers: {
-                ...runtimeHeaders({ authed: false }),
+                "Content-Type": "application/json",
+                ...runtimeHeaders({ auth: "bypassed" }),
                 "x-pulse-runtime-auth-mode": getRuntimeAuthMode(),
                 "x-pulse-src": "runtime_preview_envelope"
             }
@@ -32,16 +27,6 @@ export async function GET(req: NextRequest) {
     try {
         const { userId } = requireUser(req);
 
-        // 1. Get Real LifeState
-        // StateSurface usually shows current snapshot + trends.
-        // Ideally we fetch daily rollups from a DB table like 'daily_life_state'
-        // but for now we might have to stub the history part if the table isn't populated or known.
-        // Based on search so far, I haven't seen 'daily_life_state' usage in previous tasks.
-        // I'll assume we grab current state for "today" and maybe mock history for now 
-        // unless I find a specific ledger. 
-        // Wait, implementation plan says: "trends: Daily rollups from Supabase/Ledger. notables: Coordination decisions."
-
-        // Let's grab current state first (canonical source)
         let lifeState: LifeState;
         try {
             const raw = await aggregateLifeState(userId);
@@ -56,13 +41,6 @@ export async function GET(req: NextRequest) {
             lifeState = { energy: 'Medium', stress: 'Medium', momentum: 'Medium', orientation: "System standby." };
         }
 
-        // 2. Trends (Placeholder for now, or derived if we had history)
-        // Since we don't have a confirmed history table for this task, 
-        // and requirement is "No silent fake data" UNLESS "no rows exist yet".
-        // I'll return empty or minimal real points if possible, but safe defaults 
-        // (flat lines) might be better than IPP blocking for trends visualization.
-        // Actually, plan says "Daily rollups... Else derive". 
-        // I'll enable a "safe default" of just Today's point to avoid crash.
         const todayLabel = new Date().toLocaleDateString('en-US', { weekday: 'short' });
         const trends = {
             energy: [{ day: todayLabel.charAt(0), value: mapLevelToValue(lifeState.energy), label: todayLabel }],
@@ -70,12 +48,8 @@ export async function GET(req: NextRequest) {
             momentum: [{ day: todayLabel.charAt(0), value: mapLevelToValue(lifeState.momentum), label: todayLabel }],
         };
 
-        // 3. Notables
-        // This should come from 'pulse_notables' or 'notable_events', or derived from coordinate decisions.
-        // I'll check for 'pulse_effects' or 'autonomy_audit' for recent actions.
-        const notables: NotableEvent[] = []; // Start empty to be truthful.
+        const notables: NotableEvent[] = [];
 
-        const headers = runtimeHeaders({ auth: "required" });
         return new Response(JSON.stringify({
             lifeState,
             trends,
@@ -84,19 +58,24 @@ export async function GET(req: NextRequest) {
             status: 200,
             headers: {
                 "Content-Type": "application/json",
-                ...headers,
+                ...runtimeHeaders({ auth: "required" })
             }
         });
 
-    } catch (err) {
-        const res = handleRuntimeError(err);
-        const headers = runtimeHeaders({ auth: "missing" });
-        Object.entries(headers).forEach(([k, v]) => res.headers.set(k, v));
+    } catch (err: any) {
+        console.error("[Runtime] Error:", err);
+        const status = err.status || 500;
+        const msg = err.message || "Internal Error";
+        const isAuthErr = status === 401;
 
-        if (res.status === 401) {
-            res.headers.set("x-pulse-src", "runtime_auth_denied");
-        }
-        return res;
+        return new Response(JSON.stringify({ error: msg }), {
+            status,
+            headers: {
+                "Content-Type": "application/json",
+                ...runtimeHeaders({ auth: isAuthErr ? "missing" : "required" }),
+                "x-pulse-src": "runtime_error_boundary"
+            }
+        });
     }
 }
 

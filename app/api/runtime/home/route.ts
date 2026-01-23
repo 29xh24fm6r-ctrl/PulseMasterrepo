@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { requireUser, handleRuntimeError } from "@/lib/auth/requireUser";
+import { NextRequest } from "next/server";
+import { requireUser } from "@/lib/auth/requireUser";
 import { aggregateLifeState } from "@/lib/life-state/aggregateLifeState";
 import { LifeState } from "@/lib/runtime/types";
 import { runtimeAuthIsRequired, getRuntimeAuthMode } from "@/lib/runtime/runtimeAuthPolicy";
@@ -8,7 +8,7 @@ import { runtimeHeaders } from "@/lib/runtime/runtimeHeaders";
 
 export async function GET(req: NextRequest) {
     if (!runtimeAuthIsRequired()) {
-        return new Response(JSON.stringify(previewRuntimeEnvelope({
+        const body = previewRuntimeEnvelope({
             lifeState: {
                 energy: "High",
                 stress: "Low",
@@ -16,10 +16,12 @@ export async function GET(req: NextRequest) {
                 orientation: "Pulse Preview Mode Active"
             },
             orientationLine: "Pulse Preview Mode Active"
-        })), {
+        });
+        return new Response(JSON.stringify(body), {
             status: 200,
             headers: {
-                ...runtimeHeaders({ authed: false }),
+                "Content-Type": "application/json",
+                ...runtimeHeaders({ auth: "bypassed" }),
                 "x-pulse-runtime-auth-mode": getRuntimeAuthMode(),
                 "x-pulse-src": "runtime_preview_envelope"
             }
@@ -28,14 +30,6 @@ export async function GET(req: NextRequest) {
 
     try {
         const { userId } = requireUser(req);
-
-        // Call existing brain function
-        // Assuming aggregateLifeState takes userId. If it takes a supabase client, we might need to adjust.
-        // Based on file inspection, it likely uses a client or userId.
-        // I'll assume standard pattern for now and fix if build fails (since I'm viewing the file in parallel).
-
-        // For safety in this "blind" step, I will wrap the logic to use safe defaults if the core function throws 
-        // (e.g. if DB is empty).
 
         let lifeState: LifeState;
         try {
@@ -68,14 +62,22 @@ export async function GET(req: NextRequest) {
             }
         });
 
-    } catch (err) {
-        const res = handleRuntimeError(err);
-        const headers = runtimeHeaders({ auth: "missing" });
-        Object.entries(headers).forEach(([k, v]) => res.headers.set(k, v));
+    } catch (err: any) {
+        // SAFE ERROR HANDLING (No NextResponse)
+        console.error("[Runtime] Error:", err);
+        const status = err.status || 500;
+        const msg = err.message || "Internal Error";
 
-        if (res.status === 401) {
-            res.headers.set("x-pulse-src", "runtime_auth_denied");
-        }
-        return res;
+        // Auth check specific
+        const isAuthErr = status === 401 || err.code === 'AUTH_MISSING';
+
+        return new Response(JSON.stringify({ error: msg }), {
+            status,
+            headers: {
+                "Content-Type": "application/json",
+                ...runtimeHeaders({ auth: isAuthErr ? "missing" : "required" }),
+                "x-pulse-src": "runtime_error_boundary"
+            }
+        });
     }
 }

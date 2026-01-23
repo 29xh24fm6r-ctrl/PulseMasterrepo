@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { requireUser, handleRuntimeError } from "@/lib/auth/requireUser";
+import { NextRequest } from "next/server";
+import { requireUser } from "@/lib/auth/requireUser";
 import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { ObserverData } from "@/lib/runtime/types";
 import { resolveSubscription } from "@/lib/subscription/resolveSubscription";
@@ -9,16 +9,18 @@ import { runtimeHeaders } from "@/lib/runtime/runtimeHeaders";
 
 export async function GET(req: NextRequest) {
     if (!runtimeAuthIsRequired()) {
-        return new Response(JSON.stringify(previewRuntimeEnvelope({
+        const body = previewRuntimeEnvelope({
             events: [],
             autonomy: [],
             effects: [],
             ipp: null,
             background: []
-        })), {
+        });
+        return new Response(JSON.stringify(body), {
             status: 200,
             headers: {
-                ...runtimeHeaders({ authed: false }),
+                "Content-Type": "application/json",
+                ...runtimeHeaders({ auth: "bypassed" }),
                 "x-pulse-runtime-auth-mode": getRuntimeAuthMode(),
                 "x-pulse-src": "runtime_preview_envelope"
             }
@@ -33,17 +35,6 @@ export async function GET(req: NextRequest) {
             resolveSubscription(userId)
         ]);
 
-        // Parallel fetch from ledgers
-        // We might not have all 5 tables fully active or wired in schema yet.
-        // I will check specific tables:
-        // - pulse_runtime_events (Runtime)
-        // - pulse_autonomy_log (Autonomy)
-        // - pulse_effects (Effects)
-        // - pulse_ipp_events (IPP)
-        // - pulse_background_jobs (Background)
-        // If table doesn't exist, we return empty array (safe default for read-only).
-
-        // Using Promise.allSettled to avoid one missing table killing the whole dashboard
         const [
             runtimeRes,
             autonomyRes,
@@ -119,15 +110,20 @@ export async function GET(req: NextRequest) {
             }
         });
 
-    } catch (err) {
-        const res = handleRuntimeError(err);
-        const headers = runtimeHeaders({ auth: "missing" });
-        Object.entries(headers).forEach(([k, v]) => res.headers.set(k, v));
+    } catch (err: any) {
+        console.error("[Runtime] Error:", err);
+        const status = err.status || 500;
+        const msg = err.message || "Internal Error";
+        const isAuthErr = status === 401;
 
-        if (res.status === 401) {
-            res.headers.set("x-pulse-src", "runtime_auth_denied");
-        }
-        return res;
+        return new Response(JSON.stringify({ error: msg }), {
+            status,
+            headers: {
+                "Content-Type": "application/json",
+                ...runtimeHeaders({ auth: isAuthErr ? "missing" : "required" }),
+                "x-pulse-src": "runtime_error_boundary"
+            }
+        });
     }
 }
 

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { requireUser, handleRuntimeError } from "@/lib/auth/requireUser";
 import { v4 as uuidv4 } from 'uuid';
 import { Message } from "@/lib/runtime/types";
@@ -8,10 +8,12 @@ import { runtimeAuthIsRequired, getRuntimeAuthMode } from "@/lib/runtime/runtime
 import { previewRuntimeEnvelope } from "@/lib/runtime/previewRuntime";
 import { runtimeHeaders } from "@/lib/runtime/runtimeHeaders";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(req: NextRequest) {
     // 1. Preview Mode / CI Bypass
     if (!runtimeAuthIsRequired()) {
-        return new Response(JSON.stringify(previewRuntimeEnvelope({
+        const body = previewRuntimeEnvelope({
             reply: {
                 id: "preview-echo",
                 role: "pulse",
@@ -19,10 +21,12 @@ export async function POST(req: NextRequest) {
                 timestamp: new Date(),
                 hasExplanation: false
             }
-        })), {
+        });
+        return new Response(JSON.stringify(body), {
             status: 200,
             headers: {
-                ...runtimeHeaders({ authed: false }),
+                "Content-Type": "application/json",
+                ...runtimeHeaders({ auth: "bypassed" }),
                 "x-pulse-runtime-auth-mode": getRuntimeAuthMode(),
                 "x-pulse-src": "runtime_preview_envelope"
             }
@@ -45,7 +49,8 @@ export async function POST(req: NextRequest) {
                 return new Response(JSON.stringify(payload), {
                     status: 403,
                     headers: {
-                        ...runtimeHeaders({ authed: true }),
+                        "Content-Type": "application/json",
+                        ...runtimeHeaders({ auth: "required" }),
                         "x-pulse-src": "runtime_limit_reached"
                     }
                 });
@@ -58,7 +63,10 @@ export async function POST(req: NextRequest) {
         if (!text) {
             return new Response(JSON.stringify({ error: "No text provided" }), {
                 status: 400,
-                headers: runtimeHeaders({ authed: true })
+                headers: {
+                    "Content-Type": "application/json",
+                    ...runtimeHeaders({ auth: "required" })
+                }
             });
         }
 
@@ -75,17 +83,26 @@ export async function POST(req: NextRequest) {
 
         return new Response(JSON.stringify({ reply }), {
             status: 200,
-            headers: runtimeHeaders({ authed: true })
+            headers: {
+                "Content-Type": "application/json",
+                ...runtimeHeaders({ auth: "required" })
+            }
         });
 
-    } catch (err) {
-        const res = handleRuntimeError(err);
-        const headers = runtimeHeaders({ authed: res.status !== 401 });
-        Object.entries(headers).forEach(([k, v]) => res.headers.set(k, v));
+    } catch (err: any) {
+        // SAFE ERROR HANDLING (No NextResponse)
+        console.error("[Bridge] Error:", err);
+        const status = err.status || 500;
+        const msg = err.message || "Internal Error";
 
-        if (res.status === 401) {
-            res.headers.set("x-pulse-src", "runtime_auth_denied");
-        }
-        return res;
+        // Manual error response construction
+        return new Response(JSON.stringify({ error: msg }), {
+            status,
+            headers: {
+                "Content-Type": "application/json",
+                ...runtimeHeaders({ auth: "missing" }),
+                "x-pulse-src": "runtime_error_boundary"
+            }
+        });
     }
 }
