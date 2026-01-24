@@ -47,25 +47,17 @@ export default function WelcomePage() {
     // Auth Loading (Clerk)
     if (!isLoaded) return <div className="min-h-screen bg-black" />;
 
-    // 🛑 STOP LOGIC: If not signed in, DO NOT REDIRECT AUTOMATICALLY.
-    // This breaks the "/welcome -> /sign-in -> /welcome" loop.
+    // ✅ Auto-redirect to sign-in if not authenticated
+    // The old "modal" approach left users stuck.
+    useEffect(() => {
+        if (isLoaded && !isSignedIn) {
+            router.push('/sign-in');
+        }
+    }, [isLoaded, isSignedIn, router]);
+
     if (!isSignedIn) {
-        return (
-            <div className="min-h-screen bg-black flex items-center justify-center p-6">
-                <div className="max-w-md w-full bg-zinc-900 border border-zinc-800 rounded-xl p-8 text-center">
-                    <h2 className="text-xl font-bold text-white mb-2">Sign In Required</h2>
-                    <p className="text-zinc-400 mb-6">
-                        to continue setup.
-                    </p>
-                    <a
-                        href="/sign-in"
-                        className="inline-flex w-full items-center justify-center py-3 bg-white text-black font-semibold rounded-lg hover:bg-zinc-200 transition-colors"
-                    >
-                        Sign In
-                    </a>
-                </div>
-            </div>
-        );
+        // Show minimal loading state while redirecting
+        return <div className="min-h-screen bg-black" />;
     }
 
     // Sync Loading
