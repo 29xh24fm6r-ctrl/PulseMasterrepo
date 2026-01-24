@@ -36,18 +36,7 @@ import { logRuntimeHealth } from "@/lib/runtime/validateRuntimeHealth";
 import { usePathname, useRouter } from "next/navigation";
 
 // Helper to detect if we are on an auth route where the runtime loop must be inert.
-// ✅ Hydration Fix: Use window.location (always accurate) instead of usePathname (returns "/" initially)
 const SKIP_RUNTIME_PATHS = ['/welcome', '/sign-in', '/sign-up', '/sign-out', '/onboarding'];
-
-function isAuthPath(): boolean {
-    // On client, use window.location (always accurate)
-    // On server, be conservative and skip polling
-    if (typeof window === 'undefined') {
-        return true; // Server-side: don't poll
-    }
-    const actualPath = window.location.pathname;
-    return SKIP_RUNTIME_PATHS.some(p => actualPath.startsWith(p));
-}
 
 export function PulseRuntimeProvider({ children }: { ReactNode }) {
     // 📢 PRESENCE SHELL PUBLISHER (v1)
@@ -61,6 +50,11 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
 
     // ✅ Hydration Guard: Track when client has hydrated to prevent pathname mismatch
     const [isHydrated, setIsHydrated] = useState(false);
+
+    // ✅ FIX React #418: Hydration-safe auth path detection
+    // CRITICAL: Must return same value on server and client initial render
+    // Only check pathname AFTER hydration to prevent SSR/client mismatch
+    const isAuthPath = isHydrated && SKIP_RUNTIME_PATHS.some(p => pathname.startsWith(p));
 
     useEffect(() => {
         setIsHydrated(true);
@@ -95,9 +89,9 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
     // FIX Phase 28-B: Debug Telemetry
     useEffect(() => {
         if (process.env.NODE_ENV === 'development') {
-            console.log(`[PulseRuntime] Debug: Path=${pathname} IsAuth=${isAuthPath()} Mode=${runtimeMode}`);
+            console.log(`[PulseRuntime] Debug: Path=${pathname} IsAuth=${isAuthPath} Mode=${runtimeMode}`);
         }
-    }, [pathname, runtimeMode]);
+    }, [pathname, runtimeMode, isAuthPath]);
 
     const handleError = useCallback((err: any) => {
         console.error("Runtime Provider Error:", err);
@@ -111,7 +105,7 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
             // ⚠️ Loop Prevention: Only redirect ONCE and only if NOT signed in with Clerk
             // If signed in with Clerk but getting 401s, it's a middleware/config issue
             // Don't redirect to avoid infinite loop
-            if (clerkLoaded && !isSignedIn && !isAuthPath() && !hasRedirected.current) {
+            if (clerkLoaded && !isSignedIn && !isAuthPath && !hasRedirected.current) {
                 console.warn("[PulseRuntime] Not signed in. Redirecting to /sign-in.");
                 hasRedirected.current = true;
                 router.replace('/sign-in'); // Use replace to avoid back button issues
@@ -123,7 +117,7 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
 
         // Fallback to paused safely instead of crash
         setRuntimeMode('paused');
-    }, [router, isSignedIn, clerkLoaded]);
+    }, [router, isSignedIn, clerkLoaded, isAuthPath]);
 
     const refresh = useCallback(async () => {
         // Wait for hydration before doing anything (prevents pathname mismatch)
@@ -133,12 +127,12 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
         }
 
         // Skip runtime on auth/onboarding pages
-        if (isAuthPath()) {
-            console.log('[PulseRuntime] Skipping refresh - on auth/onboarding page:', typeof window !== 'undefined' ? window.location.pathname : pathname);
+        if (isAuthPath) {
+            console.log('[PulseRuntime] Skipping refresh - on auth/onboarding page:', pathname);
             return;
         }
 
-        console.log('[PulseRuntime] Starting refresh on:', typeof window !== 'undefined' ? window.location.pathname : pathname);
+        console.log('[PulseRuntime] Starting refresh on:', pathname);
         setIsLoading(true);
         setBootError(null);
 
@@ -182,7 +176,7 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
         } finally {
             setIsLoading(false);
         }
-    }, [handleError, isHydrated, pathname]);
+    }, [handleError, isHydrated, pathname, isAuthPath]);
 
     // Initial Load & Hydration Safe Message
     useEffect(() => {
@@ -196,10 +190,10 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
 
         // 2. Trigger Refresh logic (only after hydration)
         if (!isHydrated) return;
-        if (isAuthPath()) return;
+        if (isAuthPath) return;
 
         refresh();
-    }, [refresh, isHydrated]);
+    }, [refresh, isHydrated, isAuthPath]);
 
     const sendBridgeMessage = async (text: string) => {
         // If in preview, optimistic add only, or show banner?
@@ -256,7 +250,7 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
         bootError: null
     };
 
-    const value = isAuthPath() ? inertValue : {
+    const value = isAuthPath ? inertValue : {
         lifeState,
         trends,
         notables,
@@ -272,7 +266,7 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
 
     return (
         <PulseRuntimeContext.Provider value={value}>
-            {bootError && !isAuthPath() ? (
+            {bootError && !isAuthPath ? (
                 <div className="min-h-screen bg-black flex items-center justify-center p-4">
                     <div className="max-w-md w-full bg-red-950/30 border border-red-800/50 rounded-lg p-6">
                         <h2 className="text-xl font-semibold text-red-400 mb-3">Pulse Failed to Initialize</h2>
@@ -294,7 +288,7 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
             ) : (
                 <>
                     {children}
-                    {!isAuthPath() && runtimeMode === 'preview' && (
+                    {!isAuthPath && runtimeMode === 'preview' && (
                         <div className="fixed bottom-0 left-0 right-0 bg-indigo-900/90 text-indigo-100 text-xs px-4 py-1 text-center backdrop-blur-sm z-[9999]">
                             PREVIEW SAFE MODE — Read Only
                         </div>
