@@ -44,5 +44,5 @@ export function RuntimePanel() {
         },
     ];
 
-    return <ObserverTable columns={columns} data={data} emptyMessage="No recent runtime events." />;
+    return <ObserverTable columns={columns} data={STUB_RUNTIME_EVENTS} emptyMessage="No recent runtime events." />;
 }
