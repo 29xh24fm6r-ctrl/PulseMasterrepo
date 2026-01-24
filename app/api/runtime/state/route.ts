@@ -1,100 +1,84 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser, handleRuntimeError } from "@/lib/auth/requireUser";
-import { LifeState, TrendPoint, NotableEvent } from "@/lib/runtime/types";
+import { requireUser } from "@/lib/auth/requireUser";
+import { LifeState, NotableEvent } from "@/lib/runtime/types";
 import { aggregateLifeState } from "@/lib/life-state/aggregateLifeState";
-import { runtimeAuthIsRequired, getRuntimeAuthMode } from "@/lib/runtime/runtimeAuthPolicy";
+import { runtimeAuthIsRequired } from "@/lib/runtime/runtimeAuthPolicy";
 import { previewRuntimeEnvelope } from "@/lib/runtime/previewRuntime";
-import { runtimeHeaders } from "@/lib/runtime/runtimeHeaders";
+import { runtimeHeaders, PulseAuthHeader } from "@/lib/runtime/runtimeHeaders";
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function GET(req: NextRequest) {
+    let status = 200;
+    let auth: PulseAuthHeader = "required";
+    let body: any;
+
     if (!runtimeAuthIsRequired()) {
-        // Return a deterministic safe state for Preview
-        const lifeState: LifeState = {
-            energy: "High",
-            stress: "Low",
-            momentum: "Medium",
-            orientation: "Preview Safe Mode"
-        };
-        return new Response(JSON.stringify(previewRuntimeEnvelope({
+        body = previewRuntimeEnvelope({
             life: { condition: "nominal", energy: 100, focus: 100, mood: "calm" },
             trends: [],
             notable: []
-        })), {
-            status: 200,
-            headers: {
-                ...runtimeHeaders({ authed: false }),
-                "x-pulse-runtime-auth-mode": getRuntimeAuthMode(),
-                "x-pulse-src": "runtime_preview_envelope"
-            }
         });
-    }
-
-    try {
-        const { userId } = requireUser(req);
-
-        // 1. Get Real LifeState
-        // StateSurface usually shows current snapshot + trends.
-        // Ideally we fetch daily rollups from a DB table like 'daily_life_state'
-        // but for now we might have to stub the history part if the table isn't populated or known.
-        // Based on search so far, I haven't seen 'daily_life_state' usage in previous tasks.
-        // I'll assume we grab current state for "today" and maybe mock history for now 
-        // unless I find a specific ledger. 
-        // Wait, implementation plan says: "trends: Daily rollups from Supabase/Ledger. notables: Coordination decisions."
-
-        // Let's grab current state first (canonical source)
-        let lifeState: LifeState;
+        auth = "bypassed";
+    } else {
         try {
-            const raw = await aggregateLifeState(userId);
-            lifeState = {
-                energy: raw.energy,
-                stress: raw.stress,
-                momentum: raw.momentum,
-                orientation: raw.summary || "Phase 10 initialized."
+            const { userId } = requireUser(req);
+
+            let lifeState: LifeState;
+            try {
+                const raw = await aggregateLifeState(userId);
+                lifeState = {
+                    energy: raw.energy,
+                    stress: raw.stress,
+                    momentum: raw.momentum,
+                    orientation: raw.summary || "Phase 10 initialized."
+                };
+            } catch (e) {
+                console.warn("State aggregation failed, safe default", e);
+                lifeState = { energy: 'Medium', stress: 'Medium', momentum: 'Medium', orientation: "System standby." };
+            }
+
+            const todayLabel = new Date().toLocaleDateString('en-US', { weekday: 'short' });
+            const trends = {
+                energy: [{ day: todayLabel.charAt(0), value: mapLevelToValue(lifeState.energy), label: todayLabel }],
+                stress: [{ day: todayLabel.charAt(0), value: mapLevelToValue(lifeState.stress), label: todayLabel }],
+                momentum: [{ day: todayLabel.charAt(0), value: mapLevelToValue(lifeState.momentum), label: todayLabel }],
             };
-        } catch (e) {
-            console.warn("State aggregation failed, safe default", e);
-            lifeState = { energy: 'Medium', stress: 'Medium', momentum: 'Medium', orientation: "System standby." };
+
+            const notables: NotableEvent[] = [];
+
+            body = {
+                lifeState,
+                trends,
+                notables
+            };
+            auth = "required";
+
+        } catch (err: any) {
+            console.error("[Runtime] Error:", err);
+            status = err.status || 500;
+            const msg = err.message || "Internal Error";
+
+            if (status === 401) {
+                auth = "missing";
+            }
+            body = { error: msg };
         }
-
-        // 2. Trends (Placeholder for now, or derived if we had history)
-        // Since we don't have a confirmed history table for this task, 
-        // and requirement is "No silent fake data" UNLESS "no rows exist yet".
-        // I'll return empty or minimal real points if possible, but safe defaults 
-        // (flat lines) might be better than IPP blocking for trends visualization.
-        // Actually, plan says "Daily rollups... Else derive". 
-        // I'll enable a "safe default" of just Today's point to avoid crash.
-        const todayLabel = new Date().toLocaleDateString('en-US', { weekday: 'short' });
-        const trends = {
-            energy: [{ day: todayLabel.charAt(0), value: mapLevelToValue(lifeState.energy), label: todayLabel }],
-            stress: [{ day: todayLabel.charAt(0), value: mapLevelToValue(lifeState.stress), label: todayLabel }],
-            momentum: [{ day: todayLabel.charAt(0), value: mapLevelToValue(lifeState.momentum), label: todayLabel }],
-        };
-
-        // 3. Notables
-        // This should come from 'pulse_notables' or 'notable_events', or derived from coordinate decisions.
-        // I'll check for 'pulse_effects' or 'autonomy_audit' for recent actions.
-        const notables: NotableEvent[] = []; // Start empty to be truthful.
-
-        const headers = runtimeHeaders({ authed: true });
-        return NextResponse.json({
-            lifeState,
-            trends,
-            notables
-        }, {
-            status: 200,
-            headers: new Headers(headers),
-        });
-
-    } catch (err) {
-        const res = handleRuntimeError(err);
-        const headers = runtimeHeaders({ authed: res.status !== 401 });
-        Object.entries(headers).forEach(([k, v]) => res.headers.set(k, v));
-
-        if (res.status === 401) {
-            res.headers.set("x-pulse-src", "runtime_auth_denied");
-        }
-        return res;
     }
+
+    const customHeaders = runtimeHeaders({ auth });
+
+    // Create response first
+    const response = NextResponse.json(body, { status });
+
+    // Set headers explicitly
+    Object.entries(customHeaders).forEach(([key, value]) => {
+        response.headers.set(key, value);
+    });
+
+    return response;
 }
 
 function mapLevelToValue(level: string): number {

@@ -1,90 +1,92 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser, handleRuntimeError } from "@/lib/auth/requireUser";
+import { requireUser } from "@/lib/auth/requireUser";
 import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { PlanItem } from "@/lib/runtime/types";
-import { runtimeAuthIsRequired, getRuntimeAuthMode } from "@/lib/runtime/runtimeAuthPolicy";
+import { runtimeAuthIsRequired } from "@/lib/runtime/runtimeAuthPolicy";
 import { previewRuntimeEnvelope } from "@/lib/runtime/previewRuntime";
-import { runtimeHeaders } from "@/lib/runtime/runtimeHeaders";
+import { runtimeHeaders, PulseAuthHeader } from "@/lib/runtime/runtimeHeaders";
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function GET(req: NextRequest) {
+    let status = 200;
+    let auth: PulseAuthHeader = "required";
+    let body: any;
+
     if (!runtimeAuthIsRequired()) {
-        return new Response(JSON.stringify(previewRuntimeEnvelope({
+        body = previewRuntimeEnvelope({
             today: [],
             pending: [],
             recent: []
-        })), {
-            status: 200,
-            headers: {
-                ...runtimeHeaders({ authed: false }),
-                "x-pulse-runtime-auth-mode": getRuntimeAuthMode(),
-                "x-pulse-src": "runtime_preview_envelope"
-            }
         });
-    }
+        auth = "bypassed";
+    } else {
+        try {
+            const { userId } = requireUser(req);
+            const db = getSupabaseAdminRuntimeClient();
 
-    try {
-        const { userId } = requireUser(req);
-        const db = getSupabaseAdminRuntimeClient();
+            const { data: effects, error } = await db
+                .from('pulse_effects')
+                .select('*')
+                .eq('user_id', userId)
+                .order('created_at', { ascending: false })
+                .limit(20);
 
-        // Fetch from pulse_effects (Phase 18)
-        // where status = 'proposed' (pending) or 'approved' (today)
-        // We map 'proposed' -> pending, 'approved' -> today/completed
+            if (error) throw error;
 
-        // Note: 'pulse_effects' schema usually has: status, action, domain, explanation.
-        // We need to map this to PlanItem.
+            const today: PlanItem[] = [];
+            const pending: PlanItem[] = [];
+            const recent: PlanItem[] = [];
 
-        const { data: effects, error } = await db
-            .from('pulse_effects')
-            .select('*')
-            .eq('user_id', userId)
-            .order('created_at', { ascending: false })
-            .limit(20);
+            (effects || []).forEach((e: any) => {
+                const item: PlanItem = {
+                    id: e.id,
+                    title: formatTitle(e.domain, e.action),
+                    status: mapStatus(e.status),
+                    type: inferType(e.domain),
+                    context: e.explanation
+                };
 
-        if (error) throw error;
+                if (item.status === 'pending') {
+                    pending.push(item);
+                } else if (item.status === 'approved' || item.status === 'completed') {
+                    today.push(item);
+                } else {
+                    recent.push(item);
+                }
+            });
 
-        const today: PlanItem[] = [];
-        const pending: PlanItem[] = [];
-        const recent: PlanItem[] = [];
-
-        (effects || []).forEach((e: any) => {
-            const item: PlanItem = {
-                id: e.id,
-                title: formatTitle(e.domain, e.action),
-                status: mapStatus(e.status),
-                type: inferType(e.domain),
-                context: e.explanation
+            body = {
+                today,
+                pending,
+                recent
             };
+            auth = "required";
 
-            if (item.status === 'pending') {
-                pending.push(item);
-            } else if (item.status === 'approved' || item.status === 'completed') {
-                // Check date if strictly today? For now, let's put recent approved in Today.
-                today.push(item);
-            } else {
-                recent.push(item);
+        } catch (err: any) {
+            console.error("[Runtime] Error:", err);
+            status = err.status || 500;
+            const msg = err.message || "Internal Error";
+            if (status === 401) {
+                auth = "missing";
             }
-        });
-
-        const headers = runtimeHeaders({ authed: true });
-        return NextResponse.json({
-            today,
-            pending,
-            recent
-        }, {
-            status: 200,
-            headers: new Headers(headers),
-        });
-
-    } catch (err) {
-        const res = handleRuntimeError(err);
-        const headers = runtimeHeaders({ authed: res.status !== 401 });
-        Object.entries(headers).forEach(([k, v]) => res.headers.set(k, v));
-
-        if (res.status === 401) {
-            res.headers.set("x-pulse-src", "runtime_auth_denied");
+            body = { error: msg };
         }
-        return res;
     }
+
+    const customHeaders = runtimeHeaders({ auth });
+
+    // Create response first
+    const response = NextResponse.json(body, { status });
+
+    // Set headers explicitly
+    Object.entries(customHeaders).forEach(([key, value]) => {
+        response.headers.set(key, value);
+    });
+
+    return response;
 }
 
 function mapStatus(dbStatus: string): PlanItem['status'] {

@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser, handleRuntimeError } from "@/lib/auth/requireUser";
+import { requireUser } from "@/lib/auth/requireUser";
 import { aggregateLifeState } from "@/lib/life-state/aggregateLifeState";
 import { LifeState } from "@/lib/runtime/types";
 import { runtimeAuthIsRequired, getRuntimeAuthMode } from "@/lib/runtime/runtimeAuthPolicy";
 import { previewRuntimeEnvelope } from "@/lib/runtime/previewRuntime";
 import { runtimeHeaders } from "@/lib/runtime/runtimeHeaders";
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(req: NextRequest) {
     if (!runtimeAuthIsRequired()) {
-        return new Response(JSON.stringify(previewRuntimeEnvelope({
+        const body = previewRuntimeEnvelope({
             lifeState: {
                 energy: "High",
                 stress: "Low",
@@ -16,26 +20,27 @@ export async function GET(req: NextRequest) {
                 orientation: "Pulse Preview Mode Active"
             },
             orientationLine: "Pulse Preview Mode Active"
-        })), {
-            status: 200,
-            headers: {
-                ...runtimeHeaders({ authed: false }),
-                "x-pulse-runtime-auth-mode": getRuntimeAuthMode(),
-                "x-pulse-src": "runtime_preview_envelope"
-            }
         });
+
+        const customHeaders = runtimeHeaders({ auth: "bypassed" });
+
+        // Create response first
+        const response = NextResponse.json(body, { status: 200 });
+
+        // Restore diagnostic headers for preview if needed
+        const headers: any = { ...customHeaders };
+        headers["x-pulse-runtime-auth-mode"] = getRuntimeAuthMode();
+        headers["x-pulse-src"] = "runtime_preview_envelope";
+
+        Object.entries(headers).forEach(([key, value]) => {
+            response.headers.set(key, value as string);
+        });
+
+        return response;
     }
 
     try {
         const { userId } = requireUser(req);
-
-        // Call existing brain function
-        // Assuming aggregateLifeState takes userId. If it takes a supabase client, we might need to adjust.
-        // Based on file inspection, it likely uses a client or userId.
-        // I'll assume standard pattern for now and fix if build fails (since I'm viewing the file in parallel).
-
-        // For safety in this "blind" step, I will wrap the logic to use safe defaults if the core function throws 
-        // (e.g. if DB is empty).
 
         let lifeState: LifeState;
         try {
@@ -56,26 +61,38 @@ export async function GET(req: NextRequest) {
             };
         }
 
-        const headers = runtimeHeaders({ authed: true });
-        return NextResponse.json({
+        const customHeaders = runtimeHeaders({ auth: "required" });
+
+        const response = NextResponse.json({
             lifeState,
-            orientationLine: lifeState.orientation // Redundant but requested in spec
-        }, {
-            status: 200,
-            headers: new Headers(headers),
+            orientationLine: lifeState.orientation
+        }, { status: 200 });
+
+        Object.entries(customHeaders).forEach(([key, value]) => {
+            response.headers.set(key, value);
         });
 
-    } catch (err) {
-        const res = handleRuntimeError(err);
-        const headers = runtimeHeaders({ authed: res.status !== 401 });
-        Object.entries(headers).forEach(([k, v]) => res.headers.set(k, v));
+        return response;
 
-        if (res.status === 401) {
-            res.headers.set("x-pulse-src", "runtime_auth_denied");
-        }
-        if (res.status === 401) {
-            res.headers.set("x-pulse-src", "runtime_auth_denied");
-        }
-        return res;
+    } catch (err: any) {
+        console.error("[Runtime] Error:", err);
+        const status = err.status || 500;
+        const msg = err.message || "Internal Error";
+
+        // Auth check specific
+        const isAuthErr = status === 401 || err.code === 'AUTH_MISSING';
+
+        const customHeaders = runtimeHeaders({ auth: isAuthErr ? "missing" : "required" });
+
+        const response = NextResponse.json({ error: msg }, { status });
+
+        const headers: any = { ...customHeaders };
+        headers["x-pulse-src"] = "runtime_error_boundary";
+
+        Object.entries(headers).forEach(([key, value]) => {
+            response.headers.set(key, value as string);
+        });
+
+        return response;
     }
 }

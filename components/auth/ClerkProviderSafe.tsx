@@ -31,6 +31,21 @@ export function ClerkProviderSafe({ children }: Props) {
         );
     }
 
+    // CI Safety: Disable Clerk in CI/test environments to prevent crashes
+    const isCI =
+        process.env.CI === "true" ||
+        process.env.NODE_ENV === "test";
+
+    // If in CI or no publishable key, disable Clerk entirely
+    if (isCI || !hasPublishableKey()) {
+        console.warn("[ClerkProviderSafe] Clerk disabled: CI=" + isCI + ", hasKey=" + hasPublishableKey());
+        return (
+            <>
+                {children}
+            </>
+        );
+    }
+
     // Runtime Logic
     // Runtime Logic
     // ✅ FIX Phase 28-C: Hydration Safety
@@ -65,8 +80,5 @@ export function ClerkProviderSafe({ children }: Props) {
     }
 
     // Default: Render Provider (SSR safe)
-    // If no key, we might crash, but `hasPublishableKey` check at top level guards mostly.
-    return <ClerkProvider>{children}</ClerkProvider>;
-
     return <ClerkProvider>{children}</ClerkProvider>;
 }

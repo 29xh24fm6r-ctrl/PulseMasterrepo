@@ -22,10 +22,11 @@ export interface RuntimeApiError {
 }
 
 // Helper to standardise Fetch vs Mock
-async function runtimeFetch<T>(endpoint: string): Promise<RuntimeResult<T>> {
+export async function runtimeFetchJSON<T>(endpoint: string): Promise<RuntimeResult<T>> {
     try {
         const res = await fetch(`/api/runtime/${endpoint}`, {
-            headers: {}
+            headers: {},
+            credentials: 'include' // ✅ Antigravity: Enforce credentials for all runtime calls
         });
 
         if (!res.ok) {
@@ -56,31 +57,30 @@ async function runtimeFetch<T>(endpoint: string): Promise<RuntimeResult<T>> {
 // --- GETTERS ---
 
 export async function getLifeState(): Promise<LifeState> {
-    if (USE_MOCK) return mock.getLifeState(); // Ensure mock.ts functions can return sync or Promise? mock.ts functions seem sync. client.ts signatures now async.
-    // Note: if mock.getLifeState() is sync, returning it in async function wraps it in Promise. Correct.
+    if (USE_MOCK) return mock.getLifeState();
 
-    const res = await runtimeFetch<{ lifeState: LifeState, orientationLine: string }>('home');
+    const res = await runtimeFetchJSON<{ lifeState: LifeState, orientationLine: string }>('home');
     if (!res.ok) throw res.error;
     return res.data.lifeState;
 }
 
 export async function getTrends(): Promise<Record<string, TrendPoint[]>> {
     if (USE_MOCK) return mock.getTrends();
-    const res = await runtimeFetch<{ trends: Record<string, TrendPoint[]> }>('state');
+    const res = await runtimeFetchJSON<{ trends: Record<string, TrendPoint[]> }>('state');
     if (!res.ok) throw res.error;
     return res.data.trends;
 }
 
 export async function getNotables(): Promise<NotableEvent[]> {
     if (USE_MOCK) return mock.getNotables();
-    const res = await runtimeFetch<{ notables: NotableEvent[] }>('state');
+    const res = await runtimeFetchJSON<{ notables: NotableEvent[] }>('state');
     if (!res.ok) throw res.error;
     return res.data.notables;
 }
 
 export async function getPlanLedger(): Promise<PlanSection[]> {
     if (USE_MOCK) return mock.getPlanLedger();
-    const res = await runtimeFetch<{ today: PlanItem[], pending: PlanItem[], recent: PlanItem[] }>('plan');
+    const res = await runtimeFetchJSON<{ today: PlanItem[], pending: PlanItem[], recent: PlanItem[] }>('plan');
     if (!res.ok) throw res.error;
 
     // Convert flat lists to Sections
@@ -94,7 +94,7 @@ export async function getPlanLedger(): Promise<PlanSection[]> {
 
 export async function getObserverData(): Promise<ObserverData> {
     if (USE_MOCK) return mock.getObserverData();
-    const res = await runtimeFetch<ObserverData>('observer');
+    const res = await runtimeFetchJSON<ObserverData>('observer');
     if (!res.ok) throw res.error;
     return res.data;
 }

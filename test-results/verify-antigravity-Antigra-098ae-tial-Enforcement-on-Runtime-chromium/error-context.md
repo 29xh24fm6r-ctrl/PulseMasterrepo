@@ -1,0 +1,77 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - link "P Pulse" [ref=e5] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e6]: P
+          - generic [ref=e7]: Pulse
+        - generic [ref=e10]: Online
+      - generic [ref=e12]:
+        - img [ref=e13]
+        - generic [ref=e15]: Quiet Mode
+    - generic [ref=e17]:
+      - generic [ref=e18]:
+        - text: "System Context: Normal Operations - All Systems Nominal"
+        - button "Open Presence" [ref=e21]
+      - button "Collapse context strip" [ref=e22]:
+        - img [ref=e23]
+    - generic [ref=e25]:
+      - navigation [ref=e27]:
+        - generic [ref=e28]: Menu
+        - link "Home" [ref=e29] [cursor=pointer]:
+          - /url: /
+          - img [ref=e30]
+          - generic [ref=e33]: Home
+        - link "Bridge" [ref=e35] [cursor=pointer]:
+          - /url: /bridge
+          - img [ref=e36]
+          - generic [ref=e38]: Bridge
+        - link "Plan" [ref=e39] [cursor=pointer]:
+          - /url: /plan
+          - img [ref=e40]
+          - generic [ref=e43]: Plan
+        - link "State" [ref=e44] [cursor=pointer]:
+          - /url: /state
+          - img [ref=e45]
+          - generic [ref=e47]: State
+        - generic [ref=e48]:
+          - generic [ref=e49]: System
+          - button "More" [ref=e50]:
+            - img [ref=e51]
+            - generic [ref=e55]: More
+      - main [ref=e56]:
+        - generic [ref=e57]:
+          - heading "Good morning." [level=1] [ref=e58]
+          - generic [ref=e59]:
+            - generic [ref=e60]:
+              - img [ref=e61]
+              - generic [ref=e63]: Energy
+              - generic [ref=e64]: Medium
+            - generic [ref=e65]:
+              - img [ref=e66]
+              - generic [ref=e68]: Stress
+              - generic [ref=e69]: Medium
+            - generic [ref=e70]:
+              - img [ref=e71]
+              - generic [ref=e73]: Momentum
+              - generic [ref=e74]: Medium
+          - paragraph [ref=e76]: Connecting...
+          - generic [ref=e77]:
+            - link "Talk to Pulse" [ref=e78] [cursor=pointer]:
+              - /url: /bridge
+              - button "Talk to Pulse" [ref=e79]:
+                - img [ref=e80]
+                - generic [ref=e82]: Talk to Pulse
+                - img [ref=e83]
+            - link "View Plan" [ref=e85] [cursor=pointer]:
+              - /url: /plan
+              - button "View Plan" [ref=e86]:
+                - img [ref=e87]
+                - generic [ref=e90]: View Plan
+  - button "Open Next.js Dev Tools" [ref=e96] [cursor=pointer]:
+    - img [ref=e97]
+```

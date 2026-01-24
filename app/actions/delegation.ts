@@ -1,25 +1,33 @@
 'use server';
 
-type Candidate = {
-    id: string;
-    scope: string;
-    reason: string;
-    confidence: number;
-};
+import { auth } from "@clerk/nextjs/server";
+import { getTopCandidate, markCandidateShown } from "@/lib/delegation/readiness";
+import { acceptReadinessCandidate, dismissReadinessCandidate } from "@/lib/delegation/acceptReadiness";
 
-export async function fetchTopCandidateAction(contextPath: string): Promise<Candidate | null> {
-    // Stub
-    return null;
+function requireUserId() {
+    const { userId } = auth();
+    if (!userId) {
+        throw new Error("Unauthorized");
+    }
+    return userId;
 }
 
-export async function acceptReadinessAction(id: string): Promise<void> {
-    // Stub
+export async function fetchTopCandidateAction(contextPath: string) {
+    const userId = requireUserId();
+    return await getTopCandidate(userId, contextPath);
 }
 
-export async function dismissReadinessAction(id: string): Promise<void> {
-    // Stub
+export async function markCandidateShownAction(readinessId: string) {
+    const userId = requireUserId();
+    await markCandidateShown(userId, readinessId);
 }
 
-export async function markCandidateShownAction(id: string): Promise<void> {
-    // Stub
+export async function acceptReadinessAction(readinessId: string) {
+    const userId = requireUserId();
+    await acceptReadinessCandidate(userId, readinessId);
+}
+
+export async function dismissReadinessAction(readinessId: string) {
+    const userId = requireUserId();
+    await dismissReadinessCandidate(userId, readinessId);
 }

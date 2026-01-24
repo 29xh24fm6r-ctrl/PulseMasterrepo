@@ -2,7 +2,9 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { runtimeHeaders } from "@/lib/runtime/runtimeHeaders";
 
-export const dynamic = "force-dynamic";
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function GET(req: Request) {
     let userId: string | null = null;
@@ -34,9 +36,16 @@ export async function GET(req: Request) {
         cookieNames,
     };
 
-    const headers = runtimeHeaders({ authed: !!userId });
-    return NextResponse.json(data, {
-        status: 200,
-        headers: new Headers(headers),
+    // Get custom headers
+    const customHeaders = runtimeHeaders({ authed: !!userId });
+
+    // Create response first
+    const response = NextResponse.json(data, { status: 200 });
+
+    // Set headers explicitly to override defaults
+    Object.entries(customHeaders).forEach(([key, value]) => {
+        response.headers.set(key, value);
     });
+
+    return response;
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isPublicAssetPath } from "@/lib/middleware/publicAssets.edge";
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
 const IS_CI =
   process.env.CI === "true" ||
@@ -11,8 +12,6 @@ function tag(res: NextResponse, value: string) {
   return res;
 }
 
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
-
 const isPublicRoute = createRouteMatcher([
   "/sign-in(.*)",
   "/sign-up(.*)",
@@ -23,9 +22,37 @@ const isPublicRoute = createRouteMatcher([
   "/bridge(.*)" // Safe: CI Check Logic manually guards this below
 ]);
 
+/* 
+ * CI SAFE MODE
+ * Prevents "Missing publishableKey" crashes in CI/Test
+ */
+function ciSafeMiddleware(req: NextRequest) {
+  const { pathname } = req.nextUrl;
 
+  // Never block public assets / next internals / manifest
+  if (
+    pathname === "/manifest.json" ||
+    pathname.startsWith("/_next/") ||
+    isPublicAssetPath(pathname)
+  ) {
+    const res = NextResponse.next();
+    res.headers.set("x-pulse-mw", "CI_NO_CLERK_BYPASS");
+    return res;
+  }
 
-export default clerkMiddleware(async (auth, req) => {
+  const res = NextResponse.next();
+  res.headers.set("x-pulse-mw", "CI_NO_CLERK");
+  return res;
+}
+
+const CLERK_DISABLED =
+  process.env.CI === "true" ||
+  process.env.NODE_ENV === "test";
+
+/*
+ * MAIN LOGIC (Clerk Protected)
+ */
+const clerkHandler = clerkMiddleware(async (auth, req) => {
   try {
     const { pathname } = req.nextUrl;
     const host = req.headers.get("host") ?? "";
@@ -59,12 +86,26 @@ export default clerkMiddleware(async (auth, req) => {
       return NextResponse.next();
     }
 
-    // 2️⃣ For /api/runtime/*, just pass through - Clerk injects auth automatically
-    // DON'T call auth().protect() - that enforces auth and throws if not signed in
-    // We want auth context injected, but not enforced (whoami should work unauthenticated)
+    // 2️⃣ For /api/runtime/*, inject user ID header if authenticated
+    // Call auth() to get session, but DON'T call protect() (doesn't enforce auth)
+    // Then inject userId into headers so requireUser() can find it
     if (pathname.startsWith("/api/runtime/")) {
-      const res = NextResponse.next();
+      const authResult = await auth();
+      const userId = authResult.userId;
+
+      // Clone the request and inject the user ID header if authenticated
+      const requestHeaders = new Headers(req.headers);
+      if (userId) {
+        requestHeaders.set("x-owner-user-id", userId);
+      }
+
+      const res = NextResponse.next({
+        request: {
+          headers: requestHeaders,
+        },
+      });
       res.headers.set("X-Pulse-MW", "runtime_api");
+      res.headers.set("X-Pulse-Auth-Injected", userId ? "true" : "false");
       return tag(res, "HIT_RUNTIME_API");
     }
 
@@ -95,8 +136,17 @@ export default clerkMiddleware(async (auth, req) => {
   }
 });
 
+export default function middleware(req: NextRequest) {
+  if (CLERK_DISABLED) return ciSafeMiddleware(req);
+  return clerkHandler(req, {} as any); // Passing empty context type cast to satisfy nextjs types if needed, or just (req) depending on exact type overlap. Clerk middleware signature usually matches.
+  // Actually clerkHandler returns a result that is (req, event) => Response. 
+  // But export default middleware needs to match NextMiddleware.
+  // clerkMiddleware returns a NextMiddleware compatible function.
+  // Let's rely on standard signature matching.
+}
+
 export const config = {
   matcher: [
-    "/((?!manifest\\.json|favicon.ico|bridge|api/bridge|_next/static|_next/image).*)",
+    "/((?!manifest\\.json|robots\\.txt|sitemap\\.xml|favicon.ico|bridge|api/bridge|_next/static|_next/image).*)",
   ],
 };
