@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
     }
 
     try {
-        const { userId } = requireUser(req);
+        const { userId } = await requireUser();
 
         let lifeState: LifeState;
         try {

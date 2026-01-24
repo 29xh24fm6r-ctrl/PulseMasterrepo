@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
         auth = "bypassed";
     } else {
         try {
-            const { userId } = requireUser(req);
+            const { userId } = await requireUser();
 
             const [db, sub] = await Promise.all([
                 Promise.resolve(getSupabaseAdminRuntimeClient()),
