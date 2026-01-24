@@ -30,7 +30,7 @@ const PulseRuntimeContext = createContext<PulseRuntimeContextType | undefined>(u
 import { usePresencePublisher } from "@/lib/presence/usePresencePublisher";
 import { usePresenceErrorCapture } from "@/lib/presence/usePresenceErrorCapture";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 // Helper to detect if we are on an auth route where the runtime loop must be inert.
 function isAuthPath(pathname: string) {
@@ -57,6 +57,7 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
     usePresenceErrorCapture();
 
     const pathname = usePathname();
+    const router = useRouter();
     const isAuth = isAuthPath(pathname || "");
 
     const { setIPPActive, showBanner } = useOverlays();
@@ -90,19 +91,22 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
         console.error("Runtime Provider Error:", err);
 
         // ✅ Antigravity Phase 2: 401 Failsafe
-        // If we get an explicit 401/AUTH_MISSING, stop retrying immediately.
+        // If we get an explicit 401/AUTH_MISSING, redirect to sign-in.
         // This prevents the "Connecting..." purgatory.
         if (err?.status === 401 || err?.code === 'AUTH_MISSING') {
-            console.warn("[PulseRuntime] 401 detected. Pausing runtime to prevent loops.");
+            console.warn("[PulseRuntime] 401 detected. Redirecting to /sign-in.");
             setRuntimeMode('paused');
-            // Optional: You could redirect to /sign-in here, but 'paused' is safer 
-            // to avoid routing loops if the page itself is public.
+
+            // Only redirect if we're not already on an auth path (prevent loops)
+            if (!isAuth) {
+                router.push('/sign-in');
+            }
             return;
         }
 
         // Fallback to paused safely instead of crash
         setRuntimeMode('paused');
-    }, []);
+    }, [router, isAuth]);
 
     const refresh = useCallback(async () => {
         if (isAuth) return;
