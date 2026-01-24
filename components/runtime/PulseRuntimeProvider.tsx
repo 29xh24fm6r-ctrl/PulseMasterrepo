@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, ReactNode, useEffect, useCallback } from "react";
+import { createContext, useContext, useState, ReactNode, useEffect, useCallback, useRef } from "react";
 import * as client from "@/lib/runtime/client";
 import { useOverlays } from "@/components/shell/overlays/OverlayContext";
 import {
@@ -29,6 +29,7 @@ const PulseRuntimeContext = createContext<PulseRuntimeContextType | undefined>(u
 
 import { usePresencePublisher } from "@/lib/presence/usePresencePublisher";
 import { usePresenceErrorCapture } from "@/lib/presence/usePresenceErrorCapture";
+import { useAuth } from "@clerk/nextjs";
 
 import { usePathname, useRouter } from "next/navigation";
 
@@ -59,6 +60,8 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
     const pathname = usePathname();
     const router = useRouter();
     const isAuth = isAuthPath(pathname || "");
+    const { isSignedIn, isLoaded: clerkLoaded } = useAuth();
+    const hasRedirected = useRef(false);
 
     const { setIPPActive, showBanner } = useOverlays();
 
@@ -91,26 +94,36 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
         console.error("Runtime Provider Error:", err);
 
         // ✅ Antigravity Phase 2: 401 Failsafe
-        // If we get an explicit 401/AUTH_MISSING, redirect to sign-in.
-        // This prevents the "Connecting..." purgatory.
+        // If we get an explicit 401/AUTH_MISSING, handle gracefully.
         if (err?.status === 401 || err?.code === 'AUTH_MISSING') {
-            console.warn("[PulseRuntime] 401 detected. Redirecting to /sign-in.");
+            console.warn("[PulseRuntime] 401 detected.");
             setRuntimeMode('paused');
 
-            // Only redirect if we're not already on an auth path (prevent loops)
-            if (!isAuth) {
-                router.push('/sign-in');
+            // ⚠️ Loop Prevention: Only redirect ONCE and only if NOT signed in with Clerk
+            // If signed in with Clerk but getting 401s, it's a middleware/config issue
+            // Don't redirect to avoid infinite loop
+            if (clerkLoaded && !isSignedIn && !isAuth && !hasRedirected.current) {
+                console.warn("[PulseRuntime] Not signed in. Redirecting to /sign-in.");
+                hasRedirected.current = true;
+                router.replace('/sign-in'); // Use replace to avoid back button issues
+            } else if (isSignedIn) {
+                console.error("[PulseRuntime] Signed in but getting 401s. Middleware issue. Staying paused.");
             }
             return;
         }
 
         // Fallback to paused safely instead of crash
         setRuntimeMode('paused');
-    }, [router, isAuth]);
+    }, [router, isAuth, isSignedIn, clerkLoaded]);
 
     const refresh = useCallback(async () => {
-        if (isAuth) return;
+        // Skip runtime on auth/onboarding pages
+        if (isAuth) {
+            console.log('[PulseRuntime] Skipping refresh - on auth/onboarding page:', pathname);
+            return;
+        }
 
+        console.log('[PulseRuntime] Starting refresh on:', pathname);
         setIsLoading(true);
         try {
             // Preview detection only (NO AUTH CHECK)
@@ -149,7 +162,7 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
         } finally {
             setIsLoading(false);
         }
-    }, [handleError, isAuth]);
+    }, [handleError, isAuth, pathname]);
 
     // Initial Load & Hydration Safe Message
     useEffect(() => {
