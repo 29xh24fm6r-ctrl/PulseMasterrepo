@@ -26,7 +26,11 @@
         "prebuild": "node scripts/verify-no-clerk-prod-in-preview.mjs && npm run routes:gen",
         "verify:clerk:preview": "node scripts/verify-no-clerk-prod-in-preview.mjs",
         "prepare": "husky",
-        "test": "echo \"no tests\"",
+        "test": "playwright test",
+        "test:e2e": "playwright test tests/runtime-auth.spec.ts",
+        "test:e2e:headed": "playwright test tests/runtime-auth.spec.ts --headed",
+        "test:e2e:debug": "playwright test tests/runtime-auth.spec.ts --debug",
+        "test:e2e:ui": "playwright test tests/runtime-auth.spec.ts --ui",
         "verify:phase14:runtime": "node --loader tsx scripts/verify-phase14-predelegation.runtime.ts",
         "verify:preview-runtime": "tsx scripts/verify-preview-runtime.ts",
         "verify:runtime:immunity": "tsx scripts/verify-runtime-cache-immunity.ts"

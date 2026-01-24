@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { requireUser, handleRuntimeError } from "@/lib/auth/requireUser";
+import { requireUserId } from "@/lib/runtime/requireUserId";
 import { v4 as uuidv4 } from 'uuid';
 import { Message } from "@/lib/runtime/types";
 import { resolveSubscription } from "@/lib/subscription/resolveSubscription";
@@ -56,7 +56,10 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-        const { userId } = await requireUser();
+        const userId = await requireUserId(req);
+        if (!userId) {
+            return runtimeResponse({ error: "User identity missing" }, 401, "missing");
+        }
 
         // 2. Subscription Check
         const sub = await resolveSubscription(userId);

@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh pr view:*)",
+      "Bash(gh run view:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfix\\(auth\\): prevent Clerk initialization crash in CI environment\n\nAdded CI environment detection to ClerkProviderSafe to prevent\n\"Missing publishableKey\" error that was causing /robots.txt and\nother routes to return 500 errors during CI runs.\n\nThe component now checks for CI=true or NODE_ENV=test and skips\nClerkProvider rendering entirely in these environments, allowing\nthe app to start successfully without Clerk credentials.\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push:*)",
+      "Bash(gh run list:*)",
+      "Bash(gh run watch:*)",
+      "Bash(npm run build:*)",
+      "Bash(git fetch:*)",
+      "Bash(git checkout:*)",
+      "Bash(git pull:*)"
+    ]
+  }
+}

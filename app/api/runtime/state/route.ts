@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth/requireUser";
+import { requireUserId } from "@/lib/runtime/requireUserId";
 import { LifeState, NotableEvent } from "@/lib/runtime/types";
 import { aggregateLifeState } from "@/lib/life-state/aggregateLifeState";
 import { runtimeAuthIsRequired } from "@/lib/runtime/runtimeAuthPolicy";
@@ -24,7 +24,18 @@ export async function GET(req: NextRequest) {
         auth = "bypassed";
     } else {
         try {
-            const { userId } = await requireUser();
+            const userId = await requireUserId(req);
+            if (!userId) {
+                status = 401;
+                auth = "missing";
+                body = { error: "User identity missing" };
+                const customHeaders = runtimeHeaders({ auth });
+                const response = NextResponse.json(body, { status });
+                Object.entries(customHeaders).forEach(([key, value]) => {
+                    response.headers.set(key, value);
+                });
+                return response;
+            }
 
             let lifeState: LifeState;
             try {

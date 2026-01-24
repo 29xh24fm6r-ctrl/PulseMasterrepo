@@ -30,6 +30,7 @@ const PulseRuntimeContext = createContext<PulseRuntimeContextType | undefined>(u
 import { usePresencePublisher } from "@/lib/presence/usePresencePublisher";
 import { usePresenceErrorCapture } from "@/lib/presence/usePresenceErrorCapture";
 import { useAuth } from "@clerk/nextjs";
+import { logRuntimeHealth } from "@/lib/runtime/validateRuntimeHealth";
 
 import { usePathname, useRouter } from "next/navigation";
 
@@ -62,6 +63,11 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
 
     useEffect(() => {
         setIsHydrated(true);
+
+        // PHASE A: Runtime health check (catches apex/www split, Clerk config issues)
+        if (process.env.NODE_ENV === 'development' || process.env.VERCEL_ENV === 'preview') {
+            logRuntimeHealth();
+        }
     }, []);
 
     const { setIPPActive, showBanner } = useOverlays();

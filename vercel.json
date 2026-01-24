@@ -1,4 +1,12 @@
 {
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "pulselifeos.com" }],
+      "destination": "https://www.pulselifeos.com/$1",
+      "permanent": true
+    }
+  ],
   "crons": [
     {
       "path": "/api/cron/executions",

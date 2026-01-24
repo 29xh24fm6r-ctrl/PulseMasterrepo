@@ -47,7 +47,8 @@ function ciSafeMiddleware(req: NextRequest) {
 
 const CLERK_DISABLED =
   process.env.CI === "true" ||
-  process.env.NODE_ENV === "test";
+  process.env.NODE_ENV === "test" ||
+  process.env.VERCEL_ENV === "preview";
 
 /*
  * MAIN LOGIC (Clerk Protected)
