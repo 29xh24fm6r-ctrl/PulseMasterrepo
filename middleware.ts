@@ -147,6 +147,6 @@ export default function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!manifest\\.json|favicon.ico|bridge|api/bridge|_next/static|_next/image).*)",
+    "/((?!manifest\\.json|robots\\.txt|sitemap\\.xml|favicon.ico|bridge|api/bridge|_next/static|_next/image).*)",
   ],
 };
