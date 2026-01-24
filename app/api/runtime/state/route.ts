@@ -69,10 +69,16 @@ export async function GET(req: NextRequest) {
     }
 
     const customHeaders = runtimeHeaders({ auth });
-    return NextResponse.json(body, {
-        status,
-        headers: customHeaders as any
+
+    // Create response first
+    const response = NextResponse.json(body, { status });
+
+    // Set headers explicitly
+    Object.entries(customHeaders).forEach(([key, value]) => {
+        response.headers.set(key, value);
     });
+
+    return response;
 }
 
 function mapLevelToValue(level: string): number {

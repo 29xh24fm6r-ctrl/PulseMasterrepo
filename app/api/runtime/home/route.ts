@@ -23,12 +23,20 @@ export async function GET(req: NextRequest) {
         });
 
         const customHeaders = runtimeHeaders({ auth: "bypassed" });
+
+        // Create response first
+        const response = NextResponse.json(body, { status: 200 });
+
         // Restore diagnostic headers for preview if needed
         const headers: any = { ...customHeaders };
         headers["x-pulse-runtime-auth-mode"] = getRuntimeAuthMode();
         headers["x-pulse-src"] = "runtime_preview_envelope";
 
-        return NextResponse.json(body, { headers });
+        Object.entries(headers).forEach(([key, value]) => {
+            response.headers.set(key, value as string);
+        });
+
+        return response;
     }
 
     try {
@@ -54,12 +62,17 @@ export async function GET(req: NextRequest) {
         }
 
         const customHeaders = runtimeHeaders({ auth: "required" });
-        return NextResponse.json({
+
+        const response = NextResponse.json({
             lifeState,
             orientationLine: lifeState.orientation
-        }, {
-            headers: customHeaders as any
+        }, { status: 200 });
+
+        Object.entries(customHeaders).forEach(([key, value]) => {
+            response.headers.set(key, value);
         });
+
+        return response;
 
     } catch (err: any) {
         console.error("[Runtime] Error:", err);
@@ -71,9 +84,15 @@ export async function GET(req: NextRequest) {
 
         const customHeaders = runtimeHeaders({ auth: isAuthErr ? "missing" : "required" });
 
+        const response = NextResponse.json({ error: msg }, { status });
+
         const headers: any = { ...customHeaders };
         headers["x-pulse-src"] = "runtime_error_boundary";
 
-        return NextResponse.json({ error: msg }, { status, headers });
+        Object.entries(headers).forEach(([key, value]) => {
+            response.headers.set(key, value as string);
+        });
+
+        return response;
     }
 }
