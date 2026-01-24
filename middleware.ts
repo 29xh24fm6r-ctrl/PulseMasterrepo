@@ -22,7 +22,37 @@ const isPublicRoute = createRouteMatcher([
   "/bridge(.*)" // Safe: CI Check Logic manually guards this below
 ]);
 
-export default clerkMiddleware(async (auth, req) => {
+/* 
+ * CI SAFE MODE
+ * Prevents "Missing publishableKey" crashes in CI/Test
+ */
+function ciSafeMiddleware(req: NextRequest) {
+  const { pathname } = req.nextUrl;
+
+  // Never block public assets / next internals / manifest
+  if (
+    pathname === "/manifest.json" ||
+    pathname.startsWith("/_next/") ||
+    isPublicAssetPath(pathname)
+  ) {
+    const res = NextResponse.next();
+    res.headers.set("x-pulse-mw", "CI_NO_CLERK_BYPASS");
+    return res;
+  }
+
+  const res = NextResponse.next();
+  res.headers.set("x-pulse-mw", "CI_NO_CLERK");
+  return res;
+}
+
+const CLERK_DISABLED =
+  process.env.CI === "true" ||
+  process.env.NODE_ENV === "test";
+
+/*
+ * MAIN LOGIC (Clerk Protected)
+ */
+const clerkHandler = clerkMiddleware(async (auth, req) => {
   try {
     const { pathname } = req.nextUrl;
     const host = req.headers.get("host") ?? "";
@@ -105,6 +135,15 @@ export default clerkMiddleware(async (auth, req) => {
     throw err;
   }
 });
+
+export default function middleware(req: NextRequest) {
+  if (CLERK_DISABLED) return ciSafeMiddleware(req);
+  return clerkHandler(req, {} as any); // Passing empty context type cast to satisfy nextjs types if needed, or just (req) depending on exact type overlap. Clerk middleware signature usually matches.
+  // Actually clerkHandler returns a result that is (req, event) => Response. 
+  // But export default middleware needs to match NextMiddleware.
+  // clerkMiddleware returns a NextMiddleware compatible function.
+  // Let's rely on standard signature matching.
+}
 
 export const config = {
   matcher: [

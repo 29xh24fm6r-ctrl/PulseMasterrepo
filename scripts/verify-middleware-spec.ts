@@ -55,6 +55,12 @@ function check() {
     // 5. Emergency Bypass
     if (!content.includes('// EMERGENCY CI BYPASS')) errors.push("Missing Emergency CI Comment/Block");
 
+    // 6. CI Clerk Disabled Mode
+    if (!content.includes('const CLERK_DISABLED =')) errors.push("Missing CLERK_DISABLED Definition");
+    if (!content.includes('function ciSafeMiddleware(req: NextRequest)')) errors.push("Missing ciSafeMiddleware Function");
+    if (!content.includes('if (CLERK_DISABLED) return ciSafeMiddleware(req);')) errors.push("Missing Wrapper Logic");
+    if (!content.includes('"CI_NO_CLERK_BYPASS"')) errors.push("Missing CI Safe Bypass Tag");
+
     if (errors.length > 0) {
         console.error("❌ Middleware Verification Failed:");
         errors.forEach(e => console.error(`   - ${e}`));
@@ -63,5 +69,6 @@ function check() {
         console.log("✅ Middleware Spec Verified (Static Analysis)");
     }
 }
+
 
 check();
