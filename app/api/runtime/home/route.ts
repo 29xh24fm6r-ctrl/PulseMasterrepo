@@ -10,6 +10,37 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+// Convert numeric score (0-1) to display level
+function scoreToLevel(score: number): 'High' | 'Medium' | 'Low' {
+    if (score >= 0.66) return 'High';
+    if (score >= 0.33) return 'Medium';
+    return 'Low';
+}
+
+// Generate orientation message from life state
+function generateOrientation(state: any): string {
+    const energy = state.energy_level ?? 0.5;
+    const stress = state.stress_index ?? 0.5;
+    const momentum = state.momentum_score ?? 0;
+
+    if (energy > 0.6 && stress < 0.4) {
+        return "You're in a strong position today. Good time for important work.";
+    }
+    if (stress > 0.7) {
+        return "Elevated pressure detected. Consider protecting your energy.";
+    }
+    if (energy < 0.3) {
+        return "Energy reserves are low. Prioritize recovery.";
+    }
+    if (momentum > 0.3) {
+        return "Momentum is building. Keep the streak alive.";
+    }
+    if (momentum < -0.3) {
+        return "Time to reset. Small wins compound quickly.";
+    }
+    return "Systems nominal. Ready when you are.";
+}
+
 export async function GET(req: NextRequest) {
     if (!runtimeAuthIsRequired()) {
         const body = previewRuntimeEnvelope({
@@ -54,10 +85,10 @@ export async function GET(req: NextRequest) {
         try {
             const result = await aggregateLifeState(userId);
             lifeState = {
-                energy: result.energy,
-                stress: result.stress,
-                momentum: result.momentum,
-                orientation: result.summary || "Pulse is monitoring your vitals."
+                energy: scoreToLevel(result.energy_level ?? 0.5),
+                stress: scoreToLevel(result.stress_index ?? 0.5),
+                momentum: scoreToLevel(Math.abs(result.momentum_score ?? 0)),
+                orientation: generateOrientation(result)
             };
         } catch (innerErr) {
             console.warn("Failed to aggregate life state, using defaults", innerErr);
@@ -65,7 +96,7 @@ export async function GET(req: NextRequest) {
                 energy: 'Medium',
                 stress: 'Medium',
                 momentum: 'Medium',
-                orientation: "Pulse is initializing..."
+                orientation: "Connecting to your data sources..."
             };
         }
 
