@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import { headers } from "next/headers";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -7,21 +8,22 @@ export interface UserAuthResult {
 }
 
 /**
- * Validates the request has a valid user ID (via standard headers).
+ * Validates the request has a valid user ID from middleware-injected headers.
+ *
+ * CRITICAL: Uses headers() from next/headers (App Router) NOT req.headers (Pages Router)
+ * Middleware-modified headers are ONLY accessible via headers() in App Router!
+ *
  * Throws a structured error response if missing, which allows
  * the Runtime Provider to capture and trigger IPP.
  */
-export function requireUser(req: NextRequest): UserAuthResult {
-    // 1. Check Standard Header (Dev/Prod Standard)
-    const raw = req.headers.get("x-owner-user-id") || "";
+export async function requireUser(): Promise<UserAuthResult> {
+    // ✅ App Router: Use headers() from next/headers to read middleware-injected headers
+    const headersList = await headers();
+    const raw = headersList.get("x-owner-user-id") || "";
     const userId = raw.trim();
 
-    // 2. Validate
+    // Validate
     if (!userId || !UUID_RE.test(userId)) {
-        // We throw a special error that the route handler is expected to catch
-        // or we can fallback to returning null and letting the route handle it.
-        // However, to ensure consistency, we'll throw a specific object 
-        // that our routes can catch and convert to JSON.
         throw { status: 401, code: "AUTH_MISSING", message: "User identity missing" };
     }
 

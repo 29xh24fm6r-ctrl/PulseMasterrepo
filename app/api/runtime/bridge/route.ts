@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-        const { userId } = requireUser(req);
+        const { userId } = await requireUser();
 
         // 2. Subscription Check
         const sub = await resolveSubscription(userId);
