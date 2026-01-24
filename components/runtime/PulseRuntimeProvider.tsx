@@ -29,6 +29,7 @@ const PulseRuntimeContext = createContext<PulseRuntimeContextType | undefined>(u
 
 import { usePresencePublisher } from "@/lib/presence/usePresencePublisher";
 import { usePresenceErrorCapture } from "@/lib/presence/usePresenceErrorCapture";
+import { useAuth } from "@clerk/nextjs";
 
 import { usePathname, useRouter } from "next/navigation";
 
@@ -59,6 +60,7 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
     const pathname = usePathname();
     const router = useRouter();
     const isAuth = isAuthPath(pathname || "");
+    const { isSignedIn, isLoaded: clerkLoaded } = useAuth();
 
     const { setIPPActive, showBanner } = useOverlays();
 
@@ -94,19 +96,24 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
         // If we get an explicit 401/AUTH_MISSING, redirect to sign-in.
         // This prevents the "Connecting..." purgatory.
         if (err?.status === 401 || err?.code === 'AUTH_MISSING') {
-            console.warn("[PulseRuntime] 401 detected. Redirecting to /sign-in.");
+            console.warn("[PulseRuntime] 401 detected.");
             setRuntimeMode('paused');
 
-            // Only redirect if we're not already on an auth path (prevent loops)
-            if (!isAuth) {
+            // ⚠️ Loop Prevention: Only redirect if NOT signed in with Clerk
+            // If signed in with Clerk but getting 401s, it's a middleware/config issue
+            // Don't redirect to avoid infinite loop
+            if (clerkLoaded && !isSignedIn && !isAuth) {
+                console.warn("[PulseRuntime] Not signed in. Redirecting to /sign-in.");
                 router.push('/sign-in');
+            } else if (isSignedIn) {
+                console.error("[PulseRuntime] Signed in but getting 401s. Middleware issue. Staying paused.");
             }
             return;
         }
 
         // Fallback to paused safely instead of crash
         setRuntimeMode('paused');
-    }, [router, isAuth]);
+    }, [router, isAuth, isSignedIn, clerkLoaded]);
 
     const refresh = useCallback(async () => {
         if (isAuth) return;
