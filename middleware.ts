@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isPublicAssetPath } from "@/lib/middleware/publicAssets.edge";
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
 const IS_CI =
   process.env.CI === "true" ||
@@ -11,8 +12,6 @@ function tag(res: NextResponse, value: string) {
   return res;
 }
 
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
-
 const isPublicRoute = createRouteMatcher([
   "/sign-in(.*)",
   "/sign-up(.*)",
@@ -23,19 +22,16 @@ const isPublicRoute = createRouteMatcher([
   "/bridge(.*)" // Safe: CI Check Logic manually guards this below
 ]);
 
-
-
 export default clerkMiddleware(async (auth, req) => {
   try {
     const { pathname } = req.nextUrl;
     const host = req.headers.get("host") ?? "";
 
     // 0️⃣ Canonicalize to www (if production apex)
-    // ✅ Antigravity Phase 2: Permanent Fix
     if (host === "pulselifeos.com") {
-      const url = req.nextUrl.clone();
-      url.host = "www.pulselifeos.com";
-      return NextResponse.redirect(url, 308);
+      const redirectUrl = new URL(req.url);
+      redirectUrl.host = "www.pulselifeos.com";
+      return NextResponse.redirect(redirectUrl, 308);
     }
 
     // 🚨 ABSOLUTE BYPASS — MUST NEVER ENFORCE AUTH
@@ -60,12 +56,26 @@ export default clerkMiddleware(async (auth, req) => {
       return NextResponse.next();
     }
 
-    // 2️⃣ For /api/runtime/*, just pass through - Clerk injects auth automatically
-    // DON'T call auth().protect() - that enforces auth and throws if not signed in
-    // We want auth context injected, but not enforced (whoami should work unauthenticated)
+    // 2️⃣ For /api/runtime/*, inject user ID header if authenticated
+    // Call auth() to get session, but DON'T call protect() (doesn't enforce auth)
+    // Then inject userId into headers so requireUser() can find it
     if (pathname.startsWith("/api/runtime/")) {
-      const res = NextResponse.next();
+      const authResult = await auth();
+      const userId = authResult.userId;
+
+      // Clone the request and inject the user ID header if authenticated
+      const requestHeaders = new Headers(req.headers);
+      if (userId) {
+        requestHeaders.set("x-owner-user-id", userId);
+      }
+
+      const res = NextResponse.next({
+        request: {
+          headers: requestHeaders,
+        },
+      });
       res.headers.set("X-Pulse-MW", "runtime_api");
+      res.headers.set("X-Pulse-Auth-Injected", userId ? "true" : "false");
       return tag(res, "HIT_RUNTIME_API");
     }
 
