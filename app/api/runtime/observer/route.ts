@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth/requireUser";
+import { requireUserId } from "@/lib/runtime/requireUserId";
 import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
 import { ObserverData } from "@/lib/runtime/types";
 import { resolveSubscription } from "@/lib/subscription/resolveSubscription";
@@ -27,7 +27,18 @@ export async function GET(req: NextRequest) {
         auth = "bypassed";
     } else {
         try {
-            const { userId } = await requireUser();
+            const userId = await requireUserId(req);
+            if (!userId) {
+                status = 401;
+                auth = "missing";
+                body = { error: "User identity missing" };
+                const customHeaders = runtimeHeaders({ auth });
+                const response = NextResponse.json(body, { status });
+                Object.entries(customHeaders).forEach(([key, value]) => {
+                    response.headers.set(key, value);
+                });
+                return response;
+            }
 
             const [db, sub] = await Promise.all([
                 Promise.resolve(getSupabaseAdminRuntimeClient()),
