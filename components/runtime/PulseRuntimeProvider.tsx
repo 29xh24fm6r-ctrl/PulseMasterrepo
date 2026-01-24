@@ -23,6 +23,7 @@ interface PulseRuntimeContextType {
     sendBridgeMessage: (text: string) => void;
     isLoading: boolean;
     refresh: () => Promise<void>;
+    bootError: { message: string; stack?: string } | null;
 }
 
 const PulseRuntimeContext = createContext<PulseRuntimeContextType | undefined>(undefined);
@@ -87,6 +88,7 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
     // Do NOT use new Date() in initial state. Start empty, add in effect.
     const [messages, setMessages] = useState<Message[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [bootError, setBootError] = useState<{ message: string; stack?: string } | null>(null);
 
     const [runtimeMode, setRuntimeMode] = useState<'live' | 'preview' | 'paused'>('live');
 
@@ -138,6 +140,8 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
 
         console.log('[PulseRuntime] Starting refresh on:', typeof window !== 'undefined' ? window.location.pathname : pathname);
         setIsLoading(true);
+        setBootError(null);
+
         try {
             // Preview detection only (NO AUTH CHECK)
             // ✅ Antigravity: Use unified runtime client with credentials: 'include'
@@ -151,26 +155,29 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
                     momentum: 'High',
                     orientation: 'Preview Mode'
                 });
-                return;
+                // ✅ FIX: Don't return early - let finally block handle setIsLoading(false)
+            } else {
+                // Parallel runtime data fetch
+                const [ls, tr, nt, pl, obs] = await Promise.all([
+                    client.getLifeState(),
+                    client.getTrends(),
+                    client.getNotables(),
+                    client.getPlanLedger(),
+                    client.getObserverData()
+                ]);
+
+                setLifeState(ls);
+                setTrends(tr);
+                setNotables(nt);
+                setPlanLedger(pl);
+                setObserverData(obs);
+                setRuntimeMode('live');
             }
 
-            // Parallel runtime data fetch
-            const [ls, tr, nt, pl, obs] = await Promise.all([
-                client.getLifeState(),
-                client.getTrends(),
-                client.getNotables(),
-                client.getPlanLedger(),
-                client.getObserverData()
-            ]);
-
-            setLifeState(ls);
-            setTrends(tr);
-            setNotables(nt);
-            setPlanLedger(pl);
-            setObserverData(obs);
-            setRuntimeMode('live');
-
         } catch (err: any) {
+            const message = err?.message ?? String(err);
+            setBootError({ message, stack: err?.stack });
+            console.error("[PulseRuntime] Boot failed:", err);
             handleError(err);
         } finally {
             setIsLoading(false);
@@ -245,7 +252,8 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
         sendBridgeMessage: () => { },
         isLoading: false,
         refresh: async () => { },
-        runtimeMode: 'paused'
+        runtimeMode: 'paused',
+        bootError: null
     };
 
     const value = isAuthPath() ? inertValue : {
@@ -258,18 +266,41 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
         sendBridgeMessage,
         isLoading,
         refresh,
-        runtimeMode
+        runtimeMode,
+        bootError
     };
 
     return (
         <PulseRuntimeContext.Provider value={value}>
-            {children}
-            {!isAuthPath() && runtimeMode === 'preview' && (
-                <div className="fixed bottom-0 left-0 right-0 bg-indigo-900/90 text-indigo-100 text-xs px-4 py-1 text-center backdrop-blur-sm z-[9999]">
-                    PREVIEW SAFE MODE — Read Only
+            {bootError && !isAuthPath() ? (
+                <div className="min-h-screen bg-black flex items-center justify-center p-4">
+                    <div className="max-w-md w-full bg-red-950/30 border border-red-800/50 rounded-lg p-6">
+                        <h2 className="text-xl font-semibold text-red-400 mb-3">Pulse Failed to Initialize</h2>
+                        <p className="text-red-200/80 mb-4 font-mono text-sm">{bootError.message}</p>
+                        {bootError.stack && (
+                            <details className="mb-4">
+                                <summary className="text-red-300/60 text-xs cursor-pointer hover:text-red-300">Stack Trace</summary>
+                                <pre className="text-red-300/40 text-xs mt-2 overflow-auto max-h-40">{bootError.stack}</pre>
+                            </details>
+                        )}
+                        <button
+                            onClick={() => refresh()}
+                            className="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded transition-colors"
+                        >
+                            Retry Initialization
+                        </button>
+                    </div>
                 </div>
+            ) : (
+                <>
+                    {children}
+                    {!isAuthPath() && runtimeMode === 'preview' && (
+                        <div className="fixed bottom-0 left-0 right-0 bg-indigo-900/90 text-indigo-100 text-xs px-4 py-1 text-center backdrop-blur-sm z-[9999]">
+                            PREVIEW SAFE MODE — Read Only
+                        </div>
+                    )}
+                </>
             )}
-
         </PulseRuntimeContext.Provider>
     );
 }
