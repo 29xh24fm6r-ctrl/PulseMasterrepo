@@ -60,12 +60,12 @@ export default function RootLayout({
   }
 
   return (
-    <ClerkProviderSafe>
-      <html lang="en" suppressHydrationWarning>
-        <head>
-          <link rel="apple-touch-icon" href="/icons/icon-192.png" />
-        </head>
-        <body className={`${inter.className} bg-zinc-950 text-slate-100 overflow-hidden`}>
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+      </head>
+      <body className={`${inter.className} bg-zinc-950 text-slate-100 overflow-hidden`}>
+        <ClerkProviderSafe>
           <Providers>
             <UserProviderSafe>
               <ToastProvider>
@@ -83,8 +83,8 @@ export default function RootLayout({
               </ToastProvider>
             </UserProviderSafe>
           </Providers>
-        </body>
-      </html>
-    </ClerkProviderSafe>
+        </ClerkProviderSafe>
+      </body>
+    </html>
   );
 }
