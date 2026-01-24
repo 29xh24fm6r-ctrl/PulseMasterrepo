@@ -46,39 +46,26 @@ export function ClerkProviderSafe({ children }: Props) {
         );
     }
 
-    // Runtime Logic
-    // Runtime Logic
-    // ✅ FIX Phase 28-C: Hydration Safety
-    // We cannot check `window.location.hostname` during the initial render because
-    // Server sees nothing, Client sees "localhost", leading to tree mismatch.
-    //
-    // Strategy:
-    // 1. Initial State: Assume ENABLED (Optimistic). This matches SSR.
-    // 2. Client Effect: Check hostname. If invalid, switch to DISABLED.
-
-    const [isClientDisabled, setIsClientDisabled] = React.useState(false);
+    // ✅ FIX React #418: Hydration-safe auth disable detection
+    // CRITICAL: Must render same tree structure on server and client
+    // Use state to toggle CONTENT visibility, not component tree structure
+    const [showBanner, setShowBanner] = React.useState(false);
 
     React.useEffect(() => {
-        // Now valid to check window
+        // Client-side only: Check if hostname is non-canonical
         const h = window.location.hostname;
-        const valid = isCanonicalHost(h) && hasPublishableKey();
-
-        if (!valid) {
-            console.warn("[ClerkProviderSafe] Disabling Auth: Non-Canonical Host", h);
-            setIsClientDisabled(true);
+        if (!isCanonicalHost(h)) {
+            console.warn("[ClerkProviderSafe] Non-canonical host detected:", h);
+            setShowBanner(true);
         }
     }, []);
 
-    // If disabled by Client Logic 
-    if (isClientDisabled) {
-        return (
-            <>
-                <PreviewAuthDisabledBanner />
-                {children}
-            </>
-        );
-    }
-
-    // Default: Render Provider (SSR safe)
-    return <ClerkProvider>{children}</ClerkProvider>;
+    // ✅ ALWAYS render ClerkProvider - keep tree structure consistent
+    // Only conditionally show banner inside the provider
+    return (
+        <ClerkProvider>
+            {showBanner && <PreviewAuthDisabledBanner />}
+            {children}
+        </ClerkProvider>
+    );
 }
