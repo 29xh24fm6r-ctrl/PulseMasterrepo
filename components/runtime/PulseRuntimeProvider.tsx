@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, ReactNode, useEffect, useCallback } from "react";
+import { createContext, useContext, useState, ReactNode, useEffect, useCallback, useRef } from "react";
 import * as client from "@/lib/runtime/client";
 import { useOverlays } from "@/components/shell/overlays/OverlayContext";
 import {
@@ -29,26 +29,22 @@ const PulseRuntimeContext = createContext<PulseRuntimeContextType | undefined>(u
 
 import { usePresencePublisher } from "@/lib/presence/usePresencePublisher";
 import { usePresenceErrorCapture } from "@/lib/presence/usePresenceErrorCapture";
+import { useAuth } from "@clerk/nextjs";
 
 import { usePathname, useRouter } from "next/navigation";
 
 // Helper to detect if we are on an auth route where the runtime loop must be inert.
-function isAuthPath(pathname: string) {
-    if (!pathname) return false;
-    // Normalize pathname: lowercase and remove trailing slash
-    let p = pathname.toLowerCase();
-    if (p.endsWith("/") && p.length > 1) {
-        p = p.slice(0, -1);
-    }
+// ✅ Hydration Fix: Use window.location (always accurate) instead of usePathname (returns "/" initially)
+const SKIP_RUNTIME_PATHS = ['/welcome', '/sign-in', '/sign-up', '/sign-out', '/onboarding'];
 
-    return (
-        p === "/sign-in" ||
-        p.startsWith("/sign-in/") ||
-        p === "/sign-up" ||
-        p.startsWith("/sign-up/") ||
-        p === "/welcome" ||
-        p.startsWith("/welcome/")
-    );
+function isAuthPath(): boolean {
+    // On client, use window.location (always accurate)
+    // On server, be conservative and skip polling
+    if (typeof window === 'undefined') {
+        return true; // Server-side: don't poll
+    }
+    const actualPath = window.location.pathname;
+    return SKIP_RUNTIME_PATHS.some(p => actualPath.startsWith(p));
 }
 
 export function PulseRuntimeProvider({ children }: { ReactNode }) {
@@ -58,7 +54,15 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
 
     const pathname = usePathname();
     const router = useRouter();
-    const isAuth = isAuthPath(pathname || "");
+    const { isSignedIn, isLoaded: clerkLoaded } = useAuth();
+    const hasRedirected = useRef(false);
+
+    // ✅ Hydration Guard: Track when client has hydrated to prevent pathname mismatch
+    const [isHydrated, setIsHydrated] = useState(false);
+
+    useEffect(() => {
+        setIsHydrated(true);
+    }, []);
 
     const { setIPPActive, showBanner } = useOverlays();
 
@@ -83,34 +87,50 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
     // FIX Phase 28-B: Debug Telemetry
     useEffect(() => {
         if (process.env.NODE_ENV === 'development') {
-            console.log(`[PulseRuntime] Debug: Path=${pathname} IsAuth=${isAuth} Mode=${runtimeMode}`);
+            console.log(`[PulseRuntime] Debug: Path=${pathname} IsAuth=${isAuthPath()} Mode=${runtimeMode}`);
         }
-    }, [pathname, isAuth, runtimeMode]);
+    }, [pathname, runtimeMode]);
 
     const handleError = useCallback((err: any) => {
         console.error("Runtime Provider Error:", err);
 
         // ✅ Antigravity Phase 2: 401 Failsafe
-        // If we get an explicit 401/AUTH_MISSING, redirect to sign-in.
-        // This prevents the "Connecting..." purgatory.
+        // If we get an explicit 401/AUTH_MISSING, handle gracefully.
         if (err?.status === 401 || err?.code === 'AUTH_MISSING') {
-            console.warn("[PulseRuntime] 401 detected. Redirecting to /sign-in.");
+            console.warn("[PulseRuntime] 401 detected.");
             setRuntimeMode('paused');
 
-            // Only redirect if we're not already on an auth path (prevent loops)
-            if (!isAuth) {
-                router.push('/sign-in');
+            // ⚠️ Loop Prevention: Only redirect ONCE and only if NOT signed in with Clerk
+            // If signed in with Clerk but getting 401s, it's a middleware/config issue
+            // Don't redirect to avoid infinite loop
+            if (clerkLoaded && !isSignedIn && !isAuthPath() && !hasRedirected.current) {
+                console.warn("[PulseRuntime] Not signed in. Redirecting to /sign-in.");
+                hasRedirected.current = true;
+                router.replace('/sign-in'); // Use replace to avoid back button issues
+            } else if (isSignedIn) {
+                console.error("[PulseRuntime] Signed in but getting 401s. Middleware issue. Staying paused.");
             }
             return;
         }
 
         // Fallback to paused safely instead of crash
         setRuntimeMode('paused');
-    }, [router, isAuth]);
+    }, [router, isSignedIn, clerkLoaded]);
 
     const refresh = useCallback(async () => {
-        if (isAuth) return;
+        // Wait for hydration before doing anything (prevents pathname mismatch)
+        if (!isHydrated) {
+            console.log('[PulseRuntime] Waiting for hydration...');
+            return;
+        }
 
+        // Skip runtime on auth/onboarding pages
+        if (isAuthPath()) {
+            console.log('[PulseRuntime] Skipping refresh - on auth/onboarding page:', typeof window !== 'undefined' ? window.location.pathname : pathname);
+            return;
+        }
+
+        console.log('[PulseRuntime] Starting refresh on:', typeof window !== 'undefined' ? window.location.pathname : pathname);
         setIsLoading(true);
         try {
             // Preview detection only (NO AUTH CHECK)
@@ -149,7 +169,7 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
         } finally {
             setIsLoading(false);
         }
-    }, [handleError, isAuth]);
+    }, [handleError, isHydrated, pathname]);
 
     // Initial Load & Hydration Safe Message
     useEffect(() => {
@@ -161,11 +181,12 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
             return prev;
         });
 
-        // 2. Trigger Refresh logic
-        if (!isAuth) {
-            refresh();
-        }
-    }, [refresh, isAuth]);
+        // 2. Trigger Refresh logic (only after hydration)
+        if (!isHydrated) return;
+        if (isAuthPath()) return;
+
+        refresh();
+    }, [refresh, isHydrated]);
 
     const sendBridgeMessage = async (text: string) => {
         // If in preview, optimistic add only, or show banner?
@@ -221,7 +242,7 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
         runtimeMode: 'paused'
     };
 
-    const value = isAuth ? inertValue : {
+    const value = isAuthPath() ? inertValue : {
         lifeState,
         trends,
         notables,
@@ -237,7 +258,7 @@ export function PulseRuntimeProvider({ children }: { ReactNode }) {
     return (
         <PulseRuntimeContext.Provider value={value}>
             {children}
-            {!isAuth && runtimeMode === 'preview' && (
+            {!isAuthPath() && runtimeMode === 'preview' && (
                 <div className="fixed bottom-0 left-0 right-0 bg-indigo-900/90 text-indigo-100 text-xs px-4 py-1 text-center backdrop-blur-sm z-[9999]">
                     PREVIEW SAFE MODE — Read Only
                 </div>
