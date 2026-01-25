@@ -4,6 +4,7 @@ import React from "react";
 import { ClerkProvider } from "@clerk/nextjs";
 import { isCanonicalHost } from "@/lib/auth/canonicalHosts";
 import { PreviewAuthDisabledBanner } from "@/components/system/PreviewAuthDisabledBanner";
+import { MockClerkProvider } from "./MockClerkProvider";
 
 type Props = { children: React.ReactNode };
 
@@ -38,15 +39,9 @@ export function ClerkProviderSafe({ children }: Props) {
         }
     }, []);
 
-    // ✅ CRITICAL: Only skip ClerkProvider if there's NO publishable key OR it's a CI dummy key
-    // Clerk now validates keys during build and rejects dummy/test keys
-    // Clerk hooks NEED the provider context or they'll crash, but not during build with dummy keys
-    if (!hasPublishableKey() || !isValidClerkKey()) {
-        if (!hasPublishableKey()) {
-            console.warn("[ClerkProviderSafe] No publishable key - rendering without ClerkProvider");
-        } else {
-            console.warn("[ClerkProviderSafe] CI/Test dummy key detected - rendering without ClerkProvider");
-        }
+    // ✅ No publishable key at all - skip both providers
+    if (!hasPublishableKey()) {
+        console.warn("[ClerkProviderSafe] No publishable key - rendering without ClerkProvider");
         return (
             <>
                 {showBanner && <PreviewAuthDisabledBanner />}
@@ -55,8 +50,20 @@ export function ClerkProviderSafe({ children }: Props) {
         );
     }
 
-    // ✅ ALWAYS render ClerkProvider when we have a key
-    // Even during build/CI - Clerk handles these cases gracefully
+    // ✅ CI/Test dummy key detected - use MockClerkProvider
+    // Clerk now validates keys during build and rejects dummy/test keys
+    // MockClerkProvider provides stub hooks so pages can pre-render without errors
+    if (!isValidClerkKey()) {
+        console.warn("[ClerkProviderSafe] CI/Test dummy key detected - using MockClerkProvider");
+        return (
+            <MockClerkProvider>
+                {showBanner && <PreviewAuthDisabledBanner />}
+                {children}
+            </MockClerkProvider>
+        );
+    }
+
+    // ✅ Valid key - use real ClerkProvider
     // This satisfies scripts/verify-build-shell.ts requirement for 'phase-production-build'
     return (
         <ClerkProvider>
