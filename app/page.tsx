@@ -1,7 +1,7 @@
 "use client";
 
-import { CommandCenter } from "@/components/home/CommandCenter";
+import { NerveCenter } from "@/components/nerve-center/NerveCenter";
 
 export default function HomePage() {
-  return <CommandCenter />;
+  return <NerveCenter />;
 }
