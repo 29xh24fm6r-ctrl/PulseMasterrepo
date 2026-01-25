@@ -12,7 +12,8 @@ jobs:
       # CI-safe dummy values for build (not used at runtime)
       NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
       NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bW15IiwiYXVkIjoiYXV0aGVudGljYXRlZCIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNjQ1MTkyMDAwLCJleHAiOjE5NjA1NTIwMDB9.dummy-key-for-ci-build-only
-      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_ZHVtbXkta2V5LWZvci1jaS1idWlsZC1vbmx5
+      # NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY - Omitted in CI to prevent validation errors
+      # ClerkProviderSafe uses MockClerkProvider when no key is present
     steps:
       - uses: actions/checkout@v4
 
