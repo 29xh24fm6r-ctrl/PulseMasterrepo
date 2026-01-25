@@ -1,7 +1,7 @@
 "use client";
 
-import { HomeSurface } from "@/components/home/HomeSurface";
+import { CommandCenter } from "@/components/home/CommandCenter";
 
 export default function HomePage() {
-  return <HomeSurface />;
+  return <CommandCenter />;
 }

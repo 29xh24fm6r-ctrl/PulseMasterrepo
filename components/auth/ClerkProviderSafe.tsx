@@ -4,6 +4,7 @@ import React from "react";
 import { ClerkProvider } from "@clerk/nextjs";
 import { isCanonicalHost } from "@/lib/auth/canonicalHosts";
 import { PreviewAuthDisabledBanner } from "@/components/system/PreviewAuthDisabledBanner";
+import { MockClerkProvider } from "./MockClerkProvider";
 
 type Props = { children: React.ReactNode };
 
@@ -25,22 +26,24 @@ export function ClerkProviderSafe({ children }: Props) {
         }
     }, []);
 
-    // ✅ CRITICAL: Only skip ClerkProvider if there's NO publishable key
-    // Clerk is designed to work during build/CI - it just returns loading state
-    // Clerk hooks NEED the provider context or they'll crash
+    // ✅ No publishable key at all - use MockClerkProvider
+    // This prevents errors when Clerk hooks are called but no Clerk is configured
     if (!hasPublishableKey()) {
-        console.warn("[ClerkProviderSafe] No publishable key - rendering without ClerkProvider");
+        console.warn("[ClerkProviderSafe] No publishable key - using MockClerkProvider");
         return (
-            <>
+            <MockClerkProvider>
                 {showBanner && <PreviewAuthDisabledBanner />}
                 {children}
-            </>
+            </MockClerkProvider>
         );
     }
 
-    // ✅ ALWAYS render ClerkProvider when we have a key
-    // Even during build/CI - Clerk handles these cases gracefully
-    // This satisfies scripts/verify-build-shell.ts requirement for 'phase-production-build'
+    // ✅ ALWAYS use real ClerkProvider when we have a key (even if it's a dummy key)
+    // Clerk will handle dummy keys gracefully during SSR/build
+    // The key validation error only occurs when Clerk tries to connect, not during SSR
+    //
+    // Note: We previously tried to skip ClerkProvider with dummy keys, but that breaks
+    // pages that use Clerk hooks during pre-rendering. Better to let Clerk handle it.
     return (
         <ClerkProvider>
             {showBanner && <PreviewAuthDisabledBanner />}
