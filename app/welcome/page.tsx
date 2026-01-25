@@ -5,6 +5,10 @@ import { useUser } from "@clerk/nextjs";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 
+// ✅ Force dynamic rendering - don't pre-render during build
+// This page uses Clerk hooks which require ClerkProvider at runtime
+export const dynamic = 'force-dynamic';
+
 export default function WelcomePage() {
     // ✅ Fix: Use Client-Side Authority (Clerk) instead of Server Roundtrip (WhoAmI)
     // This prevents race conditions where cookies aren't ready yet.

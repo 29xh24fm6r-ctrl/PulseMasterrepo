@@ -1,34 +1,81 @@
 "use client";
 
-import React from "react";
+import React, { createContext, useContext } from "react";
 
 // ✅ Mock Clerk Provider for build/CI environments
 // Provides stub implementations of all Clerk hooks to prevent build failures
-// when using dummy/test keys
 
 type Props = { children: React.ReactNode };
 
-// Mock context that provides all Clerk hooks with safe defaults
-const MockClerkContext = React.createContext({
-  user: null,
-  isSignedIn: false,
+// Create contexts that match Clerk's hook structure
+const AuthContext = createContext({
+  userId: null as string | null,
+  sessionId: null as string | null,
+  actor: null,
+  orgId: null as string | null,
+  orgRole: null as string | null,
+  orgSlug: null as string | null,
+  has: () => false,
   isLoaded: true,
-  userId: null,
-  sessionId: null,
-  orgId: null,
+  isSignedIn: false,
+});
+
+const UserContext = createContext({
+  isLoaded: true,
+  isSignedIn: false,
+  user: null,
+});
+
+const SessionContext = createContext({
+  isLoaded: true,
+  isSignedIn: false,
+  session: null,
+});
+
+const OrganizationContext = createContext({
+  isLoaded: true,
+  organization: null,
+  membership: null,
 });
 
 export function MockClerkProvider({ children }: Props) {
   return (
-    <MockClerkContext.Provider value={{
-      user: null,
-      isSignedIn: false,
-      isLoaded: true,
+    <AuthContext.Provider value={{
       userId: null,
       sessionId: null,
+      actor: null,
       orgId: null,
+      orgRole: null,
+      orgSlug: null,
+      has: () => false,
+      isLoaded: true,
+      isSignedIn: false,
     }}>
-      {children}
-    </MockClerkContext.Provider>
+      <UserContext.Provider value={{
+        isLoaded: true,
+        isSignedIn: false,
+        user: null,
+      }}>
+        <SessionContext.Provider value={{
+          isLoaded: true,
+          isSignedIn: false,
+          session: null,
+        }}>
+          <OrganizationContext.Provider value={{
+            isLoaded: true,
+            organization: null,
+            membership: null,
+          }}>
+            {children}
+          </OrganizationContext.Provider>
+        </SessionContext.Provider>
+      </UserContext.Provider>
+    </AuthContext.Provider>
   );
 }
+
+// Export mock hooks that components can use
+export const useAuth = () => useContext(AuthContext);
+export const useUser = () => useContext(UserContext);
+export const useSession = () => useContext(SessionContext);
+export const useOrganization = () => useContext(OrganizationContext);
