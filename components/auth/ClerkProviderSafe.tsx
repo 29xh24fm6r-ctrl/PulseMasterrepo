@@ -11,6 +11,19 @@ function hasPublishableKey(): boolean {
     return !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 }
 
+function isValidClerkKey(): boolean {
+    const key = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+    if (!key) return false;
+
+    // ✅ Skip ClerkProvider for CI dummy keys
+    // Clerk now validates keys during build and rejects dummy keys
+    if (key.includes('dummy') || key.includes('ZHVtbXk')) {
+        return false;
+    }
+
+    return true;
+}
+
 export function ClerkProviderSafe({ children }: Props) {
     // ✅ FIX React #418: Hydration-safe banner detection
     // Must render same tree structure on server and client
@@ -25,11 +38,15 @@ export function ClerkProviderSafe({ children }: Props) {
         }
     }, []);
 
-    // ✅ CRITICAL: Only skip ClerkProvider if there's NO publishable key
-    // Clerk is designed to work during build/CI - it just returns loading state
-    // Clerk hooks NEED the provider context or they'll crash
-    if (!hasPublishableKey()) {
-        console.warn("[ClerkProviderSafe] No publishable key - rendering without ClerkProvider");
+    // ✅ CRITICAL: Only skip ClerkProvider if there's NO publishable key OR it's a CI dummy key
+    // Clerk now validates keys during build and rejects dummy/test keys
+    // Clerk hooks NEED the provider context or they'll crash, but not during build with dummy keys
+    if (!hasPublishableKey() || !isValidClerkKey()) {
+        if (!hasPublishableKey()) {
+            console.warn("[ClerkProviderSafe] No publishable key - rendering without ClerkProvider");
+        } else {
+            console.warn("[ClerkProviderSafe] CI/Test dummy key detected - rendering without ClerkProvider");
+        }
         return (
             <>
                 {showBanner && <PreviewAuthDisabledBanner />}
