@@ -12,19 +12,6 @@ function hasPublishableKey(): boolean {
     return !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 }
 
-function isValidClerkKey(): boolean {
-    const key = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-    if (!key) return false;
-
-    // ✅ Skip ClerkProvider for CI dummy keys
-    // Clerk now validates keys during build and rejects dummy keys
-    if (key.includes('dummy') || key.includes('ZHVtbXk')) {
-        return false;
-    }
-
-    return true;
-}
-
 export function ClerkProviderSafe({ children }: Props) {
     // ✅ FIX React #418: Hydration-safe banner detection
     // Must render same tree structure on server and client
@@ -39,22 +26,10 @@ export function ClerkProviderSafe({ children }: Props) {
         }
     }, []);
 
-    // ✅ No publishable key at all - skip both providers
+    // ✅ No publishable key at all - use MockClerkProvider
+    // This prevents errors when Clerk hooks are called but no Clerk is configured
     if (!hasPublishableKey()) {
-        console.warn("[ClerkProviderSafe] No publishable key - rendering without ClerkProvider");
-        return (
-            <>
-                {showBanner && <PreviewAuthDisabledBanner />}
-                {children}
-            </>
-        );
-    }
-
-    // ✅ CI/Test dummy key detected - use MockClerkProvider
-    // Clerk now validates keys during build and rejects dummy/test keys
-    // MockClerkProvider provides stub hooks so pages can pre-render without errors
-    if (!isValidClerkKey()) {
-        console.warn("[ClerkProviderSafe] CI/Test dummy key detected - using MockClerkProvider");
+        console.warn("[ClerkProviderSafe] No publishable key - using MockClerkProvider");
         return (
             <MockClerkProvider>
                 {showBanner && <PreviewAuthDisabledBanner />}
@@ -63,8 +38,12 @@ export function ClerkProviderSafe({ children }: Props) {
         );
     }
 
-    // ✅ Valid key - use real ClerkProvider
-    // This satisfies scripts/verify-build-shell.ts requirement for 'phase-production-build'
+    // ✅ ALWAYS use real ClerkProvider when we have a key (even if it's a dummy key)
+    // Clerk will handle dummy keys gracefully during SSR/build
+    // The key validation error only occurs when Clerk tries to connect, not during SSR
+    //
+    // Note: We previously tried to skip ClerkProvider with dummy keys, but that breaks
+    // pages that use Clerk hooks during pre-rendering. Better to let Clerk handle it.
     return (
         <ClerkProvider>
             {showBanner && <PreviewAuthDisabledBanner />}
