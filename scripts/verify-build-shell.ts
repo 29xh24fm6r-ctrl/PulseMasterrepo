@@ -3,12 +3,15 @@ import { readFileSync } from "node:fs";
 const clerkContent = readFileSync("components/auth/ClerkProviderSafe.tsx", "utf8");
 const layoutContent = readFileSync("app/layout.tsx", "utf8");
 
-// ✅ Verify ClerkProviderSafe always renders ClerkProvider when key exists
-// (After PR #129, ClerkProviderSafe is a wrapper component, not a layout)
+// ✅ Verify ClerkProviderSafe renders appropriate provider based on key validity
+// - No provider if no key
+// - MockClerkProvider if dummy/test key (for build/CI)
+// - Real ClerkProvider if valid key
 const clerkMustHave = [
     "hasPublishableKey()",
+    "isValidClerkKey()",
+    "MockClerkProvider",
     "ClerkProvider",
-    "// ✅ ALWAYS render ClerkProvider when we have a key",
 ];
 
 for (const s of clerkMustHave) {
