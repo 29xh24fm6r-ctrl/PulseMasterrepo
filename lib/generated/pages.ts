@@ -61,6 +61,7 @@ export const GENERATED_PAGES = [
   "/notifications",
   "/notifications/center",
   "/observer",
+  "/omega",
   "/onboarding",
   "/ops/audit",
   "/ops/blast",

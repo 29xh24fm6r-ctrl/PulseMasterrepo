@@ -1,0 +1,12 @@
+{
+  "name": "pulse-omega",
+  "version": "1.0.0",
+  "description": "Observer-only MCP server for Pulse Omega Prime. Provides read access to Omega state and proposal queue for improvements. NO EXECUTION AUTHORITY.",
+  "command": "npm",
+  "args": ["run", "mcp"],
+  "env": {
+    "NEXT_PUBLIC_SUPABASE_URL": "${NEXT_PUBLIC_SUPABASE_URL}",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "${NEXT_PUBLIC_SUPABASE_ANON_KEY}",
+    "MCP_VIEWER_JWT": "${MCP_VIEWER_JWT}"
+  }
+}
