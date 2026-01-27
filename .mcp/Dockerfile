@@ -2,15 +2,15 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy the entire repo (Cloud Build context is repo root)
-COPY . .
+# Copy only MCP package files
+COPY .mcp/package.json ./
 
-# Install dependencies
-RUN npm install
+RUN npm install --production
 
-# Cloud Run expects port 8080
+# Copy MCP source
+COPY .mcp/server.js ./
+
 ENV PORT=8080
 EXPOSE 8080
 
-# Start MCP service
-CMD ["npm", "run", "start"]
+CMD ["npm", "start"]
