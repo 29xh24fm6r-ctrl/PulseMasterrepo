@@ -1,7 +1,9 @@
+console.log("[pulse-mcp] process started", process.argv);
+
 import express from "express";
 import { requireMcpApiKey } from "./auth.js";
 import { tools } from "./tools/index.js";
-import { supabase } from "./supabase.js";
+import { getSupabase } from "./supabase.js";
 
 const app = express();
 app.use(express.json({ limit: "1mb" }));
@@ -41,7 +43,7 @@ app.post("/call", async (req, res) => {
     // Log to observer events
     const targetUserId = input?.target_user_id;
     if (targetUserId) {
-      await supabase.from("pulse_observer_events").insert({
+      await getSupabase().from("pulse_observer_events").insert({
         user_id: targetUserId,
         event_type: "mcp_tool_call",
         payload: {

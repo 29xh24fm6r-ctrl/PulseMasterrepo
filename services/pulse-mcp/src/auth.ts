@@ -1,17 +1,24 @@
 import { z } from "zod";
-import { supabase } from "./supabase.js";
+import { getSupabase } from "./supabase.js";
 
 const envSchema = z.object({
   PULSE_MCP_API_KEY: z.string().min(16),
   PULSE_MCP_VIEWER_USER_ID: z.string().min(10),
 });
 
-const env = envSchema.parse({
-  PULSE_MCP_API_KEY: process.env.PULSE_MCP_API_KEY,
-  PULSE_MCP_VIEWER_USER_ID: process.env.PULSE_MCP_VIEWER_USER_ID,
-});
+let _env: z.infer<typeof envSchema> | null = null;
+
+function getEnv() {
+  if (_env) return _env;
+  _env = envSchema.parse({
+    PULSE_MCP_API_KEY: process.env.PULSE_MCP_API_KEY,
+    PULSE_MCP_VIEWER_USER_ID: process.env.PULSE_MCP_VIEWER_USER_ID,
+  });
+  return _env;
+}
 
 export function requireMcpApiKey(headers: Record<string, string | undefined>) {
+  const env = getEnv();
   const provided =
     headers["x-pulse-mcp-key"] ||
     headers["X-Pulse-Mcp-Key"];
@@ -24,12 +31,13 @@ export function requireMcpApiKey(headers: Record<string, string | undefined>) {
 }
 
 export async function assertViewerCanReadTarget(targetUserId: string) {
-  const viewerUserId = env.PULSE_MCP_VIEWER_USER_ID;
+  const env = getEnv();
+  const supabase = getSupabase();
 
   const { data, error } = await supabase
     .from("pulse_mcp_viewers")
     .select("viewer_user_id,target_user_id")
-    .eq("viewer_user_id", viewerUserId)
+    .eq("viewer_user_id", env.PULSE_MCP_VIEWER_USER_ID)
     .eq("target_user_id", targetUserId)
     .maybeSingle();
 

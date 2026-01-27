@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { supabase } from "../supabase.js";
+import { getSupabase } from "../supabase.js";
 import { assertViewerCanReadTarget } from "../auth.js";
 
 const targetSchema = z.object({
@@ -13,7 +13,7 @@ export async function viewerEdgeStatus(input: unknown) {
 }
 
 export async function health() {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from("pulse_mcp_viewers")
     .select("viewer_user_id")
     .limit(1);
