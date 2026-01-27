@@ -4,9 +4,17 @@ import express from "express";
 import { requireMcpApiKey } from "./auth.js";
 import { tools } from "./tools/index.js";
 import { getSupabase } from "./supabase.js";
+import { handleGateCall, listGateTools } from "./omega-gate/index.js";
 
 const app = express();
 app.use(express.json({ limit: "1mb" }));
+
+// Lazy MCP key accessor (deferred, never throws at import)
+function getMcpKey(): string {
+  const key = process.env.PULSE_MCP_API_KEY;
+  if (!key) throw new Error("PULSE_MCP_API_KEY not set");
+  return key;
+}
 
 // ============================================
 // HEALTH (no auth)
@@ -42,7 +50,6 @@ app.post("/tick", (req, res) => {
     ts: new Date().toISOString(),
   });
 
-  // Phase A1: lightweight observation only — no DB, no throws
   const uptimeSec = Math.round(process.uptime());
   const hasSupabase =
     !!process.env.SUPABASE_URL && !!process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -60,8 +67,33 @@ app.post("/tick", (req, res) => {
   });
 });
 
-// Tool invocation endpoint
+// ============================================
+// OMEGA GATE — /call (x-pulse-mcp-key + full gate protocol)
+// ============================================
 app.post("/call", async (req, res) => {
+  await handleGateCall(req, res, getMcpKey());
+});
+
+// ============================================
+// TOOL LISTING — /tools (x-pulse-mcp-key)
+// ============================================
+app.get("/tools", (req, res) => {
+  try {
+    requireMcpApiKey(req.headers as Record<string, string | undefined>);
+    res.json({
+      ok: true,
+      tools: listGateTools(),
+    });
+  } catch (e: any) {
+    const status = e?.status ?? 500;
+    res.status(status).json({ ok: false, error: e?.message ?? "Unknown error" });
+  }
+});
+
+// ============================================
+// LEGACY /call (kept for backwards compat, deprecated)
+// ============================================
+app.post("/call/legacy", async (req, res) => {
   const startMs = Date.now();
   try {
     requireMcpApiKey(req.headers as Record<string, string | undefined>);
@@ -80,36 +112,25 @@ app.post("/call", async (req, res) => {
 
     const result = await fn(input);
 
-    // Log to observer events
     const targetUserId = input?.target_user_id;
     if (targetUserId) {
-      await getSupabase().from("pulse_observer_events").insert({
-        user_id: targetUserId,
-        event_type: "mcp_tool_call",
-        payload: {
-          tool,
-          durationMs: Date.now() - startMs,
-          success: true,
-        },
-        created_at: new Date().toISOString(),
-      });
+      try {
+        await getSupabase().from("pulse_observer_events").insert({
+          user_id: targetUserId,
+          event_type: "mcp_tool_call",
+          payload: {
+            tool,
+            durationMs: Date.now() - startMs,
+            success: true,
+          },
+          created_at: new Date().toISOString(),
+        });
+      } catch {
+        // Don't fail the response if logging fails
+      }
     }
 
     res.json({ ok: true, tool, result });
-  } catch (e: any) {
-    const status = e?.status ?? 500;
-    res.status(status).json({ ok: false, error: e?.message ?? "Unknown error" });
-  }
-});
-
-// List available tools
-app.get("/tools", (req, res) => {
-  try {
-    requireMcpApiKey(req.headers as Record<string, string | undefined>);
-    res.json({
-      ok: true,
-      tools: Object.keys(tools).map((name) => ({ name, type: "read-only" })),
-    });
   } catch (e: any) {
     const status = e?.status ?? 500;
     res.status(status).json({ ok: false, error: e?.message ?? "Unknown error" });
