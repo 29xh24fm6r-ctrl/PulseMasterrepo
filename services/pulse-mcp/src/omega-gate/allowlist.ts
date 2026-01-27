@@ -13,6 +13,11 @@ export interface AllowlistEntry {
 }
 
 export const OMEGA_ALLOWLIST: Record<string, AllowlistEntry> = {
+  "mcp.tick": {
+    scopes: ["read"],
+    effect: "none",
+    description: "Connectivity proof and round-trip verification through Omega Gate",
+  },
   "observer.query": {
     scopes: ["read"],
     effect: "none",
