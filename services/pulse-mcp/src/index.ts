@@ -20,6 +20,37 @@ app.post("/heartbeat", (_req, res) => {
   res.status(200).json({ ok: true, service: "pulse-mcp", heartbeat: "alive" });
 });
 
+// Observer tick endpoint (Cloud Scheduler OIDC, every 5 min)
+app.post("/tick", async (req, res) => {
+  const startedAt = Date.now();
+
+  console.log("[TICK] start", {
+    ts: new Date().toISOString(),
+    source: req.body?.source ?? "unknown",
+  });
+
+  try {
+    const uptimeSec = Math.round(process.uptime());
+    const hasSupabase =
+      !!process.env.SUPABASE_URL && !!process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    console.log("[TICK] observation", {
+      uptimeSec,
+      hasSupabase,
+      memoryMb: Math.round(process.memoryUsage().rss / 1024 / 1024),
+    });
+
+    return res.status(200).json({
+      ok: true,
+      type: "tick",
+      durationMs: Date.now() - startedAt,
+    });
+  } catch (err) {
+    console.error("[TICK] error", err);
+    return res.status(500).json({ ok: false, type: "tick" });
+  }
+});
+
 // Tool invocation endpoint
 app.post("/call", async (req, res) => {
   const startMs = Date.now();
