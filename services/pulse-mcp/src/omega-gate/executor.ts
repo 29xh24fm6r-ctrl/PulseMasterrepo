@@ -32,6 +32,22 @@ export async function executeGateTool(request: GateRequest): Promise<ExecutionRe
 
   switch (request.tool) {
     // ============================================
+    // DIAGNOSTIC TOOLS
+    // ============================================
+    case "mcp.tick": {
+      return {
+        summary: "Omega Gate round-trip OK",
+        artifacts: [{
+          ok: true,
+          service: "pulse-mcp",
+          call_id: request.call_id,
+          echo: request.inputs ?? {},
+          server_time: new Date().toISOString(),
+        }],
+      };
+    }
+
+    // ============================================
     // READ TOOLS
     // ============================================
     case "observer.query": {
