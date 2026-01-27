@@ -107,12 +107,59 @@ export async function executeGateTool(request: GateRequest): Promise<ExecutionRe
     }
 
     // ============================================
-    // PROPOSAL TOOLS (Phase 1: stub)
+    // PROPOSAL TOOLS
     // ============================================
     case "plan.propose": {
       return {
-        summary: "Proposal stub: would create draft for human review",
-        artifacts: [{ proposed: true, intent: request.intent, inputs: request.inputs }],
+        summary: `Plan proposal: ${request.intent}`,
+        artifacts: [{
+          proposal_type: "plan",
+          intent: request.intent,
+          inputs: request.inputs,
+          summary: request.intent,
+        }],
+      };
+    }
+
+    case "plan.propose_patch": {
+      const patchInputs = request.inputs as Record<string, unknown>;
+      return {
+        summary: `Plan patch proposal: ${request.intent}`,
+        artifacts: [{
+          proposal_type: "plan_patch",
+          target: patchInputs.target ?? null,
+          patch: patchInputs.patch ?? patchInputs,
+          intent: request.intent,
+          summary: (patchInputs.summary as string) ?? request.intent,
+        }],
+      };
+    }
+
+    case "state.propose_patch": {
+      const stateInputs = request.inputs as Record<string, unknown>;
+      return {
+        summary: `State patch proposal: ${request.intent}`,
+        artifacts: [{
+          proposal_type: "state_patch",
+          target: stateInputs.target ?? null,
+          patch: stateInputs.patch ?? stateInputs,
+          intent: request.intent,
+          summary: (stateInputs.summary as string) ?? request.intent,
+        }],
+      };
+    }
+
+    case "action.propose": {
+      const actionInputs = request.inputs as Record<string, unknown>;
+      return {
+        summary: `Action proposal: ${request.intent}`,
+        artifacts: [{
+          proposal_type: "action",
+          action_type: actionInputs.action_type ?? "unknown",
+          params: actionInputs.params ?? actionInputs,
+          intent: request.intent,
+          summary: (actionInputs.summary as string) ?? request.intent,
+        }],
       };
     }
 
