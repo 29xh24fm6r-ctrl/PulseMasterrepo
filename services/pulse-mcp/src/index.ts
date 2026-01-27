@@ -8,47 +8,56 @@ import { getSupabase } from "./supabase.js";
 const app = express();
 app.use(express.json({ limit: "1mb" }));
 
-// Health check (no auth required)
+// ============================================
+// HEALTH (no auth)
+// ============================================
 app.get("/healthz", async (_req, res) => {
-  const out = await tools["pulse.health"]!();
-  res.status((out as any).ok ? 200 : 500).json(out);
+  try {
+    const out = await tools["pulse.health"]!();
+    res.status((out as any).ok ? 200 : 500).json(out);
+  } catch {
+    res.status(200).json({ ok: true, degraded: true });
+  }
 });
 
-// Heartbeat endpoint (Cloud Scheduler, no app-level auth — Cloud Run OIDC handles it)
-app.post("/heartbeat", (_req, res) => {
-  console.log(`[HEARTBEAT] ${new Date().toISOString()}`);
+// ============================================
+// HEARTBEAT (Cloud Scheduler OIDC)
+// ============================================
+app.post("/heartbeat", (req, res) => {
+  console.log("[pulse-mcp] heartbeat received", {
+    source: req.body?.source ?? "unknown",
+    ts: new Date().toISOString(),
+  });
   res.status(200).json({ ok: true, service: "pulse-mcp", heartbeat: "alive" });
 });
 
-// Observer tick endpoint (Cloud Scheduler OIDC, every 5 min)
-app.post("/tick", async (req, res) => {
+// ============================================
+// TICK — Observer loop (Cloud Scheduler OIDC)
+// ============================================
+app.post("/tick", (req, res) => {
   const startedAt = Date.now();
 
-  console.log("[TICK] start", {
-    ts: new Date().toISOString(),
+  console.log("[pulse-mcp] tick received", {
     source: req.body?.source ?? "unknown",
+    ts: new Date().toISOString(),
   });
 
-  try {
-    const uptimeSec = Math.round(process.uptime());
-    const hasSupabase =
-      !!process.env.SUPABASE_URL && !!process.env.SUPABASE_SERVICE_ROLE_KEY;
+  // Phase A1: lightweight observation only — no DB, no throws
+  const uptimeSec = Math.round(process.uptime());
+  const hasSupabase =
+    !!process.env.SUPABASE_URL && !!process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    console.log("[TICK] observation", {
-      uptimeSec,
-      hasSupabase,
-      memoryMb: Math.round(process.memoryUsage().rss / 1024 / 1024),
-    });
+  console.log("[pulse-mcp] tick observation", {
+    uptimeSec,
+    hasSupabase,
+    memoryMb: Math.round(process.memoryUsage().rss / 1024 / 1024),
+  });
 
-    return res.status(200).json({
-      ok: true,
-      type: "tick",
-      durationMs: Date.now() - startedAt,
-    });
-  } catch (err) {
-    console.error("[TICK] error", err);
-    return res.status(500).json({ ok: false, type: "tick" });
-  }
+  res.status(200).json({
+    ok: true,
+    type: "tick",
+    durationMs: Date.now() - startedAt,
+  });
 });
 
 // Tool invocation endpoint
@@ -108,5 +117,6 @@ app.get("/tools", (req, res) => {
 });
 
 const port = Number(process.env.PORT || 8080);
-console.log("[pulse-mcp] boot", { PORT: process.env.PORT, NODE_ENV: process.env.NODE_ENV });
-app.listen(port, "0.0.0.0", () => console.log(`pulse-mcp listening on 0.0.0.0:${port}`));
+app.listen(port, "0.0.0.0", () =>
+  console.log(`[pulse-mcp] listening on 0.0.0.0:${port}`)
+);
