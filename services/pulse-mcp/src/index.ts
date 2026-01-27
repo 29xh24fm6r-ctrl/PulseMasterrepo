@@ -75,4 +75,5 @@ app.get("/tools", (req, res) => {
 });
 
 const port = Number(process.env.PORT || 8080);
-app.listen(port, () => console.log(`pulse-mcp listening on ${port}`));
+console.log("[pulse-mcp] boot", { PORT: process.env.PORT, NODE_ENV: process.env.NODE_ENV });
+app.listen(port, "0.0.0.0", () => console.log(`pulse-mcp listening on 0.0.0.0:${port}`));
