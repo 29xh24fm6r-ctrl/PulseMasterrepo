@@ -17,6 +17,13 @@ function getMcpKey(): string {
 }
 
 // ============================================
+// ROOT (no auth)
+// ============================================
+app.get("/", (_req, res) => {
+  res.json({ ok: true, service: "pulse-mcp" });
+});
+
+// ============================================
 // HEALTH (no auth)
 // ============================================
 app.get("/healthz", async (_req, res) => {
@@ -43,27 +50,19 @@ app.post("/heartbeat", (req, res) => {
 // TICK — Observer loop (Cloud Scheduler OIDC)
 // ============================================
 app.post("/tick", (req, res) => {
-  const startedAt = Date.now();
+  const nonce = req.body?.nonce ?? crypto.randomUUID();
 
   console.log("[pulse-mcp] tick received", {
     source: req.body?.source ?? "unknown",
+    nonce,
     ts: new Date().toISOString(),
-  });
-
-  const uptimeSec = Math.round(process.uptime());
-  const hasSupabase =
-    !!process.env.SUPABASE_URL && !!process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  console.log("[pulse-mcp] tick observation", {
-    uptimeSec,
-    hasSupabase,
-    memoryMb: Math.round(process.memoryUsage().rss / 1024 / 1024),
   });
 
   res.status(200).json({
     ok: true,
-    type: "tick",
-    durationMs: Date.now() - startedAt,
+    nonce,
+    echo: req.body ?? {},
+    server_time: new Date().toISOString(),
   });
 });
 
