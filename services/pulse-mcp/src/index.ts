@@ -44,10 +44,10 @@ function buildDiscoveryResponse() {
 }
 
 // ============================================
-// ROOT (no auth)
+// ROOT — MCP discovery (no auth, required for Claude Desktop)
 // ============================================
 app.get("/", (_req, res) => {
-  res.json({ ok: true, service: "pulse-mcp" });
+  res.json(buildDiscoveryResponse());
 });
 
 // ============================================
