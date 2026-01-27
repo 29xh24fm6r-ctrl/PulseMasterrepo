@@ -52,6 +52,7 @@
         "@sentry/nextjs": "^10.32.1",
         "@supabase/ssr": "^0.8.0",
         "@supabase/supabase-js": "^2.86.2",
+        "@swc/helpers": "^0.5.18",
         "@temporalio/client": "^1.14.1",
         "@temporalio/worker": "^1.14.1",
         "@temporalio/workflow": "^1.14.1",
