@@ -44,8 +44,10 @@ export async function handleGateCall(
       mcpApiKey
     );
 
-    // 2. Replay guard
-    checkReplay(headers.nonce);
+    // 2. Replay guard (only for client-provided nonces)
+    if (headers.nonceSource === "client") {
+      checkReplay(headers.nonce);
+    }
 
     // 3. Validate body
     const request = validateGateRequest(req.body);
@@ -55,6 +57,7 @@ export async function handleGateCall(
       tool: request.tool,
       agent: headers.agent,
       scope: headers.scope,
+      nonceSource: headers.nonceSource,
     });
 
     // 4. Authorize scope

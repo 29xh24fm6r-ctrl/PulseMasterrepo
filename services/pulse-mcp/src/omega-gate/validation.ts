@@ -3,6 +3,7 @@
 // Enforces: key, agent, scope, nonce, timestamp drift, replay protection.
 
 import { z } from "zod";
+import { randomUUID } from "crypto";
 import type { Scope } from "./allowlist.js";
 import { isAllowedTool, getToolEntry } from "./allowlist.js";
 
@@ -19,6 +20,7 @@ export interface GateHeaders {
   agent: string;
   scope: Scope;
   nonce: string;
+  nonceSource: "client" | "server";
   timestamp: number;
 }
 
@@ -41,20 +43,23 @@ export function parseGateHeaders(
     throw gateError(400, `Invalid x-pulse-mcp-scope: ${scopeHeader}`);
   }
 
-  const nonce = headers["x-pulse-nonce"];
-  if (!nonce || nonce.length < 8) {
-    throw gateError(400, "Missing or invalid x-pulse-nonce");
-  }
+  // Nonce: use client-provided if valid, otherwise generate server-side
+  const clientNonce = headers["x-pulse-nonce"];
+  const nonce = (clientNonce && clientNonce.length >= 8) ? clientNonce : randomUUID();
+  const nonceSource: "client" | "server" = (clientNonce && clientNonce.length >= 8) ? "client" : "server";
 
+  // Timestamp: enforce drift only when client provides one
   const tsHeader = headers["x-pulse-ts"];
-  const timestamp = tsHeader ? Number(tsHeader) : NaN;
-  if (isNaN(timestamp)) {
-    throw gateError(400, "Missing or invalid x-pulse-ts");
-  }
+  const timestamp = tsHeader ? Number(tsHeader) : Date.now();
 
-  const drift = Math.abs(Date.now() - timestamp);
-  if (drift > MAX_TIMESTAMP_DRIFT_MS) {
-    throw gateError(403, `Timestamp drift too large: ${drift}ms (max ${MAX_TIMESTAMP_DRIFT_MS}ms)`);
+  if (tsHeader) {
+    if (isNaN(Number(tsHeader))) {
+      throw gateError(400, "Invalid x-pulse-ts (not a number)");
+    }
+    const drift = Math.abs(Date.now() - timestamp);
+    if (drift > MAX_TIMESTAMP_DRIFT_MS) {
+      throw gateError(403, `Timestamp drift too large: ${drift}ms (max ${MAX_TIMESTAMP_DRIFT_MS}ms)`);
+    }
   }
 
   return {
@@ -62,6 +67,7 @@ export function parseGateHeaders(
     agent,
     scope: scopeHeader as Scope,
     nonce,
+    nonceSource,
     timestamp,
   };
 }

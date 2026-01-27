@@ -17,6 +17,33 @@ function getMcpKey(): string {
 }
 
 // ============================================
+// MCP DISCOVERY (unauthenticated handshake)
+// ============================================
+
+function isMcpDiscovery(req: express.Request, body: any): boolean {
+  if (req.method === "GET") return true;
+  if (req.method === "POST") {
+    if (!body) return true;
+    if (!body.tool && !body.method) return true;
+    if (body.method === "list_tools") return true;
+  }
+  return false;
+}
+
+function buildDiscoveryResponse() {
+  return {
+    protocol: "mcp",
+    server: "pulse-mcp",
+    version: "1.0",
+    tools: listGateTools().map((t) => ({
+      name: t.name,
+      description: t.description,
+      input_schema: { type: "object", properties: {} },
+    })),
+  };
+}
+
+// ============================================
 // ROOT (no auth)
 // ============================================
 app.get("/", (_req, res) => {
@@ -67,9 +94,20 @@ app.post("/tick", (req, res) => {
 });
 
 // ============================================
-// OMEGA GATE — /call (x-pulse-mcp-key + full gate protocol)
+// OMEGA GATE — /call (MCP discovery + full gate protocol)
 // ============================================
+
+// GET /call — unauthenticated MCP discovery
+app.get("/call", (_req, res) => {
+  res.json(buildDiscoveryResponse());
+});
+
+// POST /call — discovery handshake OR authenticated gate execution
 app.post("/call", async (req, res) => {
+  if (isMcpDiscovery(req, req.body)) {
+    res.json(buildDiscoveryResponse());
+    return;
+  }
   await handleGateCall(req, res, getMcpKey());
 });
 
