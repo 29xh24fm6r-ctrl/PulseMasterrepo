@@ -39,7 +39,7 @@ function buildDiscoveryResponse() {
     tools: listGateTools().map((t) => ({
       name: t.name,
       description: t.description,
-      input_schema: { type: "object", properties: {} },
+      inputSchema: { type: "object", properties: {} },
     })),
   };
 }
