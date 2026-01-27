@@ -12,8 +12,9 @@ import {
 } from "./validation.js";
 import { evaluateConfidence } from "./confidence.js";
 import { recordEffectProposed, updateEffectCompleted } from "./effects.js";
-import { getToolEntry, OMEGA_ALLOWLIST } from "./allowlist.js";
+import { getToolEntry, OMEGA_ALLOWLIST, isProposeTool } from "./allowlist.js";
 import { executeGateTool } from "./executor.js";
+import { persistProposal } from "./proposals.js";
 
 /**
  * Handle an Omega Gate /call request.
@@ -95,6 +96,39 @@ export async function handleGateCall(
         reason: confidence.reason,
       });
 
+      // For propose tools: generate proposal artifact and persist
+      if (isProposeTool(request.tool)) {
+        const result = await executeGateTool(request);
+        const proposalId = await persistProposal(
+          headers,
+          request,
+          effectId,
+          result
+        );
+
+        await updateEffectCompleted(effectId, "require_human");
+
+        console.log("[omega-gate] PROPOSAL CREATED", {
+          call_id: request.call_id,
+          tool: request.tool,
+          proposal_id: proposalId,
+        });
+
+        res.status(202).json({
+          call_id: request.call_id,
+          status: "proposed",
+          proposal_id: proposalId,
+          confidence: confidence.score,
+          result: {
+            summary: result.summary,
+            artifacts: result.artifacts,
+          },
+          audit_ref: effectId,
+        });
+        return;
+      }
+
+      // Non-propose tools: standard require_human response
       await updateEffectCompleted(effectId, "require_human");
 
       res.status(202).json({

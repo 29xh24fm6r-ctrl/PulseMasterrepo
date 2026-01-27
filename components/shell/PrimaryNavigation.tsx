@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Layout, ListTodo, Activity, MoreHorizontal, Eye, Settings, CreditCard } from "lucide-react";
+import { Home, Layout, ListTodo, Activity, MoreHorizontal, Eye, Settings, CreditCard, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { TOKENS } from "@/lib/ui/tokens";
@@ -19,6 +19,7 @@ export function PrimaryNavigation() {
     ];
 
     const moreItems = [
+        { label: "Approvals", href: "/approvals", icon: Shield },
         { label: "Observer", href: "/observer", icon: Eye },
         { label: "Settings", href: "/settings", icon: Settings },
         { label: "Billing", href: "/billing", icon: CreditCard },

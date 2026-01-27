@@ -58,6 +58,21 @@ export const OMEGA_ALLOWLIST: Record<string, AllowlistEntry> = {
     effect: "draft",
     description: "Propose a plan for human review",
   },
+  "plan.propose_patch": {
+    scopes: ["propose"],
+    effect: "draft",
+    description: "Propose a plan patch for human review",
+  },
+  "state.propose_patch": {
+    scopes: ["propose"],
+    effect: "draft",
+    description: "Propose a state change for human review",
+  },
+  "action.propose": {
+    scopes: ["propose"],
+    effect: "draft",
+    description: "Propose an action for human approval before execution",
+  },
   "action.execute": {
     scopes: ["execute"],
     effect: "writes_required",
@@ -78,4 +93,10 @@ export function toolRequiresScope(tool: string, scope: Scope): boolean {
   const entry = OMEGA_ALLOWLIST[tool];
   if (!entry) return false;
   return entry.scopes.includes(scope);
+}
+
+export function isProposeTool(tool: string): boolean {
+  const entry = OMEGA_ALLOWLIST[tool];
+  if (!entry) return false;
+  return entry.effect === "draft" && entry.scopes.includes("propose");
 }
