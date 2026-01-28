@@ -15,6 +15,23 @@ import {
   resolveRealToolName,
   emitClaudeTools,
 } from "../tool-aliases.js";
+import { withInjectedTargetUserId } from "../target.js";
+
+// Diagnostic logging for tool call tracing
+function logToolCallEdge(opts: {
+  where: string;
+  name: string | undefined;
+  beforeTarget: unknown;
+  afterTarget: unknown;
+}) {
+  console.log("[pulse-mcp] TOOL_CALL_EDGE", {
+    where: opts.where,
+    tool: opts.name ?? "(none)",
+    targetBefore: opts.beforeTarget ?? "(missing)",
+    targetAfter: opts.afterTarget ?? "(missing)",
+    ts: new Date().toISOString(),
+  });
+}
 
 // Active SSE transports keyed by session ID
 const transports = new Map<string, SSEServerTransport>();
@@ -31,6 +48,7 @@ function createMcpServer(): Server {
       Object.entries(OMEGA_ALLOWLIST).map(([name, entry]) => ({
         name,
         description: entry.description,
+        inputSchema: entry.inputSchema,
       }))
     ),
   }));
@@ -43,11 +61,21 @@ function createMcpServer(): Server {
     console.log("[pulse-mcp] SSE tools/call", { alias: rawName, tool: name });
 
     try {
+      const rawArgs = args ?? {};
+      const injectedInputs = withInjectedTargetUserId(rawArgs);
+
+      logToolCallEdge({
+        where: "sse-tools/call",
+        name,
+        beforeTarget: (rawArgs as Record<string, unknown>).target_user_id,
+        afterTarget: injectedInputs.target_user_id,
+      });
+
       const result = await executeGateTool({
         call_id: `mcp-${crypto.randomUUID()}`,
         tool: name,
         intent: `MCP tool call: ${name}`,
-        inputs: (args ?? {}) as Record<string, unknown>,
+        inputs: injectedInputs,
       });
 
       return {
