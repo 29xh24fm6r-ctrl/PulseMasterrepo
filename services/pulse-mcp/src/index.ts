@@ -124,49 +124,7 @@ app.post("/", async (req, res) => {
     return;
   }
 
-  // For JSON-RPC requests from Claude.ai (OAuth-authenticated),
-  // handle the MCP protocol directly
-  if (req.body.jsonrpc === "2.0") {
-    const { id, method } = req.body;
-
-    if (method === "initialize") {
-      res.json({
-        jsonrpc: "2.0",
-        id,
-        result: {
-          protocolVersion: "2024-11-05",
-          capabilities: { tools: {} },
-          serverInfo: { name: "pulse-mcp", version: "1.0.0" }
-        }
-      });
-      return;
-    }
-
-    if (method === "tools/list") {
-      res.json({
-        jsonrpc: "2.0",
-        id,
-        result: {
-          tools: listGateTools().map(t => ({
-            name: t.name,
-            description: t.description,
-            inputSchema: { type: "object", properties: {} }
-          }))
-        }
-      });
-      return;
-    }
-
-    // Unknown method
-    res.json({
-      jsonrpc: "2.0",
-      id,
-      error: { code: -32601, message: "Method not found" }
-    });
-    return;
-  }
-
-  // Non-JSON-RPC requests go through gate (requires x-pulse-mcp-key)
+  // Otherwise route to gate call handler
   await handleGateCall(req, res, getMcpKey());
 });
 
