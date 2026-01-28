@@ -7,10 +7,8 @@ import { getSupabase } from "./supabase.js";
 import { handleGateCall, listGateTools } from "./omega-gate/index.js";
 import { mountSseTransport } from "./transport/sse.js";
 import {
-  registerToolName,
   resolveRealToolName,
-  isClaudeToolNameValid,
-  logToolNameRepair,
+  emitClaudeTools,
 } from "./tool-aliases.js";
 
 const app = express();
@@ -153,21 +151,7 @@ function buildDiscoveryResponse() {
     protocol: "mcp",
     server: "pulse-mcp",
     version: "1.0",
-    tools: listGateTools()
-      .map((t) => {
-        const safeName = registerToolName(t.name);
-        logToolNameRepair(t.name, safeName);
-        return {
-          name: safeName,
-          description: t.description,
-          inputSchema: { type: "object", properties: {} },
-        };
-      })
-      .filter((t) => {
-        const ok = isClaudeToolNameValid(t.name);
-        if (!ok) console.warn("[pulse-mcp] tool dropped (invalid name after repair)", { name: t.name });
-        return ok;
-      }),
+    tools: emitClaudeTools(listGateTools()),
   };
 }
 
@@ -220,21 +204,7 @@ app.post("/", async (req, res) => {
         jsonrpc: "2.0",
         id,
         result: {
-          tools: listGateTools()
-            .map(t => {
-              const safeName = registerToolName(t.name);
-              logToolNameRepair(t.name, safeName);
-              return {
-                name: safeName,
-                description: t.description,
-                inputSchema: { type: "object", properties: {} }
-              };
-            })
-            .filter(t => {
-              const ok = isClaudeToolNameValid(t.name);
-              if (!ok) console.warn("[pulse-mcp] tool dropped (invalid name after repair)", { name: t.name });
-              return ok;
-            })
+          tools: emitClaudeTools(listGateTools()),
         }
       });
       return;
