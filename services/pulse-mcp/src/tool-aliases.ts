@@ -92,3 +92,48 @@ export function logToolNameRepair(realName: string, safeName: string): void {
     console.warn("[pulse-mcp] tool name repaired", { realName, safeName });
   }
 }
+
+// ============================================
+// SINGLE BOUNDARY EMITTER — all tool lists go through here
+// ============================================
+
+export interface RawToolDef {
+  name: string;
+  description: string;
+}
+
+export interface ClaudeToolDef {
+  name: string;
+  description: string;
+  inputSchema: { type: "object"; properties: Record<string, never> };
+}
+
+/**
+ * The ONE function every tool-list emission point must call.
+ * Takes raw tool definitions (with internal dotted names) and returns
+ * a Claude-safe array. Sanitizes, registers mappings, logs repairs,
+ * and drops any name that is still invalid after repair.
+ *
+ * No invalid tool name can escape this function. Ever.
+ */
+export function emitClaudeTools(rawTools: RawToolDef[]): ClaudeToolDef[] {
+  return rawTools
+    .map((t) => {
+      const safeName = safeClaudeToolName(t.name);
+      // Register bidirectional mapping (idempotent)
+      registerToolName(t.name);
+      logToolNameRepair(t.name, safeName);
+      return {
+        name: safeName,
+        description: t.description,
+        inputSchema: { type: "object" as const, properties: {} },
+      };
+    })
+    .filter((t) => {
+      const ok = isClaudeToolNameValid(t.name);
+      if (!ok) {
+        console.warn("[pulse-mcp] INVALID TOOL NAME BLOCKED", { name: t.name });
+      }
+      return ok;
+    });
+}
