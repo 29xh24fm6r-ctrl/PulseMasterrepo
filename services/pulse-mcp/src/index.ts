@@ -1,4 +1,8 @@
 console.log("[pulse-mcp] process started", process.argv);
+console.log("[pulse-mcp] ids", {
+  viewer: process.env.PULSE_MCP_VIEWER_USER_ID?.trim() ?? "(not set)",
+  targetDefault: process.env.PULSE_DEFAULT_TARGET_USER_ID?.trim() ?? "(not set)",
+});
 
 import express from "express";
 import { requireMcpApiKey } from "./auth.js";
