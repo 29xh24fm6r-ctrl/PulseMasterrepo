@@ -15,7 +15,7 @@ import {
   resolveRealToolName,
   emitClaudeTools,
 } from "../tool-aliases.js";
-import { withInjectedTargetUserId } from "../target.js";
+import { withInjectedTargetUserId, injectTargetUserIdIntoAllShapes } from "../target.js";
 
 // Diagnostic logging for tool call tracing
 function logToolCallEdge(opts: {
@@ -55,13 +55,16 @@ function createMcpServer(): Server {
 
   // tools/call — execute via gate executor (resolve alias → real name)
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
+    // Inject target_user_id into params at the very top (before any processing)
+    const patchedParams = injectTargetUserIdIntoAllShapes(request.params);
     const { name: rawName, arguments: args } = request.params;
     const name = resolveRealToolName(rawName);
 
     console.log("[pulse-mcp] SSE tools/call", { alias: rawName, tool: name });
 
     try {
-      const rawArgs = args ?? {};
+      // Use patched arguments if available, fallback to original
+      const rawArgs = (patchedParams.arguments as Record<string, unknown>) ?? args ?? {};
       const injectedInputs = withInjectedTargetUserId(rawArgs);
 
       logToolCallEdge({

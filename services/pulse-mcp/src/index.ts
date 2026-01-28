@@ -10,7 +10,7 @@ import {
   resolveRealToolName,
   emitClaudeTools,
 } from "./tool-aliases.js";
-import { withInjectedTargetUserId } from "./target.js";
+import { withInjectedTargetUserId, injectTargetUserIdIntoAllShapes } from "./target.js";
 
 // ============================================
 // DIAGNOSTIC LOGGING — trace tool call paths
@@ -206,6 +206,9 @@ app.get("/", (_req, res) => {
 
 // POST / — MCP message handler (required for Claude.ai)
 app.post("/", async (req, res) => {
+  // Inject target_user_id into ALL shapes at the very top (before any processing)
+  req.body = injectTargetUserIdIntoAllShapes(req.body);
+
   // If it's a discovery/handshake request, return discovery
   if (!req.body || !req.body.method || req.body.method === "list_tools") {
     res.json(buildDiscoveryResponse());
@@ -414,6 +417,9 @@ app.get("/call", (_req, res) => {
 
 // POST /call — discovery handshake OR authenticated gate execution
 app.post("/call", async (req, res) => {
+  // Inject target_user_id into ALL shapes at the very top (before any processing)
+  req.body = injectTargetUserIdIntoAllShapes(req.body);
+
   if (isMcpDiscovery(req, req.body)) {
     res.json(buildDiscoveryResponse());
     return;
