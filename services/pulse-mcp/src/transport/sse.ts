@@ -15,6 +15,7 @@ import {
   resolveRealToolName,
   emitClaudeTools,
 } from "../tool-aliases.js";
+import { withInjectedTargetUserId } from "../target.js";
 
 // Active SSE transports keyed by session ID
 const transports = new Map<string, SSEServerTransport>();
@@ -43,11 +44,12 @@ function createMcpServer(): Server {
     console.log("[pulse-mcp] SSE tools/call", { alias: rawName, tool: name });
 
     try {
+      const injectedInputs = withInjectedTargetUserId(args ?? {});
       const result = await executeGateTool({
         call_id: `mcp-${crypto.randomUUID()}`,
         tool: name,
         intent: `MCP tool call: ${name}`,
-        inputs: (args ?? {}) as Record<string, unknown>,
+        inputs: injectedInputs,
       });
 
       return {

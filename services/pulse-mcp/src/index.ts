@@ -10,6 +10,7 @@ import {
   resolveRealToolName,
   emitClaudeTools,
 } from "./tool-aliases.js";
+import { withInjectedTargetUserId } from "./target.js";
 
 const app = express();
 app.use(express.json({ limit: "1mb" }));
@@ -233,11 +234,12 @@ app.post("/", async (req, res) => {
 
       try {
         const { executeGateTool } = await import("./omega-gate/executor.js");
+        const injectedInputs = withInjectedTargetUserId(params?.arguments ?? {});
         const result = await executeGateTool({
           call_id: `mcp-${crypto.randomUUID()}`,
           tool: toolName,
           intent: `MCP tool call: ${toolName}`,
-          inputs: (params?.arguments ?? {}) as Record<string, unknown>,
+          inputs: injectedInputs,
         });
         res.json({
           jsonrpc: "2.0", id,
@@ -296,6 +298,11 @@ app.post("/", async (req, res) => {
   if (body?.params?.name) body.params.name = toolName;
   if (body?.input?.tool) body.input.tool = toolName;
   if (body?.input?.name) body.input.name = toolName;
+
+  // Inject target_user_id into inputs if missing
+  if (body?.inputs && typeof body.inputs === "object") {
+    body.inputs = withInjectedTargetUserId(body.inputs);
+  }
 
   await handleGateCall(req, res, getMcpKey());
 });
@@ -390,6 +397,11 @@ app.post("/call", async (req, res) => {
   if (callBody?.params?.name) callBody.params.name = callToolName;
   if (callBody?.input?.tool) callBody.input.tool = callToolName;
   if (callBody?.input?.name) callBody.input.name = callToolName;
+
+  // Inject target_user_id into inputs if missing
+  if (callBody?.inputs && typeof callBody.inputs === "object") {
+    callBody.inputs = withInjectedTargetUserId(callBody.inputs);
+  }
 
   await handleGateCall(req, res, getMcpKey());
 });
