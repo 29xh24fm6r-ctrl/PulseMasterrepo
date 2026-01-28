@@ -11,27 +11,10 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { OMEGA_ALLOWLIST } from "../omega-gate/allowlist.js";
 import { executeGateTool } from "../omega-gate/executor.js";
-import {
-  resolveRealToolName,
-  emitClaudeTools,
-} from "../tool-aliases.js";
+import { emitClaudeTools } from "../tool-aliases.js";
 import { withInjectedTargetUserId, injectTargetUserIdIntoAllShapes } from "../target.js";
-
-// Diagnostic logging for tool call tracing
-function logToolCallEdge(opts: {
-  where: string;
-  name: string | undefined;
-  beforeTarget: unknown;
-  afterTarget: unknown;
-}) {
-  console.log("[pulse-mcp] TOOL_CALL_EDGE", {
-    where: opts.where,
-    tool: opts.name ?? "(none)",
-    targetBefore: opts.beforeTarget ?? "(missing)",
-    targetAfter: opts.afterTarget ?? "(missing)",
-    ts: new Date().toISOString(),
-  });
-}
+import { resolveToolName } from "../aliases.js";
+import { logToolResolution } from "../logging.js";
 
 // Active SSE transports keyed by session ID
 const transports = new Map<string, SSEServerTransport>();
@@ -53,31 +36,26 @@ function createMcpServer(): Server {
     ),
   }));
 
-  // tools/call — execute via gate executor (resolve alias → real name)
+  // tools/call — execute via gate executor (resolve alias chain → canonical name)
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     // Inject target_user_id into params at the very top (before any processing)
     const patchedParams = injectTargetUserIdIntoAllShapes(request.params);
     const { name: rawName, arguments: args } = request.params;
-    const name = resolveRealToolName(rawName);
 
-    console.log("[pulse-mcp] SSE tools/call", { alias: rawName, tool: name });
+    // Resolution chain: normalize → static Claude alias → database per-user alias
+    const resolution = await resolveToolName(rawName);
+    logToolResolution("sse_call", resolution);
+    const toolName = resolution.resolved_tool;
 
     try {
       // Use patched arguments if available, fallback to original
       const rawArgs = (patchedParams.arguments as Record<string, unknown>) ?? args ?? {};
       const injectedInputs = withInjectedTargetUserId(rawArgs);
 
-      logToolCallEdge({
-        where: "sse-tools/call",
-        name,
-        beforeTarget: (rawArgs as Record<string, unknown>).target_user_id,
-        afterTarget: injectedInputs.target_user_id,
-      });
-
       const result = await executeGateTool({
         call_id: `mcp-${crypto.randomUUID()}`,
-        tool: name,
-        intent: `MCP tool call: ${name}`,
+        tool: toolName,
+        intent: `MCP tool call: ${toolName}`,
         inputs: injectedInputs,
       });
 

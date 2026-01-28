@@ -203,6 +203,124 @@ export const OMEGA_ALLOWLIST: Record<string, AllowlistEntry> = {
       required: ["action_id"], // only action_id is required, target_user_id injected
     },
   },
+
+  // ============================================
+  // PHASE 2: MEMORY TOOLS (READ-ONLY)
+  // ============================================
+  "memory.list": {
+    scopes: ["read"],
+    effect: "read_only",
+    description: "List memory events with optional type filter",
+    inputSchema: {
+      type: "object",
+      properties: {
+        ...TARGET_USER_SCHEMA,
+        ...LIMIT_SCHEMA,
+        memory_type: { type: "string", description: "Filter by type: insight, decision, preference, fact, observation" },
+      },
+    },
+  },
+  "memory.recent": {
+    scopes: ["read"],
+    effect: "read_only",
+    description: "Get most recent memories (shorthand for memory.list with small limit)",
+    inputSchema: {
+      type: "object",
+      properties: {
+        ...TARGET_USER_SCHEMA,
+        ...LIMIT_SCHEMA,
+      },
+    },
+  },
+  "memory.search": {
+    scopes: ["read"],
+    effect: "read_only",
+    description: "Full-text search across memory content",
+    inputSchema: {
+      type: "object",
+      properties: {
+        ...TARGET_USER_SCHEMA,
+        ...LIMIT_SCHEMA,
+        query: { type: "string", description: "Search query" },
+      },
+      required: ["query"],
+    },
+  },
+
+  // ============================================
+  // PHASE 5: DECISION TOOLS (READ-ONLY)
+  // ============================================
+  "decision.list": {
+    scopes: ["read"],
+    effect: "read_only",
+    description: "List recorded decisions",
+    inputSchema: {
+      type: "object",
+      properties: {
+        ...TARGET_USER_SCHEMA,
+        ...LIMIT_SCHEMA,
+      },
+    },
+  },
+  "decision.recent": {
+    scopes: ["read"],
+    effect: "read_only",
+    description: "Get most recent decisions",
+    inputSchema: {
+      type: "object",
+      properties: {
+        ...TARGET_USER_SCHEMA,
+        ...LIMIT_SCHEMA,
+      },
+    },
+  },
+
+  // ============================================
+  // PHASE 6: TRUST STATE (READ-ONLY)
+  // ============================================
+  "trust.state": {
+    scopes: ["read"],
+    effect: "read_only",
+    description: "Get current trust/autonomy level for the user",
+    inputSchema: {
+      type: "object",
+      properties: {
+        ...TARGET_USER_SCHEMA,
+      },
+    },
+  },
+
+  // ============================================
+  // PHASE 4: TRIGGER CANDIDATES (READ-ONLY)
+  // ============================================
+  "triggers.list": {
+    scopes: ["read"],
+    effect: "read_only",
+    description: "List pending nudge/trigger candidates",
+    inputSchema: {
+      type: "object",
+      properties: {
+        ...TARGET_USER_SCHEMA,
+        ...LIMIT_SCHEMA,
+        status: { type: "string", description: "Filter by status: pending, acknowledged, dismissed, acted" },
+      },
+    },
+  },
+
+  // ============================================
+  // PHASE 7: CONTEXT INJECTION (READ-ONLY)
+  // ============================================
+  "context.current": {
+    scopes: ["read"],
+    effect: "read_only",
+    description: "Get current context snapshot: recent memory, signals, trust level, upcoming commitments",
+    inputSchema: {
+      type: "object",
+      properties: {
+        ...TARGET_USER_SCHEMA,
+      },
+    },
+  },
 };
 
 export function isAllowedTool(tool: string): boolean {
