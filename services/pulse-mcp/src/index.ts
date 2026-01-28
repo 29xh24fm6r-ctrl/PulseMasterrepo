@@ -6,6 +6,7 @@ import { tools } from "./tools/index.js";
 import { getSupabase } from "./supabase.js";
 import { handleGateCall, listGateTools } from "./omega-gate/index.js";
 import { mountSseTransport } from "./transport/sse.js";
+import { registerToolName, resolveRealToolName } from "./tool-aliases.js";
 
 const app = express();
 app.use(express.json({ limit: "1mb" }));
@@ -148,7 +149,7 @@ function buildDiscoveryResponse() {
     server: "pulse-mcp",
     version: "1.0",
     tools: listGateTools().map((t) => ({
-      name: t.name,
+      name: registerToolName(t.name),
       description: t.description,
       inputSchema: { type: "object", properties: {} },
     })),
@@ -205,7 +206,7 @@ app.post("/", async (req, res) => {
         id,
         result: {
           tools: listGateTools().map(t => ({
-            name: t.name,
+            name: registerToolName(t.name),
             description: t.description,
             inputSchema: { type: "object", properties: {} }
           }))
@@ -215,9 +216,10 @@ app.post("/", async (req, res) => {
     }
 
     if (method === "tools/call") {
-      const toolName = params?.name ?? "";
+      const rawToolName = params?.name ?? "";
+      const toolName = resolveRealToolName(rawToolName);
 
-      // Claude-safe mode guard: check allowlist
+      // Claude-safe mode guard: check allowlist (uses real name)
       const auth = assertKeyOrClaudeSafeMode(req);
       if (!auth.ok) {
         res.status(auth.status).json({
@@ -277,10 +279,10 @@ app.post("/", async (req, res) => {
   }
 
   const body: any = req.body || {};
-  const tool =
+  const rawTool =
     body?.tool || body?.name || body?.params?.tool ||
     body?.params?.name || body?.input?.tool || body?.input?.name;
-  const toolName = typeof tool === "string" ? tool : "";
+  const toolName = resolveRealToolName(typeof rawTool === "string" ? rawTool : "");
 
   if (auth.mode === "claude_safe") {
     if (!toolName || !CLAUDE_SAFE_TOOL_ALLOWLIST.has(toolName)) {
@@ -291,6 +293,14 @@ app.post("/", async (req, res) => {
       return;
     }
   }
+
+  // Patch body with resolved real tool name so gate sees internal name
+  if (body?.tool) body.tool = toolName;
+  if (body?.name) body.name = toolName;
+  if (body?.params?.tool) body.params.tool = toolName;
+  if (body?.params?.name) body.params.name = toolName;
+  if (body?.input?.tool) body.input.tool = toolName;
+  if (body?.input?.name) body.input.name = toolName;
 
   await handleGateCall(req, res, getMcpKey());
 });
@@ -361,21 +371,30 @@ app.post("/call", async (req, res) => {
     return;
   }
 
-  if (auth.mode === "claude_safe") {
-    const body: any = req.body || {};
-    const tool =
-      body?.tool || body?.name || body?.params?.tool ||
-      body?.params?.name || body?.input?.tool || body?.input?.name;
-    const toolName = typeof tool === "string" ? tool : "";
+  // Resolve tool alias to real name
+  const callBody: any = req.body || {};
+  const rawCallTool =
+    callBody?.tool || callBody?.name || callBody?.params?.tool ||
+    callBody?.params?.name || callBody?.input?.tool || callBody?.input?.name;
+  const callToolName = resolveRealToolName(typeof rawCallTool === "string" ? rawCallTool : "");
 
-    if (!toolName || !CLAUDE_SAFE_TOOL_ALLOWLIST.has(toolName)) {
+  if (auth.mode === "claude_safe") {
+    if (!callToolName || !CLAUDE_SAFE_TOOL_ALLOWLIST.has(callToolName)) {
       res.status(403).json({
         error: "Tool not permitted in Claude-safe mode",
-        tool: toolName || null,
+        tool: callToolName || null,
       });
       return;
     }
   }
+
+  // Patch body with resolved real tool name so gate sees internal name
+  if (callBody?.tool) callBody.tool = callToolName;
+  if (callBody?.name) callBody.name = callToolName;
+  if (callBody?.params?.tool) callBody.params.tool = callToolName;
+  if (callBody?.params?.name) callBody.params.name = callToolName;
+  if (callBody?.input?.tool) callBody.input.tool = callToolName;
+  if (callBody?.input?.name) callBody.input.name = callToolName;
 
   await handleGateCall(req, res, getMcpKey());
 });
