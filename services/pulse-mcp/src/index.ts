@@ -116,6 +116,59 @@ app.get("/", (_req, res) => {
   }));
 });
 
+// POST / — MCP message handler (required for Claude.ai)
+app.post("/", async (req, res) => {
+  // If it's a discovery/handshake request, return discovery
+  if (!req.body || !req.body.method || req.body.method === "list_tools") {
+    res.json(buildDiscoveryResponse());
+    return;
+  }
+
+  // Handle JSON-RPC requests from Claude.ai (OAuth-authenticated)
+  if (req.body.jsonrpc === "2.0") {
+    const { id, method } = req.body;
+
+    if (method === "initialize") {
+      res.json({
+        jsonrpc: "2.0",
+        id,
+        result: {
+          protocolVersion: "2024-11-05",
+          capabilities: { tools: {} },
+          serverInfo: { name: "pulse-mcp", version: "1.0.0" }
+        }
+      });
+      return;
+    }
+
+    if (method === "tools/list") {
+      res.json({
+        jsonrpc: "2.0",
+        id,
+        result: {
+          tools: listGateTools().map(t => ({
+            name: t.name,
+            description: t.description,
+            inputSchema: { type: "object", properties: {} }
+          }))
+        }
+      });
+      return;
+    }
+
+    // Unknown JSON-RPC method
+    res.json({
+      jsonrpc: "2.0",
+      id,
+      error: { code: -32601, message: "Method not found" }
+    });
+    return;
+  }
+
+  // Non-JSON-RPC requests go through gate (requires x-pulse-mcp-key)
+  await handleGateCall(req, res, getMcpKey());
+});
+
 // ============================================
 // HEALTH (no auth)
 // ============================================
