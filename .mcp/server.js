@@ -5,9 +5,6 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 8080;
 
-/**
- * Resolve base URL safely for Cloud Run + local
- */
 const getBaseUrl = (req) => {
   return (
     process.env.BASE_URL ||
@@ -15,9 +12,6 @@ const getBaseUrl = (req) => {
   );
 };
 
-/**
- * Root health check
- */
 app.get("/", (req, res) => {
   res.status(200).json({
     status: "ok",
@@ -26,10 +20,7 @@ app.get("/", (req, res) => {
   });
 });
 
-/**
- * OAuth discovery endpoints (REQUIRED for Claude MCP)
- */
-app.get("/.well-known/oauth-authorization-server", (req, res) => {
+const oauthAuthServer = (req, res) => {
   const BASE_URL = getBaseUrl(req);
   res.status(200).json({
     issuer: BASE_URL,
@@ -40,19 +31,23 @@ app.get("/.well-known/oauth-authorization-server", (req, res) => {
     grant_types_supported: ["client_credentials"],
     token_endpoint_auth_methods_supported: ["none"],
   });
-});
+};
 
-app.get("/.well-known/oauth-protected-resource", (req, res) => {
+const oauthProtectedResource = (req, res) => {
   const BASE_URL = getBaseUrl(req);
   res.status(200).json({
     resource: BASE_URL,
     authorization_servers: [BASE_URL],
   });
-});
+};
 
-/**
- * Claude client registration stub
- */
+// support both variants just in case
+app.get("/.well-known/oauth-authorization-server", oauthAuthServer);
+app.get("/well-known/oauth-authorization-server", oauthAuthServer);
+
+app.get("/.well-known/oauth-protected-resource", oauthProtectedResource);
+app.get("/well-known/oauth-protected-resource", oauthProtectedResource);
+
 app.post("/register", (req, res) => {
   res.status(200).json({
     client_id: "claude",
@@ -61,19 +56,10 @@ app.post("/register", (req, res) => {
   });
 });
 
-/**
- * MCP message endpoint (basic echo for now)
- */
 app.post("/", (req, res) => {
-  res.status(200).json({
-    status: "ok",
-    received: req.body,
-  });
+  res.status(200).json({ status: "ok", received: req.body });
 });
 
-/**
- * Start server
- */
 app.listen(PORT, () => {
   console.log(`Pulse MCP listening on port ${PORT}`);
 });
