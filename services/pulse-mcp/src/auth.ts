@@ -31,14 +31,41 @@ export function requireMcpApiKey(headers: Record<string, string | undefined>) {
 }
 
 export async function assertViewerCanReadTarget(targetUserId: string) {
-  const env = getEnv();
-  const supabase = getSupabase();
+  const viewer = (process.env.PULSE_MCP_VIEWER_USER_ID ?? "").trim();
+  const target = (targetUserId ?? "").trim();
 
+  if (!viewer) {
+    const e = new Error("Forbidden: missing PULSE_MCP_VIEWER_USER_ID");
+    (e as any).status = 403;
+    throw e;
+  }
+
+  if (!target) {
+    const e = new Error("Forbidden: missing target_user_id");
+    (e as any).status = 403;
+    throw e;
+  }
+
+  // ✅ Fast-path: viewer can always read their own data (single-tenant safe)
+  if (viewer === target) {
+    return; // allow self-access
+  }
+
+  // Log mismatch for debugging multi-tenant scenarios
+  console.warn("[pulse-mcp] viewer/target mismatch — checking pulse_mcp_viewers", {
+    viewer,
+    target,
+    viewerLen: viewer.length,
+    targetLen: target.length,
+  });
+
+  // Fall back to database check for cross-user access
+  const supabase = getSupabase();
   const { data, error } = await supabase
     .from("pulse_mcp_viewers")
     .select("viewer_user_id,target_user_id")
-    .eq("viewer_user_id", env.PULSE_MCP_VIEWER_USER_ID)
-    .eq("target_user_id", targetUserId)
+    .eq("viewer_user_id", viewer)
+    .eq("target_user_id", target)
     .maybeSingle();
 
   if (error) throw new Error(`Viewer check failed: ${error.message}`);
