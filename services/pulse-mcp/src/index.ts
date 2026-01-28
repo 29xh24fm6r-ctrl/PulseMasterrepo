@@ -5,6 +5,7 @@ import { requireMcpApiKey } from "./auth.js";
 import { tools } from "./tools/index.js";
 import { getSupabase } from "./supabase.js";
 import { handleGateCall, listGateTools } from "./omega-gate/index.js";
+import { mountSseTransport } from "./transport/sse.js";
 
 const app = express();
 app.use(express.json({ limit: "1mb" }));
@@ -38,7 +39,7 @@ function buildDiscoveryResponse() {
     tools: listGateTools().map((t) => ({
       name: t.name,
       description: t.description,
-      input_schema: { type: "object", properties: {} },
+      inputSchema: { type: "object", properties: {} },
     })),
   };
 }
@@ -47,7 +48,14 @@ function buildDiscoveryResponse() {
 // ROOT — MCP discovery (no auth, required for Claude Desktop)
 // ============================================
 app.get("/", (_req, res) => {
-  res.json(buildDiscoveryResponse());
+  res.status(200);
+  res.setHeader("Content-Type", "application/json");
+  res.end(JSON.stringify({
+    protocol: "mcp",
+    server: "pulse-mcp",
+    version: "1.0",
+    tools: buildDiscoveryResponse().tools
+  }));
 });
 
 // ============================================
@@ -173,6 +181,11 @@ app.post("/call/legacy", async (req, res) => {
     res.status(status).json({ ok: false, error: e?.message ?? "Unknown error" });
   }
 });
+
+// ============================================
+// SSE TRANSPORT — MCP protocol (Claude.ai / Claude Desktop)
+// ============================================
+mountSseTransport(app);
 
 const port = Number(process.env.PORT || 8080);
 app.listen(port, "0.0.0.0", () =>
