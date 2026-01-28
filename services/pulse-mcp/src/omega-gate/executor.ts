@@ -1,7 +1,7 @@
 // omega-gate/executor.ts
 // Tool execution dispatcher — routes gate calls to implementations.
-// Phase 1: read tools call existing pulse_read functions.
-// Phase 2: simulate/propose/execute call Temporal workflows.
+// Every tool execution is logged to pulse_observer_events (structured, non-blocking).
+// Canon: never throw on infra errors, no retries inside handlers.
 
 import type { GateRequest } from "./validation.js";
 import { getToolEntry } from "./allowlist.js";
@@ -27,6 +27,23 @@ import {
   // Phase 7: Context
   getCurrentContext,
 } from "../tools/pulse_read.js";
+import {
+  addMemoryEvent,
+  recordDecision,
+  upsertTrigger,
+  setTrustState,
+} from "../tools/pulse_write.js";
+import { systemSchemaHealth } from "../tools/system_schema_health.js";
+import { systemSmokeTest } from "../tools/system_smoke_test.js";
+import { proposeScreen } from "../tools/design_propose_screen.js";
+import { refineScreen } from "../tools/design_refine_screen.js";
+import { designHistory } from "../tools/design_history.js";
+import { checkEvolution } from "../tools/design_evolution.js";
+import { checkCoherence } from "../tools/design_coherence.js";
+import { personaShape } from "../tools/persona_shape.js";
+import { personaCalibrate } from "../tools/persona_calibrate.js";
+import { getSupabase } from "../supabase.js";
+import { checkRateLimit } from "../rate-limit.js";
 
 export interface ExecutionResult {
   summary: string;
@@ -34,8 +51,38 @@ export interface ExecutionResult {
 }
 
 /**
+ * Log tool execution to pulse_observer_events.
+ * Non-blocking: errors are swallowed (never fail the tool call).
+ */
+async function logToolExecution(
+  tool: string,
+  userId: string | undefined,
+  status: "ok" | "error",
+  durationMs: number,
+): Promise<void> {
+  if (!userId) return;
+  try {
+    await getSupabase().from("pulse_observer_events").insert({
+      user_id: userId,
+      event_type: "mcp_tool_call",
+      payload: {
+        tool,
+        status,
+        durationMs,
+        timestamp: new Date().toISOString(),
+      },
+      created_at: new Date().toISOString(),
+    });
+  } catch {
+    // Never fail the response if logging fails
+  }
+}
+
+/**
  * Execute a gate tool call.
  * Only runs for tools that passed allowlist + confidence checks.
+ * Every call is logged to pulse_observer_events.
+ * Rate limited per user (degrades gracefully).
  */
 export async function executeGateTool(request: GateRequest): Promise<ExecutionResult> {
   const entry = getToolEntry(request.tool);
@@ -43,6 +90,42 @@ export async function executeGateTool(request: GateRequest): Promise<ExecutionRe
     return { summary: "Tool not found", artifacts: [] };
   }
 
+  // Rate limit check (per user, degrades gracefully)
+  const userId = (request.inputs as Record<string, unknown>)?.target_user_id as string | undefined;
+  if (userId) {
+    const rateCheck = checkRateLimit(userId);
+    if (!rateCheck.ok) {
+      return {
+        summary: "Rate limit exceeded",
+        artifacts: [{ rate_limited: true, remaining: 0, limit: rateCheck.limit }],
+      };
+    }
+  }
+
+  const startMs = Date.now();
+  let result: ExecutionResult;
+
+  try {
+    result = await executeToolSwitch(request);
+  } catch (e: any) {
+    result = {
+      summary: `Tool error: ${e?.message ?? "Unknown error"}`,
+      artifacts: [{ error: true, message: e?.message }],
+    };
+  }
+
+  // Log execution (non-blocking, never fails the call)
+  const durationMs = Date.now() - startMs;
+  const status = result.summary.includes("error") || result.summary.includes("Error") ? "error" : "ok";
+  logToolExecution(request.tool, userId, status, durationMs).catch(() => {});
+
+  return result;
+}
+
+/**
+ * Internal dispatch — pure tool routing, no logging/rate-limiting.
+ */
+async function executeToolSwitch(request: GateRequest): Promise<ExecutionResult> {
   switch (request.tool) {
     // ============================================
     // DIAGNOSTIC TOOLS
@@ -245,6 +328,171 @@ export async function executeGateTool(request: GateRequest): Promise<ExecutionRe
         summary: `Context snapshot for user ${(data as any).user_id}`,
         artifacts: [data],
       };
+    }
+
+    // ============================================
+    // WRITE PRIMITIVES
+    // ============================================
+    case "memory.add": {
+      const res = await addMemoryEvent(request.inputs);
+      return res.ok
+        ? { summary: `Memory added (${res.id})`, artifacts: [res] }
+        : { summary: `Memory add error: ${res.error}`, artifacts: [res] };
+    }
+
+    case "decision.record": {
+      const res = await recordDecision(request.inputs);
+      return res.ok
+        ? { summary: `Decision recorded (${res.id})`, artifacts: [res] }
+        : { summary: `Decision record error: ${res.error}`, artifacts: [res] };
+    }
+
+    case "trigger.upsert": {
+      const res = await upsertTrigger(request.inputs);
+      return res.ok
+        ? { summary: `Trigger upserted (${res.id})`, artifacts: [res] }
+        : { summary: `Trigger upsert error: ${res.error}`, artifacts: [res] };
+    }
+
+    case "trust.state_set": {
+      const res = await setTrustState(request.inputs);
+      return res.ok
+        ? { summary: "Trust state updated", artifacts: [res] }
+        : { summary: `Trust state error: ${res.error}`, artifacts: [res] };
+    }
+
+    // ============================================
+    // SYSTEM DIAGNOSTICS
+    // ============================================
+    case "system.schema_health": {
+      const data = await systemSchemaHealth();
+      return {
+        summary: data.summary,
+        artifacts: [data],
+      };
+    }
+
+    case "system.smoke_test": {
+      const data = await systemSmokeTest(request.inputs);
+      return {
+        summary: data.summary,
+        artifacts: [data],
+      };
+    }
+
+    // ============================================
+    // DESIGN INTELLIGENCE
+    // ============================================
+    case "design.propose_screen": {
+      const res = await proposeScreen(request.inputs);
+      if (!res.ok) {
+        return {
+          summary: `Design proposal error: ${res.error}`,
+          artifacts: [res],
+        };
+      }
+      if (res.absence) {
+        return {
+          summary: `Designed absence: ${res.absence.reason} (${res.proposal_id})`,
+          artifacts: [res],
+        };
+      }
+      return {
+        summary: `Design proposal created: ${res.proposal?.screen_name ?? "screen"} [${res.proposal?.screen_modes?.default ?? "scan"}] (${res.proposal_id})`,
+        artifacts: [res],
+      };
+    }
+
+    case "design.refine_screen": {
+      const res = await refineScreen(request.inputs);
+      if (!res.ok) {
+        return {
+          summary: `Refinement error: ${res.error}`,
+          artifacts: [res],
+        };
+      }
+      if (!res.proposal_id) {
+        // Explanation or clarifying question (no new proposal created)
+        return {
+          summary: `Design feedback: ${res.refinement_type ?? "clarification"} (${res.parent_proposal_id})`,
+          artifacts: [res],
+        };
+      }
+      return {
+        summary: `Refined proposal v${res.version}: ${res.refinement_type} (${res.proposal_id})`,
+        artifacts: [res],
+      };
+    }
+
+    case "design.history": {
+      const res = await designHistory(request.inputs);
+      if (!res.ok) {
+        return {
+          summary: `History error: ${res.error}`,
+          artifacts: [res],
+        };
+      }
+      return {
+        summary: `History: ${res.versions?.length ?? 0} version(s)${res.diff ? `, diff: +${res.diff.added.length}/-${res.diff.removed.length}/~${res.diff.changed.length}` : ""}`,
+        artifacts: [res],
+      };
+    }
+
+    case "design.check_evolution": {
+      const res = await checkEvolution(request.inputs);
+      if (!res.ok) {
+        return {
+          summary: `Evolution check error: ${res.error}`,
+          artifacts: [res],
+        };
+      }
+      return {
+        summary: `Evolution: ${res.suggestions?.length ?? 0} suggestion(s)`,
+        artifacts: [res],
+      };
+    }
+
+    case "design.check_coherence": {
+      const res = await checkCoherence(request.inputs);
+      if (!res.ok) {
+        return {
+          summary: `Coherence check error: ${res.error}`,
+          artifacts: [res],
+        };
+      }
+      return {
+        summary: `Coherence: ${res.issues?.length ?? 0} issue(s)`,
+        artifacts: [res],
+      };
+    }
+
+    // ============================================
+    // CONVERSATIONAL PERSONHOOD
+    // ============================================
+    case "persona.shape": {
+      const res = await personaShape(request.inputs);
+      return res.ok
+        ? {
+            summary: `Shaped (${res.posture}, L${res.familiarity_level})`,
+            artifacts: [res],
+          }
+        : {
+            summary: `Shape error: ${res.error}`,
+            artifacts: [res],
+          };
+    }
+
+    case "persona.calibrate": {
+      const res = await personaCalibrate(request.inputs);
+      return res.ok
+        ? {
+            summary: `Calibrated: ${res.preferences_updated.join(", ") || "recorded"}`,
+            artifacts: [res],
+          }
+        : {
+            summary: `Calibrate error: ${res.error}`,
+            artifacts: [res],
+          };
     }
 
     default:

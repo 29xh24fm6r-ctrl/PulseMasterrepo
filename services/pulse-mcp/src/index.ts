@@ -14,6 +14,7 @@ import { emitClaudeTools } from "./tool-aliases.js";
 import { withInjectedTargetUserId, injectTargetUserIdIntoAllShapes } from "./target.js";
 import { resolveToolName } from "./aliases.js";
 import { logToolResolution, logToolBlocked } from "./logging.js";
+import { handleCronIntelligence } from "./routes/cron_intelligence.js";
 
 const app = express();
 app.use(express.json({ limit: "1mb" }));
@@ -95,6 +96,23 @@ const CLAUDE_SAFE_TOOL_ALLOWLIST = new Set<string>([
   "triggers.list",
   // Phase 7: Context (read-only)
   "context.current",
+  // System diagnostics
+  "system.schema_health",
+  "system.smoke_test",
+  // Write primitives
+  "memory.add",
+  "decision.record",
+  "trigger.upsert",
+  "trust.state_set",
+  // Design intelligence
+  "design.propose_screen",
+  "design.refine_screen",
+  "design.history",
+  "design.check_evolution",
+  "design.check_coherence",
+  // Conversational personhood
+  "persona.shape",
+  "persona.calibrate",
 ]);
 
 // Helper to get base URL from request
@@ -408,6 +426,11 @@ app.post("/tick", async (req, res) => {
     server_time: new Date().toISOString(),
   });
 });
+
+// ============================================
+// INTELLIGENCE — /cron/intelligence (Cloud Scheduler OIDC)
+// ============================================
+app.post("/cron/intelligence", handleCronIntelligence);
 
 // ============================================
 // OMEGA GATE — /call (MCP discovery + full gate protocol)

@@ -321,6 +321,201 @@ export const OMEGA_ALLOWLIST: Record<string, AllowlistEntry> = {
       },
     },
   },
+
+  // ============================================
+  // SYSTEM DIAGNOSTICS
+  // ============================================
+  "system.schema_health": {
+    scopes: ["read"],
+    effect: "read_only",
+    description: "Self-diagnostic: check all required tables exist, RLS enabled, canon policies present",
+    inputSchema: {
+      type: "object",
+      properties: {},
+    },
+  },
+  "system.smoke_test": {
+    scopes: ["read"],
+    effect: "read_only",
+    description: "Run all core tools and report pass/fail status for each",
+    inputSchema: {
+      type: "object",
+      properties: {
+        ...TARGET_USER_SCHEMA,
+      },
+    },
+  },
+
+  // ============================================
+  // WRITE PRIMITIVES
+  // ============================================
+  "memory.add": {
+    scopes: ["execute"],
+    effect: "writes_required",
+    description: "Add a memory event (insight, decision, preference, fact, observation)",
+    inputSchema: {
+      type: "object",
+      properties: {
+        ...TARGET_USER_SCHEMA,
+        content: { type: "string", description: "Memory content text" },
+        memory_type: { type: "string", description: "Type: insight, decision, preference, fact, observation (default: observation)" },
+        source: { type: "string", description: "Source: mcp, calendar, email, manual (default: mcp)" },
+        importance: { type: "number", description: "Importance 0-1 (default: 0.5)" },
+        metadata: { type: "object", description: "Optional metadata JSON" },
+      },
+      required: ["content"],
+    },
+  },
+  "decision.record": {
+    scopes: ["execute"],
+    effect: "writes_required",
+    description: "Record a decision with reasoning and alternatives",
+    inputSchema: {
+      type: "object",
+      properties: {
+        ...TARGET_USER_SCHEMA,
+        decision: { type: "string", description: "The decision made" },
+        reasoning: { type: "string", description: "Reasoning behind the decision" },
+        alternatives: { type: "array", description: "Alternatives considered" },
+        source: { type: "string", description: "Source: mcp, autopilot, manual (default: mcp)" },
+        metadata: { type: "object", description: "Optional metadata JSON" },
+      },
+      required: ["decision"],
+    },
+  },
+  "trigger.upsert": {
+    scopes: ["execute"],
+    effect: "writes_required",
+    description: "Create or update a trigger candidate (nudge). Idempotent on type+message",
+    inputSchema: {
+      type: "object",
+      properties: {
+        ...TARGET_USER_SCHEMA,
+        trigger_type: { type: "string", description: "Type: upcoming_commitment, overdue_task, pattern_detected" },
+        message: { type: "string", description: "Human-readable trigger message" },
+        source_type: { type: "string", description: "Source type (optional)" },
+        metadata: { type: "object", description: "Optional metadata JSON" },
+      },
+      required: ["trigger_type", "message"],
+    },
+  },
+  "trust.state_set": {
+    scopes: ["execute"],
+    effect: "writes_required",
+    description: "Set trust/autonomy level for a user (upsert)",
+    inputSchema: {
+      type: "object",
+      properties: {
+        ...TARGET_USER_SCHEMA,
+        autonomy_level: { type: "number", description: "Autonomy level 0-5" },
+        trust_score: { type: "number", description: "Trust score 0-1 (optional)" },
+      },
+      required: ["autonomy_level"],
+    },
+  },
+
+  // ============================================
+  // DESIGN INTELLIGENCE
+  // ============================================
+  "design.propose_screen": {
+    scopes: ["propose"],
+    effect: "draft",
+    description: "Propose a UI screen design as an approval-gated artifact. No rendering, no side effects.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        ...TARGET_USER_SCHEMA,
+        request: { type: "string", description: "Natural language screen request" },
+        context_hint: { type: "string", description: "Optional context hint for the design" },
+        constraints: { type: "object", description: "Optional: { platform, tone, density }" },
+      },
+      required: ["request"],
+    },
+  },
+  "design.refine_screen": {
+    scopes: ["execute"],
+    effect: "draft",
+    description: "Refine an existing screen proposal via natural language feedback. Creates a new versioned proposal linked to the parent.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        proposal_id: { type: "string", description: "UUID of the parent proposal to refine" },
+        feedback: { type: "string", description: "Natural language refinement feedback (e.g. 'too busy', 'remove the gauge', 'explain the timeline')" },
+      },
+      required: ["proposal_id", "feedback"],
+    },
+  },
+  "design.history": {
+    scopes: ["read"],
+    effect: "read_only",
+    description: "Interface archaeology: reconstruct screen version history, diffs, and rationale. Read-only, no mutation.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        ...TARGET_USER_SCHEMA,
+        screen_name: { type: "string", description: "Screen name to look up history for" },
+        proposal_id: { type: "string", description: "Specific proposal UUID to trace lineage" },
+        from: { type: "string", description: "Start date (ISO) for history range" },
+        to: { type: "string", description: "End date (ISO) for history range" },
+      },
+    },
+  },
+  "design.check_evolution": {
+    scopes: ["propose"],
+    effect: "draft",
+    description: "Check for evolution opportunities: unused components, simplification suggestions. Creates ui_evolution_suggestion proposals.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        ...TARGET_USER_SCHEMA,
+        screen_name: { type: "string", description: "Optional: check a specific screen only" },
+      },
+    },
+  },
+  "design.check_coherence": {
+    scopes: ["propose"],
+    effect: "draft",
+    description: "Check for coherence issues: duplicate screens, conflicting metrics, naming inconsistencies. Creates ui_coherence_suggestion proposals.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        ...TARGET_USER_SCHEMA,
+      },
+    },
+  },
+
+  // ============================================
+  // CONVERSATIONAL PERSONHOOD
+  // ============================================
+  "persona.shape": {
+    scopes: ["read"],
+    effect: "read_only",
+    description: "Shape text or proposal through the Conversational Personhood pipeline (posture, familiarity, linter)",
+    inputSchema: {
+      type: "object",
+      properties: {
+        ...TARGET_USER_SCHEMA,
+        text: { type: "string", description: "Raw text to shape" },
+        proposal_id: { type: "string", description: "Proposal UUID to load and present conversationally" },
+        context_hint: { type: "string", description: "Interaction type hint: design, planning, review, casual" },
+        proposal_type: { type: "string", description: "Proposal type for posture selection" },
+        signal_severity: { type: "string", description: "Signal severity: none, low, medium, high, critical" },
+      },
+    },
+  },
+  "persona.calibrate": {
+    scopes: ["execute"],
+    effect: "writes_required",
+    description: "Record explicit taste feedback to calibrate Pulse conversational style",
+    inputSchema: {
+      type: "object",
+      properties: {
+        ...TARGET_USER_SCHEMA,
+        feedback: { type: "string", description: "Taste feedback text (e.g. 'too verbose', 'be more decisive')" },
+      },
+      required: ["feedback"],
+    },
+  },
 };
 
 export function isAllowedTool(tool: string): boolean {
