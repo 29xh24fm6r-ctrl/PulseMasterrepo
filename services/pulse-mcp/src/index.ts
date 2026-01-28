@@ -10,6 +10,59 @@ import { mountSseTransport } from "./transport/sse.js";
 const app = express();
 app.use(express.json({ limit: "1mb" }));
 
+// ============================================
+// CLAUDE-SAFE MODE — auth helpers & tool allowlist
+// ============================================
+
+function isClaudeRequest(req: express.Request): boolean {
+  const ua = String(req.headers["user-agent"] || "");
+  return ua.toLowerCase().includes("claude");
+}
+
+function getProvidedKey(req: express.Request): string | null {
+  const hk = req.headers["x-pulse-mcp-key"];
+  if (typeof hk === "string" && hk.trim()) return hk.trim();
+
+  const auth = req.headers["authorization"];
+  if (typeof auth === "string") {
+    const m = auth.match(/^Bearer\s+(.+)$/i);
+    if (m?.[1]) return m[1].trim();
+  }
+
+  return null;
+}
+
+function assertKeyOrClaudeSafeMode(
+  req: express.Request
+): { ok: true; mode: "full" | "claude_safe" } | { ok: false; status: number; message: string } {
+  const expected = process.env.PULSE_MCP_API_KEY || "";
+
+  const provided = getProvidedKey(req);
+  const hasValidKey = Boolean(expected && provided && provided === expected);
+
+  if (hasValidKey) return { ok: true, mode: "full" };
+
+  if (isClaudeRequest(req)) return { ok: true, mode: "claude_safe" };
+
+  return { ok: false, status: 401, message: "Invalid or missing x-pulse-mcp-key" };
+}
+
+const CLAUDE_SAFE_TOOL_ALLOWLIST = new Set<string>([
+  "mcp.tick",
+  "observer.query",
+  "state.inspect",
+  "state.signals",
+  "state.drafts",
+  "state.outcomes",
+  "state.confidence",
+  "plan.simulate",
+  "plan.propose",
+  "plan.propose_patch",
+  "state.propose_patch",
+  "action.propose",
+  // action.execute intentionally excluded
+]);
+
 // Helper to get base URL from request
 function getBaseUrl(req: express.Request): string {
   return (
@@ -124,9 +177,9 @@ app.post("/", async (req, res) => {
     return;
   }
 
-  // Handle JSON-RPC requests from Claude.ai (OAuth-authenticated)
+  // Handle JSON-RPC 2.0 requests from Claude.ai (OAuth-authenticated)
   if (req.body.jsonrpc === "2.0") {
-    const { id, method } = req.body;
+    const { id, method, params } = req.body;
 
     if (method === "initialize") {
       res.json({
@@ -138,6 +191,11 @@ app.post("/", async (req, res) => {
           serverInfo: { name: "pulse-mcp", version: "1.0.0" }
         }
       });
+      return;
+    }
+
+    if (method === "notifications/initialized") {
+      res.status(200).end();
       return;
     }
 
@@ -156,6 +214,52 @@ app.post("/", async (req, res) => {
       return;
     }
 
+    if (method === "tools/call") {
+      const toolName = params?.name ?? "";
+
+      // Claude-safe mode guard: check allowlist
+      const auth = assertKeyOrClaudeSafeMode(req);
+      if (!auth.ok) {
+        res.status(auth.status).json({
+          jsonrpc: "2.0", id,
+          error: { code: -32600, message: auth.message }
+        });
+        return;
+      }
+      if (auth.mode === "claude_safe" && !CLAUDE_SAFE_TOOL_ALLOWLIST.has(toolName)) {
+        res.status(403).json({
+          jsonrpc: "2.0", id,
+          error: { code: -32600, message: "Tool not permitted in Claude-safe mode" },
+        });
+        return;
+      }
+
+      try {
+        const { executeGateTool } = await import("./omega-gate/executor.js");
+        const result = await executeGateTool({
+          call_id: `mcp-${crypto.randomUUID()}`,
+          tool: toolName,
+          intent: `MCP tool call: ${toolName}`,
+          inputs: (params?.arguments ?? {}) as Record<string, unknown>,
+        });
+        res.json({
+          jsonrpc: "2.0", id,
+          result: {
+            content: [{ type: "text", text: JSON.stringify(result) }],
+          },
+        });
+      } catch (e: any) {
+        res.json({
+          jsonrpc: "2.0", id,
+          result: {
+            content: [{ type: "text", text: JSON.stringify({ ok: false, error: e?.message ?? "Unknown error" }) }],
+            isError: true,
+          },
+        });
+      }
+      return;
+    }
+
     // Unknown JSON-RPC method
     res.json({
       jsonrpc: "2.0",
@@ -165,7 +269,29 @@ app.post("/", async (req, res) => {
     return;
   }
 
-  // Non-JSON-RPC requests go through gate (requires x-pulse-mcp-key)
+  // Non-JSON-RPC requests: enforce auth or Claude-safe mode
+  const auth = assertKeyOrClaudeSafeMode(req);
+  if (!auth.ok) {
+    res.status(auth.status).json({ error: auth.message });
+    return;
+  }
+
+  const body: any = req.body || {};
+  const tool =
+    body?.tool || body?.name || body?.params?.tool ||
+    body?.params?.name || body?.input?.tool || body?.input?.name;
+  const toolName = typeof tool === "string" ? tool : "";
+
+  if (auth.mode === "claude_safe") {
+    if (!toolName || !CLAUDE_SAFE_TOOL_ALLOWLIST.has(toolName)) {
+      res.status(403).json({
+        error: "Tool not permitted in Claude-safe mode",
+        tool: toolName || null,
+      });
+      return;
+    }
+  }
+
   await handleGateCall(req, res, getMcpKey());
 });
 
@@ -227,6 +353,30 @@ app.post("/call", async (req, res) => {
     res.json(buildDiscoveryResponse());
     return;
   }
+
+  // Claude-safe mode guard
+  const auth = assertKeyOrClaudeSafeMode(req);
+  if (!auth.ok) {
+    res.status(auth.status).json({ error: auth.message });
+    return;
+  }
+
+  if (auth.mode === "claude_safe") {
+    const body: any = req.body || {};
+    const tool =
+      body?.tool || body?.name || body?.params?.tool ||
+      body?.params?.name || body?.input?.tool || body?.input?.name;
+    const toolName = typeof tool === "string" ? tool : "";
+
+    if (!toolName || !CLAUDE_SAFE_TOOL_ALLOWLIST.has(toolName)) {
+      res.status(403).json({
+        error: "Tool not permitted in Claude-safe mode",
+        tool: toolName || null,
+      });
+      return;
+    }
+  }
+
   await handleGateCall(req, res, getMcpKey());
 });
 
