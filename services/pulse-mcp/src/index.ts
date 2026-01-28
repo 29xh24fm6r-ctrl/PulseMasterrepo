@@ -10,6 +10,64 @@ import { mountSseTransport } from "./transport/sse.js";
 const app = express();
 app.use(express.json({ limit: "1mb" }));
 
+// Helper to get base URL from request
+function getBaseUrl(req: express.Request): string {
+  return (
+    process.env.BASE_URL ||
+    `${req.headers["x-forwarded-proto"] || "https"}://${req.headers["x-forwarded-host"] || req.headers.host}`
+  );
+}
+
+// ============================================
+// OAUTH DISCOVERY STUBS (required for Claude.ai MCP connector)
+// ============================================
+
+app.get("/.well-known/oauth-authorization-server", (req, res) => {
+  const baseUrl = getBaseUrl(req);
+  res.json({
+    issuer: baseUrl,
+    authorization_endpoint: `${baseUrl}/authorize`,
+    token_endpoint: `${baseUrl}/token`,
+    registration_endpoint: `${baseUrl}/register`,
+    response_types_supported: ["token"],
+    grant_types_supported: ["client_credentials"],
+    token_endpoint_auth_methods_supported: ["none"],
+  });
+});
+
+app.get("/.well-known/oauth-protected-resource", (req, res) => {
+  const baseUrl = getBaseUrl(req);
+  res.json({
+    resource: baseUrl,
+    authorization_servers: [baseUrl],
+  });
+});
+
+app.post("/register", (req, res) => {
+  res.json({
+    client_id: "claude",
+    token_endpoint_auth_method: "none",
+    grant_types: ["client_credentials"],
+  });
+});
+
+app.post("/token", (req, res) => {
+  res.json({
+    access_token: "pulse-mcp-access-token",
+    token_type: "Bearer",
+    expires_in: 3600,
+  });
+});
+
+app.get("/authorize", (req, res) => {
+  const redirectUri = req.query.redirect_uri as string;
+  if (redirectUri) {
+    res.redirect(`${redirectUri}?code=authorized`);
+  } else {
+    res.json({ authorized: true });
+  }
+});
+
 // Lazy MCP key accessor (deferred, never throws at import)
 function getMcpKey(): string {
   const key = process.env.PULSE_MCP_API_KEY;
