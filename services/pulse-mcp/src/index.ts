@@ -12,6 +12,27 @@ import {
 } from "./tool-aliases.js";
 import { withInjectedTargetUserId } from "./target.js";
 
+// ============================================
+// DIAGNOSTIC LOGGING — trace tool call paths
+// ============================================
+
+function logToolCallEdge(opts: {
+  where: string;
+  name: string | undefined;
+  hasKey: boolean;
+  beforeTarget: unknown;
+  afterTarget: unknown;
+}) {
+  console.log("[pulse-mcp] TOOL_CALL_EDGE", {
+    where: opts.where,
+    tool: opts.name ?? "(none)",
+    hasKey: opts.hasKey,
+    targetBefore: opts.beforeTarget ?? "(missing)",
+    targetAfter: opts.afterTarget ?? "(missing)",
+    ts: new Date().toISOString(),
+  });
+}
+
 const app = express();
 app.use(express.json({ limit: "1mb" }));
 
@@ -37,6 +58,16 @@ function getProvidedKey(req: express.Request): string | null {
   return null;
 }
 
+function getKeySource(req: express.Request): "x-pulse-mcp-key" | "authorization" | "none" {
+  const hk = req.headers["x-pulse-mcp-key"];
+  if (typeof hk === "string" && hk.trim()) return "x-pulse-mcp-key";
+
+  const auth = req.headers["authorization"];
+  if (typeof auth === "string" && /^Bearer\s+.+$/i.test(auth)) return "authorization";
+
+  return "none";
+}
+
 function assertKeyOrClaudeSafeMode(
   req: express.Request
 ): { ok: true; mode: "full" | "claude_safe" } | { ok: false; status: number; message: string } {
@@ -45,7 +76,10 @@ function assertKeyOrClaudeSafeMode(
   const provided = getProvidedKey(req);
   const hasValidKey = Boolean(expected && provided && provided === expected);
 
-  if (hasValidKey) return { ok: true, mode: "full" };
+  if (hasValidKey) {
+    console.log("[pulse-mcp] auth ok", { via: getKeySource(req) });
+    return { ok: true, mode: "full" };
+  }
 
   if (isClaudeRequest(req)) return { ok: true, mode: "claude_safe" };
 
@@ -234,7 +268,17 @@ app.post("/", async (req, res) => {
 
       try {
         const { executeGateTool } = await import("./omega-gate/executor.js");
-        const injectedInputs = withInjectedTargetUserId(params?.arguments ?? {});
+        const rawArgs = params?.arguments ?? {};
+        const injectedInputs = withInjectedTargetUserId(rawArgs);
+
+        logToolCallEdge({
+          where: "jsonrpc-tools/call",
+          name: toolName,
+          hasKey: Boolean(getProvidedKey(req)),
+          beforeTarget: (rawArgs as any).target_user_id,
+          afterTarget: injectedInputs.target_user_id,
+        });
+
         const result = await executeGateTool({
           call_id: `mcp-${crypto.randomUUID()}`,
           tool: toolName,
@@ -300,9 +344,18 @@ app.post("/", async (req, res) => {
   if (body?.input?.name) body.input.name = toolName;
 
   // Inject target_user_id into inputs if missing
+  const beforeTarget = body?.inputs?.target_user_id;
   if (body?.inputs && typeof body.inputs === "object") {
     body.inputs = withInjectedTargetUserId(body.inputs);
   }
+
+  logToolCallEdge({
+    where: "post-root-non-jsonrpc",
+    name: toolName,
+    hasKey: Boolean(getProvidedKey(req)),
+    beforeTarget,
+    afterTarget: body?.inputs?.target_user_id,
+  });
 
   await handleGateCall(req, res, getMcpKey());
 });
@@ -399,9 +452,18 @@ app.post("/call", async (req, res) => {
   if (callBody?.input?.name) callBody.input.name = callToolName;
 
   // Inject target_user_id into inputs if missing
+  const callBeforeTarget = callBody?.inputs?.target_user_id;
   if (callBody?.inputs && typeof callBody.inputs === "object") {
     callBody.inputs = withInjectedTargetUserId(callBody.inputs);
   }
+
+  logToolCallEdge({
+    where: "post-call",
+    name: callToolName,
+    hasKey: Boolean(getProvidedKey(req)),
+    beforeTarget: callBeforeTarget,
+    afterTarget: callBody?.inputs?.target_user_id,
+  });
 
   await handleGateCall(req, res, getMcpKey());
 });

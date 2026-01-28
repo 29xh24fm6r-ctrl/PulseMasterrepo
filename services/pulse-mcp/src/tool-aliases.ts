@@ -97,15 +97,22 @@ export function logToolNameRepair(realName: string, safeName: string): void {
 // SINGLE BOUNDARY EMITTER — all tool lists go through here
 // ============================================
 
+export interface InputSchema {
+  type: "object";
+  properties: Record<string, { type: string; description?: string }>;
+  required?: string[];
+}
+
 export interface RawToolDef {
   name: string;
   description: string;
+  inputSchema?: InputSchema;
 }
 
 export interface ClaudeToolDef {
   name: string;
   description: string;
-  inputSchema: { type: "object"; properties: Record<string, never> };
+  inputSchema: InputSchema;
 }
 
 /**
@@ -126,7 +133,7 @@ export function emitClaudeTools(rawTools: RawToolDef[]): ClaudeToolDef[] {
       return {
         name: safeName,
         description: t.description,
-        inputSchema: { type: "object" as const, properties: {} },
+        inputSchema: t.inputSchema ?? { type: "object" as const, properties: {} },
       };
     })
     .filter((t) => {

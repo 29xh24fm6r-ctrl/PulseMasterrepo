@@ -210,11 +210,17 @@ export function listGateTools(): Array<{
   scopes: string[];
   effect: string;
   description: string;
+  inputSchema?: {
+    type: "object";
+    properties: Record<string, { type: string; description?: string }>;
+    required?: string[];
+  };
 }> {
   return Object.entries(OMEGA_ALLOWLIST).map(([name, entry]) => ({
     name,
     scopes: [...entry.scopes],
     effect: entry.effect,
     description: entry.description,
+    inputSchema: entry.inputSchema,
   }));
 }
