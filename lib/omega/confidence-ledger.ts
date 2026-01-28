@@ -1,12 +1,18 @@
 // lib/omega/confidence-ledger.ts
 // Confidence Ledger: Track predictions vs outcomes for calibration
 
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+let _supabase: SupabaseClient | null = null;
+function supabase(): SupabaseClient {
+  if (!_supabase) {
+    _supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+  }
+  return _supabase;
+}
 
 export interface ConfidenceEvent {
   userId: string;
@@ -43,7 +49,7 @@ export interface EarnedAutonomyResult {
  */
 export async function recordConfidencePrediction(event: ConfidenceEvent): Promise<string | null> {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabase()
       .from("pulse_confidence_events")
       .insert({
         user_id: event.userId,
@@ -78,7 +84,7 @@ export async function recordConfidenceOutcome(
 ): Promise<boolean> {
   try {
     // Get the original prediction
-    const { data: event } = await supabase
+    const { data: event } = await supabase()
       .from("pulse_confidence_events")
       .select("predicted_confidence")
       .eq("id", eventId)
@@ -94,7 +100,7 @@ export async function recordConfidenceOutcome(
       outcome.outcome === "success" ? 1.0 : outcome.outcome === "partial" ? 0.5 : 0.0;
     const confidenceError = event.predicted_confidence - actualSuccess;
 
-    const { error } = await supabase
+    const { error } = await supabase()
       .from("pulse_confidence_events")
       .update({
         outcome: outcome.outcome,
@@ -125,7 +131,7 @@ export async function getCalibrationData(
   node?: string
 ): Promise<CalibrationBucket[]> {
   try {
-    let query = supabase
+    let query = supabase()
       .from("pulse_confidence_calibration")
       .select("*")
       .eq("user_id", userId);
@@ -244,7 +250,7 @@ export async function getConfidenceEvent(eventId: string): Promise<{
   outcome?: string;
 } | null> {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabase()
       .from("pulse_confidence_events")
       .select("id, user_id, node, predicted_confidence, outcome")
       .eq("id", eventId)
@@ -284,7 +290,7 @@ export async function getRecentConfidenceEvents(
   }[]
 > {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabase()
       .from("pulse_confidence_events")
       .select("id, node, prediction_type, predicted_confidence, outcome, confidence_error, created_at")
       .eq("user_id", userId)

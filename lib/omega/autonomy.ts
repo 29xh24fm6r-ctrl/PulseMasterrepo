@@ -1,13 +1,19 @@
 // lib/omega/autonomy.ts
 // Autonomy Management: Track and manage user autonomy levels
 
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { checkEarnedAutonomy } from "./confidence-ledger";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+let _supabase: SupabaseClient | null = null;
+function supabase(): SupabaseClient {
+  if (!_supabase) {
+    _supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+  }
+  return _supabase;
+}
 
 export type EscalationLevel = "hard_block" | "soft_block" | "observe_only" | "full_auto";
 export type AutonomyLevel = 0 | 1 | 2 | 3;
@@ -45,7 +51,7 @@ export interface UserAutonomyInfo {
 export async function getUserAutonomyLevel(userId: string): Promise<UserAutonomyInfo> {
   try {
     // Check for existing autonomy record
-    const { data: existing } = await supabase
+    const { data: existing } = await supabase()
       .from("pulse_user_autonomy")
       .select("*")
       .eq("user_id", userId)
@@ -90,12 +96,12 @@ export async function getUserAutonomyLevel(userId: string): Promise<UserAutonomy
         });
       }
 
-      await supabase
+      await supabase()
         .from("pulse_user_autonomy")
         .update({ ...autonomyData, level_history: history })
         .eq("user_id", userId);
     } else {
-      await supabase.from("pulse_user_autonomy").insert(autonomyData);
+      await supabase().from("pulse_user_autonomy").insert(autonomyData);
     }
 
     return {
@@ -131,7 +137,7 @@ export async function checkConstraintsWithEscalation(
     const { level: userLevel } = await getUserAutonomyLevel(userId);
 
     // Get all constraints
-    const { data: constraints } = await supabase
+    const { data: constraints } = await supabase()
       .from("pulse_constraints")
       .select("*")
       .order("escalation_level");
@@ -273,14 +279,14 @@ export async function setAutonomyOverride(
       : null;
 
     // First check if record exists
-    const { data: existing } = await supabase
+    const { data: existing } = await supabase()
       .from("pulse_user_autonomy")
       .select("id")
       .eq("user_id", userId)
       .single();
 
     if (existing) {
-      const { error } = await supabase
+      const { error } = await supabase()
         .from("pulse_user_autonomy")
         .update({
           manual_override: level,
@@ -292,7 +298,7 @@ export async function setAutonomyOverride(
 
       return !error;
     } else {
-      const { error } = await supabase.from("pulse_user_autonomy").insert({
+      const { error } = await supabase().from("pulse_user_autonomy").insert({
         user_id: userId,
         current_level: level,
         manual_override: level,
@@ -313,7 +319,7 @@ export async function setAutonomyOverride(
  */
 export async function clearAutonomyOverride(userId: string): Promise<boolean> {
   try {
-    const { error } = await supabase
+    const { error } = await supabase()
       .from("pulse_user_autonomy")
       .update({
         manual_override: null,
@@ -344,7 +350,7 @@ export async function getAutonomyLevelDescriptions(): Promise<
   }[]
 > {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabase()
       .from("pulse_autonomy_levels")
       .select("*")
       .order("level");
@@ -373,7 +379,7 @@ export async function getAutonomyHistory(
   userId: string
 ): Promise<{ from: number; to: number; reason: string; timestamp: string }[]> {
   try {
-    const { data } = await supabase
+    const { data } = await supabase()
       .from("pulse_user_autonomy")
       .select("level_history")
       .eq("user_id", userId)
