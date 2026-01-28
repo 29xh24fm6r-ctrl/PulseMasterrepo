@@ -11,7 +11,12 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { OMEGA_ALLOWLIST } from "../omega-gate/allowlist.js";
 import { executeGateTool } from "../omega-gate/executor.js";
-import { registerToolName, resolveRealToolName } from "../tool-aliases.js";
+import {
+  registerToolName,
+  resolveRealToolName,
+  isClaudeToolNameValid,
+  logToolNameRepair,
+} from "../tool-aliases.js";
 
 // Active SSE transports keyed by session ID
 const transports = new Map<string, SSEServerTransport>();
@@ -24,11 +29,21 @@ function createMcpServer(): Server {
 
   // tools/list — return all gate tools in MCP format (aliased for Claude)
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: Object.entries(OMEGA_ALLOWLIST).map(([name, entry]) => ({
-      name: registerToolName(name),
-      description: entry.description,
-      inputSchema: { type: "object" as const, properties: {} },
-    })),
+    tools: Object.entries(OMEGA_ALLOWLIST)
+      .map(([name, entry]) => {
+        const safeName = registerToolName(name);
+        logToolNameRepair(name, safeName);
+        return {
+          name: safeName,
+          description: entry.description,
+          inputSchema: { type: "object" as const, properties: {} },
+        };
+      })
+      .filter((t) => {
+        const ok = isClaudeToolNameValid(t.name);
+        if (!ok) console.warn("[pulse-mcp] SSE tool dropped (invalid name after repair)", { name: t.name });
+        return ok;
+      }),
   }));
 
   // tools/call — execute via gate executor (resolve alias → real name)

@@ -2,13 +2,42 @@
 // Claude rejects tool names containing dots (requires ^[a-zA-Z0-9_-]{1,64}$).
 // This module maps internal dotted names (e.g. "observer.query") to
 // Claude-safe aliases ("observer_query") and back.
+// Non-crashing: invalid names are repaired + logged, never leaked or thrown.
 
-/** Convert an internal tool name to a Claude-compatible name. */
+const CLAUDE_TOOL_NAME_RE = /^[a-zA-Z0-9_-]{1,64}$/;
+
+/** Check whether a name already satisfies Claude's schema. */
+export function isClaudeToolNameValid(name: string): boolean {
+  return CLAUDE_TOOL_NAME_RE.test(name);
+}
+
+/**
+ * Convert any internal tool name into a guaranteed Claude-safe tool name.
+ * - Replaces dots and illegal chars with underscores
+ * - Collapses consecutive underscores
+ * - Strips leading underscores/hyphens
+ * - Enforces 1..64 length
+ * - Deterministic
+ */
 export function toClaudeToolName(name: string): string {
   const cleaned = name
-    .replace(/[.\s/]+/g, "_")
-    .replace(/[^a-zA-Z0-9_-]/g, "_");
-  return cleaned.slice(0, 64);
+    .replace(/\./g, "_")
+    .replace(/[^a-zA-Z0-9_-]/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^[-_]+/, "")
+    .slice(0, 64);
+  return cleaned.length ? cleaned : "tool";
+}
+
+/**
+ * Final-boundary safe emitter. Guarantees the returned name passes
+ * Claude's ^[a-zA-Z0-9_-]{1,64}$ validation. Falls back to "tool"
+ * if the sanitizer somehow produces an invalid result.
+ */
+export function safeClaudeToolName(realName: string): string {
+  const aliased = toClaudeToolName(realName);
+  if (!isClaudeToolNameValid(aliased)) return "tool";
+  return aliased;
 }
 
 // Bidirectional alias maps (populated at startup via registerToolName)
@@ -23,7 +52,7 @@ export function registerToolName(realName: string): string {
   // Already registered
   if (realToAlias.has(realName)) return realToAlias.get(realName)!;
 
-  let alias = toClaudeToolName(realName);
+  let alias = safeClaudeToolName(realName);
 
   // Collision guard: if the alias already points to a different real name, append suffix
   if (aliasToReal.has(alias) && aliasToReal.get(alias) !== realName) {
@@ -52,4 +81,14 @@ export function resolveRealToolName(incoming: string): string {
  */
 export function getAlias(realName: string): string {
   return realToAlias.get(realName) ?? realName;
+}
+
+/**
+ * Log when a tool name was repaired during alias registration.
+ * Only logs if the name actually changed.
+ */
+export function logToolNameRepair(realName: string, safeName: string): void {
+  if (realName !== safeName) {
+    console.warn("[pulse-mcp] tool name repaired", { realName, safeName });
+  }
 }
