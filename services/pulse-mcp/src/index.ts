@@ -10,32 +10,10 @@ import { tools } from "./tools/index.js";
 import { getSupabase } from "./supabase.js";
 import { handleGateCall, listGateTools } from "./omega-gate/index.js";
 import { mountSseTransport } from "./transport/sse.js";
-import {
-  resolveRealToolName,
-  emitClaudeTools,
-} from "./tool-aliases.js";
+import { emitClaudeTools } from "./tool-aliases.js";
 import { withInjectedTargetUserId, injectTargetUserIdIntoAllShapes } from "./target.js";
-
-// ============================================
-// DIAGNOSTIC LOGGING — trace tool call paths
-// ============================================
-
-function logToolCallEdge(opts: {
-  where: string;
-  name: string | undefined;
-  hasKey: boolean;
-  beforeTarget: unknown;
-  afterTarget: unknown;
-}) {
-  console.log("[pulse-mcp] TOOL_CALL_EDGE", {
-    where: opts.where,
-    tool: opts.name ?? "(none)",
-    hasKey: opts.hasKey,
-    targetBefore: opts.beforeTarget ?? "(missing)",
-    targetAfter: opts.afterTarget ?? "(missing)",
-    ts: new Date().toISOString(),
-  });
-}
+import { resolveToolName } from "./aliases.js";
+import { logToolResolution, logToolBlocked } from "./logging.js";
 
 const app = express();
 app.use(express.json({ limit: "1mb" }));
@@ -104,6 +82,19 @@ const CLAUDE_SAFE_TOOL_ALLOWLIST = new Set<string>([
   "state.propose_patch",
   "action.propose",
   // action.execute intentionally excluded
+  // Phase 2: Memory (read-only)
+  "memory.list",
+  "memory.recent",
+  "memory.search",
+  // Phase 5: Decisions (read-only)
+  "decision.list",
+  "decision.recent",
+  // Phase 6: Trust state (read-only)
+  "trust.state",
+  // Phase 4: Triggers (read-only)
+  "triggers.list",
+  // Phase 7: Context (read-only)
+  "context.current",
 ]);
 
 // Helper to get base URL from request
@@ -254,9 +245,11 @@ app.post("/", async (req, res) => {
 
     if (method === "tools/call") {
       const rawToolName = params?.name ?? "";
-      const toolName = resolveRealToolName(rawToolName);
+      const resolution = await resolveToolName(rawToolName);
+      logToolResolution("jsonrpc-tools/call", resolution);
+      const toolName = resolution.resolved_tool;
 
-      // Claude-safe mode guard: check allowlist (uses real name)
+      // Claude-safe mode guard: check allowlist on RESOLVED canonical name
       const auth = assertKeyOrClaudeSafeMode(req);
       if (!auth.ok) {
         res.status(auth.status).json({
@@ -266,6 +259,7 @@ app.post("/", async (req, res) => {
         return;
       }
       if (auth.mode === "claude_safe" && !CLAUDE_SAFE_TOOL_ALLOWLIST.has(toolName)) {
+        logToolBlocked("jsonrpc-tools/call", resolution);
         res.status(403).json({
           jsonrpc: "2.0", id,
           error: { code: -32600, message: "Tool not permitted in Claude-safe mode" },
@@ -277,14 +271,6 @@ app.post("/", async (req, res) => {
         const { executeGateTool } = await import("./omega-gate/executor.js");
         const rawArgs = params?.arguments ?? {};
         const injectedInputs = withInjectedTargetUserId(rawArgs);
-
-        logToolCallEdge({
-          where: "jsonrpc-tools/call",
-          name: toolName,
-          hasKey: Boolean(getProvidedKey(req)),
-          beforeTarget: (rawArgs as any).target_user_id,
-          afterTarget: injectedInputs.target_user_id,
-        });
 
         const result = await executeGateTool({
           call_id: `mcp-${crypto.randomUUID()}`,
@@ -330,10 +316,15 @@ app.post("/", async (req, res) => {
   const rawTool =
     body?.tool || body?.name || body?.params?.tool ||
     body?.params?.name || body?.input?.tool || body?.input?.name;
-  const toolName = resolveRealToolName(typeof rawTool === "string" ? rawTool : "");
+  const resolution = await resolveToolName(
+    typeof rawTool === "string" ? rawTool : ""
+  );
+  logToolResolution("post-root-non-jsonrpc", resolution);
+  const toolName = resolution.resolved_tool;
 
   if (auth.mode === "claude_safe") {
     if (!toolName || !CLAUDE_SAFE_TOOL_ALLOWLIST.has(toolName)) {
+      logToolBlocked("post-root-non-jsonrpc", resolution);
       res.status(403).json({
         error: "Tool not permitted in Claude-safe mode",
         tool: toolName || null,
@@ -342,7 +333,7 @@ app.post("/", async (req, res) => {
     }
   }
 
-  // Patch body with resolved real tool name so gate sees internal name
+  // Patch body with resolved canonical tool name so gate sees internal name
   if (body?.tool) body.tool = toolName;
   if (body?.name) body.name = toolName;
   if (body?.params?.tool) body.params.tool = toolName;
@@ -351,18 +342,9 @@ app.post("/", async (req, res) => {
   if (body?.input?.name) body.input.name = toolName;
 
   // Inject target_user_id into inputs if missing
-  const beforeTarget = body?.inputs?.target_user_id;
   if (body?.inputs && typeof body.inputs === "object") {
     body.inputs = withInjectedTargetUserId(body.inputs);
   }
-
-  logToolCallEdge({
-    where: "post-root-non-jsonrpc",
-    name: toolName,
-    hasKey: Boolean(getProvidedKey(req)),
-    beforeTarget,
-    afterTarget: body?.inputs?.target_user_id,
-  });
 
   await handleGateCall(req, res, getMcpKey());
 });
@@ -392,20 +374,37 @@ app.post("/heartbeat", (req, res) => {
 
 // ============================================
 // TICK — Observer loop (Cloud Scheduler OIDC)
+// Phase 4: Now includes proactive trigger evaluation
 // ============================================
-app.post("/tick", (req, res) => {
+app.post("/tick", async (req, res) => {
   const nonce = req.body?.nonce ?? crypto.randomUUID();
+  const targetUserId = process.env.PULSE_DEFAULT_TARGET_USER_ID?.trim();
 
   console.log("[pulse-mcp] tick received", {
     source: req.body?.source ?? "unknown",
     nonce,
+    targetUserId: targetUserId ?? "(not set)",
     ts: new Date().toISOString(),
   });
+
+  let proactiveResult = null;
+
+  // Run proactive evaluation if we have a target user
+  if (targetUserId) {
+    try {
+      const { runProactiveEvaluation } = await import("./proactive/index.js");
+      proactiveResult = await runProactiveEvaluation(targetUserId);
+      console.log("[pulse-mcp] proactive evaluation complete", proactiveResult);
+    } catch (e) {
+      console.warn("[pulse-mcp] proactive evaluation failed", { error: e });
+    }
+  }
 
   res.status(200).json({
     ok: true,
     nonce,
     echo: req.body ?? {},
+    proactive: proactiveResult,
     server_time: new Date().toISOString(),
   });
 });
@@ -436,15 +435,20 @@ app.post("/call", async (req, res) => {
     return;
   }
 
-  // Resolve tool alias to real name
+  // Resolve tool alias chain: static Claude alias → database alias → canonical
   const callBody: any = req.body || {};
   const rawCallTool =
     callBody?.tool || callBody?.name || callBody?.params?.tool ||
     callBody?.params?.name || callBody?.input?.tool || callBody?.input?.name;
-  const callToolName = resolveRealToolName(typeof rawCallTool === "string" ? rawCallTool : "");
+  const callResolution = await resolveToolName(
+    typeof rawCallTool === "string" ? rawCallTool : ""
+  );
+  logToolResolution("post-call", callResolution);
+  const callToolName = callResolution.resolved_tool;
 
   if (auth.mode === "claude_safe") {
     if (!callToolName || !CLAUDE_SAFE_TOOL_ALLOWLIST.has(callToolName)) {
+      logToolBlocked("post-call", callResolution);
       res.status(403).json({
         error: "Tool not permitted in Claude-safe mode",
         tool: callToolName || null,
@@ -453,7 +457,7 @@ app.post("/call", async (req, res) => {
     }
   }
 
-  // Patch body with resolved real tool name so gate sees internal name
+  // Patch body with resolved canonical tool name so gate sees internal name
   if (callBody?.tool) callBody.tool = callToolName;
   if (callBody?.name) callBody.name = callToolName;
   if (callBody?.params?.tool) callBody.params.tool = callToolName;
@@ -462,18 +466,9 @@ app.post("/call", async (req, res) => {
   if (callBody?.input?.name) callBody.input.name = callToolName;
 
   // Inject target_user_id into inputs if missing
-  const callBeforeTarget = callBody?.inputs?.target_user_id;
   if (callBody?.inputs && typeof callBody.inputs === "object") {
     callBody.inputs = withInjectedTargetUserId(callBody.inputs);
   }
-
-  logToolCallEdge({
-    where: "post-call",
-    name: callToolName,
-    hasKey: Boolean(getProvidedKey(req)),
-    beforeTarget: callBeforeTarget,
-    afterTarget: callBody?.inputs?.target_user_id,
-  });
 
   await handleGateCall(req, res, getMcpKey());
 });
@@ -523,7 +518,9 @@ app.post("/call/legacy", async (req, res) => {
           user_id: targetUserId,
           event_type: "mcp_tool_call",
           payload: {
-            tool,
+            requested_tool: tool,
+            resolved_tool: tool,
+            alias_hit: false,
             durationMs: Date.now() - startMs,
             success: true,
           },

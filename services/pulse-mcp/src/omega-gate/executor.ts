@@ -13,6 +13,19 @@ import {
   listExecutionLog,
   listObserverEvents,
   listConfidenceEvents,
+  // Phase 2: Memory
+  listMemoryEvents,
+  listRecentMemory,
+  searchMemory,
+  // Phase 5: Decisions
+  listDecisions,
+  listRecentDecisions,
+  // Phase 6: Trust
+  getTrustState,
+  // Phase 4: Triggers
+  listTriggerCandidates,
+  // Phase 7: Context
+  getCurrentContext,
 } from "../tools/pulse_read.js";
 
 export interface ExecutionResult {
@@ -170,6 +183,67 @@ export async function executeGateTool(request: GateRequest): Promise<ExecutionRe
       return {
         summary: "Execution stub: would execute approved action via Temporal",
         artifacts: [{ executed: false, stub: true, intent: request.intent }],
+      };
+    }
+
+    // ============================================
+    // PHASE 2: MEMORY TOOLS (READ-ONLY)
+    // ============================================
+    case "memory.list": {
+      const data = await listMemoryEvents(request.inputs);
+      return { summary: `Retrieved ${data.length} memory events`, artifacts: data };
+    }
+
+    case "memory.recent": {
+      const data = await listRecentMemory(request.inputs);
+      return { summary: `Retrieved ${data.length} recent memories`, artifacts: data };
+    }
+
+    case "memory.search": {
+      const data = await searchMemory(request.inputs);
+      return { summary: `Found ${data.length} matching memories`, artifacts: data };
+    }
+
+    // ============================================
+    // PHASE 5: DECISION TOOLS (READ-ONLY)
+    // ============================================
+    case "decision.list": {
+      const data = await listDecisions(request.inputs);
+      return { summary: `Retrieved ${data.length} decisions`, artifacts: data };
+    }
+
+    case "decision.recent": {
+      const data = await listRecentDecisions(request.inputs);
+      return { summary: `Retrieved ${data.length} recent decisions`, artifacts: data };
+    }
+
+    // ============================================
+    // PHASE 6: TRUST STATE (READ-ONLY)
+    // ============================================
+    case "trust.state": {
+      const data = await getTrustState(request.inputs);
+      return {
+        summary: `Trust state: autonomy level ${(data as any).autonomy_level}`,
+        artifacts: [data],
+      };
+    }
+
+    // ============================================
+    // PHASE 4: TRIGGER CANDIDATES (READ-ONLY)
+    // ============================================
+    case "triggers.list": {
+      const data = await listTriggerCandidates(request.inputs);
+      return { summary: `Retrieved ${data.length} trigger candidates`, artifacts: data };
+    }
+
+    // ============================================
+    // PHASE 7: CONTEXT SNAPSHOT (READ-ONLY)
+    // ============================================
+    case "context.current": {
+      const data = await getCurrentContext(request.inputs);
+      return {
+        summary: `Context snapshot for user ${(data as any).user_id}`,
+        artifacts: [data],
       };
     }
 
