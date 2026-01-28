@@ -116,6 +116,18 @@ app.get("/", (_req, res) => {
   }));
 });
 
+// POST / — MCP message handler (required for Claude.ai)
+app.post("/", async (req, res) => {
+  // If it's a discovery/handshake request, return discovery
+  if (!req.body || !req.body.method || req.body.method === "list_tools") {
+    res.json(buildDiscoveryResponse());
+    return;
+  }
+
+  // Otherwise route to gate call handler
+  await handleGateCall(req, res, getMcpKey());
+});
+
 // ============================================
 // HEALTH (no auth)
 // ============================================
