@@ -1,13 +1,19 @@
 // lib/temporal/activities/executeDraft.activity.ts
 // Activity that executes approved drafts with idempotency
 
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import type { OmegaState } from "@/lib/langgraph/types";
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+let _supabaseAdmin: SupabaseClient | null = null;
+function supabaseAdmin(): SupabaseClient {
+  if (!_supabaseAdmin) {
+    _supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+  }
+  return _supabaseAdmin;
+}
 
 export interface ExecutionResult {
   skipped?: boolean;
@@ -36,7 +42,7 @@ export async function executeDraftActivity(state: OmegaState): Promise<Execution
   try {
     // Idempotency guard: check if draft is already executed
     if (state.draft.id) {
-      const { data: existing } = await supabaseAdmin
+      const { data: existing } = await supabaseAdmin()
         .from("pulse_drafts")
         .select("status")
         .eq("id", state.draft.id)
@@ -50,7 +56,7 @@ export async function executeDraftActivity(state: OmegaState): Promise<Execution
       }
 
       // Mark as executed
-      const { error } = await supabaseAdmin
+      const { error } = await supabaseAdmin()
         .from("pulse_drafts")
         .update({
           status: "auto_executed",
@@ -65,7 +71,7 @@ export async function executeDraftActivity(state: OmegaState): Promise<Execution
     }
 
     // Record execution in outcomes
-    await supabaseAdmin.from("pulse_outcomes").insert({
+    await supabaseAdmin().from("pulse_outcomes").insert({
       user_id: state.userId,
       draft_id: state.draft.id || null,
       outcome_type: "success",

@@ -13,12 +13,18 @@ import { evolveNode } from "./nodes/evolve";
 import { guardianNode } from "./nodes/guardian";
 import { executeNode } from "./nodes/execute";
 import { queueForReviewNode } from "./nodes/queue-for-review";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+let _supabaseAdmin: SupabaseClient | null = null;
+function supabaseAdmin(): SupabaseClient {
+  if (!_supabaseAdmin) {
+    _supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+  }
+  return _supabaseAdmin;
+}
 
 // Conditional: route after draft generation
 // Deterministic routing based on state, not randomness
@@ -52,7 +58,7 @@ function routeAfterGuardian(state: typeof OmegaStateAnnotation.State): string {
 async function persistState(state: OmegaState): Promise<void> {
   try {
     // Always write a trace row, even if reasoningTrace is empty (on failures)
-    await supabaseAdmin.from("pulse_reasoning_traces").insert({
+    await supabaseAdmin().from("pulse_reasoning_traces").insert({
       user_id: state.userId,
       session_id: state.sessionId,
       trace_type: "langgraph_omega_loop",
@@ -72,7 +78,7 @@ async function persistState(state: OmegaState): Promise<void> {
     // Persist cognitive limits (if any)
     for (const limit of state.cognitiveIssues || []) {
       try {
-        await supabaseAdmin.from("pulse_cognitive_limits").insert({
+        await supabaseAdmin().from("pulse_cognitive_limits").insert({
           user_id: state.userId,
           limit_type: limit.type,
           description: limit.description,
@@ -87,7 +93,7 @@ async function persistState(state: OmegaState): Promise<void> {
     // Persist improvements (if any)
     for (const improvement of state.proposedImprovements || []) {
       try {
-        await supabaseAdmin.from("pulse_improvements").insert({
+        await supabaseAdmin().from("pulse_improvements").insert({
           user_id: state.userId,
           improvement_type: improvement.type,
           target_component: improvement.target,
