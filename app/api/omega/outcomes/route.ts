@@ -1,6 +1,8 @@
 // app/api/omega/outcomes/route.ts
 // Record and view outcomes
 
+export const dynamic = "force-dynamic";
+
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
 import { withCompatTelemetry } from "@/lib/compat/withCompatTelemetry";
 import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";

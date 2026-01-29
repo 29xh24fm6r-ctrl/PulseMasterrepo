@@ -58,8 +58,16 @@ function scan(dir: string) {
             // If we are scanning lib, DO NOT scan lib/runtime
             if (fullPath === ALLOWED_DIR) continue;
 
-            // Exclude voice-gateway service (standalone package)
+            // Exclude standalone service/agent packages (server-only, never client-bundled)
             if (fullPath.includes("services\\voice-gateway") || fullPath.includes("services/voice-gateway")) continue;
+            if (fullPath.includes("services\\pulse-mcp") || fullPath.includes("services/pulse-mcp")) continue;
+            // Exclude server-only lib subsystems that require direct SDK access
+            if (fullPath.includes("lib\\langgraph") || fullPath.includes("lib/langgraph")) continue;
+            if (fullPath.includes("lib\\mcp") || fullPath.includes("lib/mcp")) continue;
+            if (fullPath.includes("lib\\omega") || fullPath.includes("lib/omega")) continue;
+            if (fullPath.includes("lib\\temporal") || fullPath.includes("lib/temporal")) continue;
+            if (fullPath.includes("lib\\jobs") || fullPath.includes("lib/jobs")) continue;
+            if (fullPath.includes("lib\\ai") || fullPath.includes("lib/ai")) continue;
 
             scan(fullPath);
         } else if (entry.isFile()) {

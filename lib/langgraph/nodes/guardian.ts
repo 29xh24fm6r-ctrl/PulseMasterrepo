@@ -5,16 +5,22 @@ import type { OmegaState, GuardianReview, ReasoningStep } from "../types";
 import { omegaJsonModel } from "../model";
 import { parseJsonObject } from "../utils";
 import { hardGuard } from "../hardguard";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { getConfidenceAdjustment, recordConfidencePrediction } from "@/lib/omega/confidence-ledger";
 import { checkConstraintsWithEscalation, getUserAutonomyLevel } from "@/lib/omega/autonomy";
 
 const model = omegaJsonModel();
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+let _supabaseAdmin: SupabaseClient | null = null;
+function supabaseAdmin(): SupabaseClient {
+  if (!_supabaseAdmin) {
+    _supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+  }
+  return _supabaseAdmin;
+}
 
 export async function guardianNode(state: OmegaState): Promise<Partial<OmegaState>> {
   const startTime = Date.now();
@@ -46,7 +52,7 @@ export async function guardianNode(state: OmegaState): Promise<Partial<OmegaStat
     });
 
     // Still run LLM-based constraint checking for nuanced analysis
-    const { data: constraints } = await supabaseAdmin
+    const { data: constraints } = await supabaseAdmin()
       .from("pulse_constraints")
       .select("*")
       .order("constraint_type");
@@ -161,7 +167,7 @@ Respond with JSON only:
       for (const check of failedChecks) {
         const constraint = constraints?.find((c) => c.constraint_name === check.constraint);
         if (constraint) {
-          await supabaseAdmin.from("pulse_constraint_violations").insert({
+          await supabaseAdmin().from("pulse_constraint_violations").insert({
             user_id: state.userId,
             constraint_id: constraint.id,
             attempted_action: state.draft,

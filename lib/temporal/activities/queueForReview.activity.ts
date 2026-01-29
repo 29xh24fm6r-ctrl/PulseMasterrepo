@@ -1,13 +1,19 @@
 // lib/temporal/activities/queueForReview.activity.ts
 // Activity that queues drafts for human review
 
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import type { OmegaState } from "@/lib/langgraph/types";
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+let _supabaseAdmin: SupabaseClient | null = null;
+function supabaseAdmin(): SupabaseClient {
+  if (!_supabaseAdmin) {
+    _supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+  }
+  return _supabaseAdmin;
+}
 
 export interface QueueResult {
   queued: boolean;
@@ -30,7 +36,7 @@ export async function queueForReviewActivity(state: OmegaState): Promise<QueueRe
   try {
     // Update draft status to pending_review if we have an ID
     if (state.draft.id) {
-      const { error } = await supabaseAdmin
+      const { error } = await supabaseAdmin()
         .from("pulse_drafts")
         .update({ status: "pending_review" })
         .eq("id", state.draft.id);
@@ -42,7 +48,7 @@ export async function queueForReviewActivity(state: OmegaState): Promise<QueueRe
     }
 
     // Create a notification for the user
-    await supabaseAdmin.from("pulse_notifications").insert({
+    await supabaseAdmin().from("pulse_notifications").insert({
       user_id: state.userId,
       notification_type: "draft_pending_review",
       title: `Review Required: ${state.draft.title}`,

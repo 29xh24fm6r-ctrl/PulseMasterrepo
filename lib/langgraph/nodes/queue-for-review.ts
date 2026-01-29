@@ -2,12 +2,18 @@
 // Queue for Review node: Queue drafts for manual review
 
 import type { OmegaState, ReasoningStep } from "../types";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+let _supabaseAdmin: SupabaseClient | null = null;
+function supabaseAdmin(): SupabaseClient {
+  if (!_supabaseAdmin) {
+    _supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+  }
+  return _supabaseAdmin;
+}
 
 export async function queueForReviewNode(state: OmegaState): Promise<Partial<OmegaState>> {
   const startTime = Date.now();
@@ -18,7 +24,7 @@ export async function queueForReviewNode(state: OmegaState): Promise<Partial<Ome
 
   try {
     if (state.draft.id) {
-      await supabaseAdmin
+      await supabaseAdmin()
         .from("pulse_drafts")
         .update({ status: "pending_review" })
         .eq("id", state.draft.id);

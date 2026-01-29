@@ -1,13 +1,19 @@
 // lib/temporal/activities/persistOmega.activity.ts
 // Activity that persists Omega workflow state to database
 
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import type { OmegaState } from "@/lib/langgraph/types";
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+let _supabaseAdmin: SupabaseClient | null = null;
+function supabaseAdmin(): SupabaseClient {
+  if (!_supabaseAdmin) {
+    _supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+  }
+  return _supabaseAdmin;
+}
 
 /**
  * Persist Omega workflow state to the database
@@ -16,7 +22,7 @@ const supabaseAdmin = createClient(
  */
 export async function persistOmegaActivity(state: OmegaState): Promise<void> {
   try {
-    const { error } = await supabaseAdmin.from("pulse_omega_runs").upsert(
+    const { error } = await supabaseAdmin().from("pulse_omega_runs").upsert(
       {
         user_id: state.userId,
         session_id: state.sessionId,
