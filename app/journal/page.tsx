@@ -120,13 +120,14 @@ export default function JournalPage() {
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
-      const sdpResponse = await fetch("https://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17", {
+      // SDP exchange proxied through our server (CSP stays first-party only)
+      const sdpResponse = await fetch("/api/voice/sdp", {
         method: "POST",
-        headers: { "Authorization": `Bearer ${client_secret}`, "Content-Type": "application/sdp" },
-        body: offer.sdp,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: client_secret, sdp: offer.sdp }),
       });
 
-      if (!sdpResponse.ok) throw new Error("Failed to connect");
+      if (!sdpResponse.ok) throw new Error("SDP negotiation failed");
 
       const answerSdp = await sdpResponse.text();
       await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
