@@ -209,16 +209,15 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
-      const sdpRes = await fetch("https://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17", {
+      // SDP exchange proxied through our server so the browser
+      // never connects to api.openai.com (CSP stays first-party only)
+      const sdpRes = await fetch("/api/voice/sdp", {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/sdp",
-        },
-        body: offer.sdp,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, sdp: offer.sdp }),
       });
 
-      if (!sdpRes.ok) throw new Error("Failed to connect to OpenAI Realtime");
+      if (!sdpRes.ok) throw new Error("SDP negotiation failed");
 
       const answerSdp = await sdpRes.text();
       await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });

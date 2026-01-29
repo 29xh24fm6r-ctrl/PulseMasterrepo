@@ -71,18 +71,15 @@ export function VoiceChat({ coach, context, onTranscript }: VoiceChatProps) {
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
-      // Connect to OpenAI Realtime API
-      const sdpRes = await fetch("https://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17", {
+      // SDP exchange proxied through our server (CSP stays first-party only)
+      const sdpRes = await fetch("/api/voice/sdp", {
         method: "POST",
-        headers: {
-          "Authorization": `Bearer ${client_secret.value}`,
-          "Content-Type": "application/sdp",
-        },
-        body: offer.sdp,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: client_secret.value, sdp: offer.sdp }),
       });
 
       if (!sdpRes.ok) {
-        throw new Error("Failed to connect to OpenAI");
+        throw new Error("SDP negotiation failed");
       }
 
       const answerSdp = await sdpRes.text();

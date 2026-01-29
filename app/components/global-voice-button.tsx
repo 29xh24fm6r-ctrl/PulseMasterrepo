@@ -180,13 +180,14 @@ export default function GlobalVoiceButton() {
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
-      const sdp = await fetch('https://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17', {
+      // SDP exchange proxied through our server (CSP stays first-party only)
+      const sdp = await fetch('/api/voice/sdp', {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${client_secret}`, 'Content-Type': 'application/sdp' },
-        body: offer.sdp,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: client_secret, sdp: offer.sdp }),
       });
 
-      if (!sdp.ok) throw new Error('Connect failed');
+      if (!sdp.ok) throw new Error('SDP negotiation failed');
       await pc.setRemoteDescription({ type: 'answer', sdp: await sdp.text() });
 
     } catch (err) {
