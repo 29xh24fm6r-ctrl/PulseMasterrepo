@@ -2,6 +2,7 @@
 // Autonomy management API for Pulse Omega
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
 import { withCompatTelemetry } from "@/lib/compat/withCompatTelemetry";

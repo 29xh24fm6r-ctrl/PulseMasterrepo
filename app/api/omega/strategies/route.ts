@@ -1,6 +1,8 @@
 // app/api/omega/strategies/route.ts
 // View and manage learned strategies
 
+export const dynamic = "force-dynamic";
+
 import { requireOpsAuth } from "@/lib/auth/opsAuth";
 import { withCompatTelemetry } from "@/lib/compat/withCompatTelemetry";
 import { getSupabaseAdminRuntimeClient } from "@/lib/runtime/supabase.runtime";
