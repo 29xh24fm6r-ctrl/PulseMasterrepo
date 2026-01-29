@@ -6,6 +6,7 @@ import { PrimaryNavigation } from "./PrimaryNavigation";
 import { ContextStrip } from "./ContextStrip";
 import { OverlayRoot } from "./overlays/OverlayRoot";
 import { useOverlays } from "./overlays/OverlayContext";
+import { GlobalVoiceButton } from "@/components/GlobalVoiceButton";
 
 function ShellContent({ children }: { children: ReactNode }) {
     const { ippActive } = useOverlays();
@@ -37,6 +38,9 @@ function ShellContent({ children }: { children: ReactNode }) {
                     {!ippActive && children}
                 </main>
             </div>
+
+            {/* Global Voice Button - Talk to Pulse directly */}
+            <GlobalVoiceButton position="bottom-right" />
         </div>
     );
 }
